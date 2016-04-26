@@ -1,5 +1,6 @@
 # Jumper-Cogs
 Python Modules for Discord bot
+
 Developer: Redjumpman
 
 ####*Pokedex*
