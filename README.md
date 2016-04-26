@@ -29,6 +29,9 @@ discord with !load "cog-name" or it will automatically prompt you to load it on 
 - DnD (will include spell lookups, magic item generator, and lore search)
 - I have a lot of ideas and will constantly update this list based on requests!
 
+# Suggestions
+Have an idea for a cog? Start an issue on this repository and I will try to work on it.
+
 # Note
 
 Some of these extensions will require you install a library to use. Instructions
