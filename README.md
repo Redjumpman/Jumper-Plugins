@@ -1,5 +1,6 @@
 # Jumper-Cogs
 Python Modules for Discord bot
+
 Developer: Redjumpman
 
 These cogs are developed for Twentysix26's discord bot "Redbot"
