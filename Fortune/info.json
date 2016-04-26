@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Simple cog that allows you to recieve a fortune.",
+    "DISABLED" : false,
+    "NAME" : "Fortune"
+}
