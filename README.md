@@ -1,9 +1,8 @@
 # Jumper-Cogs
 Python Modules for Discord bot
-
 Developer: Redjumpman
 
-These cogs are developed for Twentysix26's discord bot "Redbot"
+####*Pokedex*
 
 Some of these cogs will require that you install a library to use.
 Instructions on what and how to install these libraries are located in
