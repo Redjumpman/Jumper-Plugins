@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Allows the user to retrieve pokedex info, moveset info(by generation), a pokemon's stats, and can search for pokemon items. \n Requires 3 pip3 installs: \n pip3 install beautifulsoup \n pip3 install numpy \n pip3 install tabulate",
+    "DISABLED" : false,
+    "NAME" : "Pokedex"
+}
