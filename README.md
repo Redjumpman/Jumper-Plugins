@@ -17,7 +17,7 @@ Simple extension that will display a fortune. Can add your own in the file.
 
 
 # Installation
-cog install Jumper-Cogs <cogname>
+cog install Jumper-Cogs "cogname"
 
 OR
 
