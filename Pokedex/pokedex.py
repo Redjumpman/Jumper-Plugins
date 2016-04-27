@@ -396,5 +396,14 @@ class Pokedex:
 
 
 def setup(bot):
-    n = Pokedex(bot)
-    bot.add_cog(n)
+    if soupAvailable:
+        if tabulateAvailable:
+            if numpyAvailable:
+                n = Pokedex(bot)
+                bot.add_cog(n)
+            else:
+                raise RuntimeError("You need to run 'pip3 install numpy'")
+        else:
+            raise RuntimeError("You need to run 'pip3 install tabulate'")
+    else:
+        raise RuntimeError("You need to run 'pip3 install beautifulsoup4'")
