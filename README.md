@@ -17,8 +17,11 @@ Simple extension that will display a fortune. Can add your own in the file.
 
 
 # Installation
-Simple drag and drop the .py file into your "cog" folder. You can then load it in
-discord with !load "cog-name" or it will automatically prompt you to load it on a restart.
+cog install Jumper-Cogs <cogname>
+
+OR
+
+download the .py file and place it in your cog folder.
 
 # What's planned?
 
