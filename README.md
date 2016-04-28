@@ -14,7 +14,16 @@ Developer: Redjumpman
 ####*Fortune*
 Simple extension that will display a fortune. Can add your own in the file.
 
+####*Dicetable*
+Allows the user to roll up to 20 dice and outputs the data into a table. Includes the following variants:
+- d20
+- d12
+- d10
+- d8
+- d6
+- d4
 
+Perfect for roleplaying games like DnD and Pathfinder!
 
 # Installation
 
