@@ -17,6 +17,16 @@ Simple extension that will display a fortune. Can add your own in the file.
 
 
 # Installation
+Pokedex cog will require two library installs. To install these libraries do the 
+following:
+
+-Open command prompt
+-type pip3 install tabulate
+-press enter and let the library load
+-type pip3 install beautifulsoup4
+-Once this has loaded you just need to install my cog!
+
+Then:
 cog install Jumper-Cogs "cogname"
 
 OR
@@ -35,7 +45,3 @@ download the .py file and place it in your cog folder.
 # Suggestions
 Have an idea for a cog? Start an issue on this repository and I will try to work on it.
 
-# Note
-
-Some of these extensions will require you install a library to use. Instructions
-will be located within the folder's .JSON file
