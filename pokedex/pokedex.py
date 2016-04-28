@@ -41,7 +41,8 @@ class Pokedex:
     # when defining the sub group you need to have _ before and after the new
     # command
     async def _pokemon_pokedex(self, pokemon):
-        """Get a pokemon's pokedex info."""
+        """Get a pokemon's pokedex info.
+        Example !pokedex pokemon gengar"""
         # We need to check if the length of the input is greater than 0.
         # This is just a catch for when there is no input
         if len(pokemon) > 0:
@@ -95,7 +96,8 @@ class Pokedex:
 
     @pokedex.command(name="stats", pass_context=False)
     async def _stats_pokedex(self, pokemon):
-        """Get a pokemon's base stats."""
+        """Get a pokemon's base stats.
+        Example: !pokedex stats squirtle"""
         if len(pokemon) > 0:
             url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
@@ -139,7 +141,7 @@ class Pokedex:
     async def _moveset_pokedex(self, generation: str, pokemon):
         """Get a pokemon's moveset by generation(1-6).
 
-          Example: !pokedex moveset 'Gen #' 'Pokemon' """
+          Example: !pokedex moveset V pikachu """
         if len(pokemon) > 0:
             if generation == "6" or generation == "VI":
                 try:
@@ -318,7 +320,7 @@ class Pokedex:
     @pokedex.command(name="item", pass_context=False)
     async def _item_pokedex(self, item):
         """Get a description of an item.
-        Use '-' for spaces. Example: master-ball
+        Use '-' for spaces. Example: !pokedex item master-ball
         """
         if len(item) > 0:
             url = "http://pokemondb.net/item/" + str(item)
@@ -339,7 +341,7 @@ class Pokedex:
     @pokedex.command(name="location", pass_context=False)
     async def _location_pokedex(self, pokemon):
         """Get a pokemon's catch location.
-        Will display for all verisons
+        Example !pokedex location voltorb
         """
         if len(pokemon) > 0:
             url = "http://pokemondb.net/pokedex/" + str(pokemon)
@@ -378,7 +380,8 @@ class Pokedex:
 
     @pokedex.command(name="evolution", pass_context=False)
     async def _evolution_pokedex(self, pokemon):
-        """Show a pokemon's evolution chain"""
+        """Show a pokemon's evolution chain
+        Example !pokedex evolution bulbasaur"""
         if len(pokemon) > 0:
             url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
