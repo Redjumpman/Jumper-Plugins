@@ -36,15 +36,20 @@ cog install Jumper-Cogs "cogname"
 download the .py file and place it in your cog folder.
 
 ####*Dependencies*
-Pokedex cog will require two library installs. To install these libraries do the 
-following:
-
+Some of my cogs will require you download a library. \n To install a library follow these instructions:
 - Open command prompt
-- Type pip3 install tabulate
+- Type pip3 install "Library name"   Example: pip3 install tabulate
 - Press enter and let the library load
-- Type pip3 install beautifulsoup4
 - Once this has loaded you just need to install the cog!
 
+####*Pokedex cog* 
+Library Requirements:
+- Tabulate
+- BeautifulSoup4
+
+####*Dicetable*
+Library Requirements:
+- Tabulate
 
 # What's planned?
 
