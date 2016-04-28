@@ -36,12 +36,15 @@ cog install Jumper-Cogs "cogname"
 download the .py file and place it in your cog folder.
 
 ####*Dependencies*
-Some of my cogs will require you download a library. \n To install a library follow these instructions:
+Some of my cogs will require you download a library.
+
+To install a library follow these instructions:
+```
 - Open command prompt
 - Type pip3 install "Library name"   Example: pip3 install tabulate
 - Press enter and let the library load
 - Once this has loaded you just need to install the cog!
-
+```
 ####*Pokedex cog* 
 Library Requirements:
 - Tabulate
