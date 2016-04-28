@@ -20,10 +20,10 @@ Simple extension that will display a fortune. Can add your own in the file.
 Pokedex cog will require two library installs. To install these libraries do the 
 following:
 
--Open command prompt
--type pip3 install tabulate
--press enter and let the library load
--type pip3 install beautifulsoup4
+- Open command prompt
+- Type pip3 install tabulate
+- Press enter and let the library load
+- Type pip3 install beautifulsoup4
 -Once this has loaded you just need to install my cog!
 
 Then:
