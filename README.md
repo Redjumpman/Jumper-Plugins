@@ -34,7 +34,7 @@ following:
 - Type pip3 install tabulate
 - Press enter and let the library load
 - Type pip3 install beautifulsoup4
-- Once this has loaded you just need to install my cog!
+- Once this has loaded you just need to install the cog!
 
 
 # What's planned?
