@@ -27,6 +27,7 @@ following:
 - Once this has loaded you just need to install my cog!
 
 Then:
+
 cog install Jumper-Cogs "cogname"
 
 OR
