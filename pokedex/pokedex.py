@@ -40,13 +40,13 @@ class Pokedex:
     @pokedex.command(name="pokemon", pass_context=False)
     # when defining the sub group you need to have _ before and after the new
     # command
-    async def _pokemon_pokedex(self, text):
+    async def _pokemon_pokedex(self, pokemon):
         """Get a pokemon's pokedex info."""
         # We need to check if the length of the input is greater than 0.
         # This is just a catch for when there is no input
-        if len(text) > 0:
+        if len(pokemon) > 0:
             # All data is pulled from pokemondb.net
-            url = "http://pokemondb.net/pokedex/" + str(text)
+            url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
@@ -94,10 +94,10 @@ class Pokedex:
                                " pokemon name to search")
 
     @pokedex.command(name="stats", pass_context=False)
-    async def _stats_pokedex(self, text):
+    async def _stats_pokedex(self, pokemon):
         """Get a pokemon's base stats."""
-        if len(text) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(text)
+        if len(pokemon) > 0:
+            url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
@@ -136,14 +136,14 @@ class Pokedex:
                                )
 
     @pokedex.command(name="moveset", pass_context=False)
-    async def _moveset_pokedex(self, generation: str, text):
+    async def _moveset_pokedex(self, generation: str, pokemon):
         """Get a pokemon's moveset by generation(1-6).
 
           Example: !pokedex moveset 'Gen #' 'Pokemon' """
-        if len(text) > 0:
+        if len(pokemon) > 0:
             if generation == "6" or generation == "VI":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser"
@@ -171,7 +171,7 @@ class Pokedex:
 
             elif generation == "5" or generation == "V":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     # Added a continuation for url, instead of all on one line
                     # to make PEP8 compliant
                     url += "/moves/5"
@@ -200,7 +200,7 @@ class Pokedex:
 
             elif generation == "4" or generation == "IV":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     url += "/moves/4"
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
@@ -228,7 +228,7 @@ class Pokedex:
 
             elif generation == "3" or generation == "III":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     url += "/moves/3"
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
@@ -255,7 +255,7 @@ class Pokedex:
 
             elif generation == "2" or generation == "II":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     url += "/moves/2"
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
@@ -282,7 +282,7 @@ class Pokedex:
 
             elif generation == "1" or generation == "I":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(text)
+                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
                     url += "/moves/1"
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
@@ -316,19 +316,19 @@ class Pokedex:
                                )
 
     @pokedex.command(name="item", pass_context=False)
-    async def _item_pokedex(self, text):
+    async def _item_pokedex(self, item):
         """Get a description of an item.
         Use '-' for spaces. Example: master-ball
         """
-        if len(text) > 0:
-            url = "http://pokemondb.net/item/" + str(text)
+        if len(item) > 0:
+            url = "http://pokemondb.net/item/" + str(item)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     divs = soup.find('p')
                     info = divs.get_text()
 
-                    await self.bot.say("**" + str(text.title()) + ":**" +
+                    await self.bot.say("**" + str(item.title()) + ":**" +
                                        "\n" + "```" + str(info) + "```"
                                        )
                 except:
@@ -337,12 +337,12 @@ class Pokedex:
             await self.bot.say("Please input an item name.")
 
     @pokedex.command(name="location", pass_context=False)
-    async def _location_pokedex(self, text):
+    async def _location_pokedex(self, pokemon):
         """Get a pokemon's catch location.
         Will display for all verisons
         """
-        if len(text) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(text)
+        if len(pokemon) > 0:
+            url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
                 soup = BeautifulSoup(await response.text(), "html.parser")
                 loc = []
@@ -377,10 +377,10 @@ class Pokedex:
                                )
 
     @pokedex.command(name="evolution", pass_context=False)
-    async def _evolution_pokedex(self, text):
+    async def _evolution_pokedex(self, pokemon):
         """Show a pokemon's evolution chain"""
-        if len(text) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(text)
+        if len(pokemon) > 0:
+            url = "http://pokemondb.net/pokedex/" + str(pokemon)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
@@ -389,7 +389,7 @@ class Pokedex:
                     evo = str(div.text.strip())
                     await self.bot.say("```" + evo + "```")
                 except:
-                    await self.bot.say(str(text) +
+                    await self.bot.say(str(pokemon) +
                                        " does not have an evolution chain")
         else:
             await self.bot.say("Please input a pokemon name.")
