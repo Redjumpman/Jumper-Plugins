@@ -25,7 +25,7 @@ class Dicetable:
     async def _d20_dicetable(self, number: int, modifier: int):
         """Rolls a number of d20's plus your modifier
         Example: 'dicetable d20 6 2' rolls 6 d20s with a +2 modifier"""
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
@@ -58,7 +58,7 @@ class Dicetable:
     async def _d12_dicetable(self, number: int, modifier: int):
         """Rolls a number of d12's plus your modifier
         Example: `dicetable d12 6 2` rolls 6 d12s with a +2 modifier"""
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
@@ -92,7 +92,7 @@ class Dicetable:
         """Rolls a number of d10's plus your modifier
         Example: 'dicetable d10 6 2' rolls 6 d10s with a +2 modifier
         """
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
@@ -125,7 +125,7 @@ class Dicetable:
     async def _d8_dicetable(self, number: int, modifier: int):
         """Rolls a number of d8's plus your modifier
         Example: `dicetable d8 6 2` rolls 6 d8s with a +2 modifier"""
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
@@ -158,7 +158,7 @@ class Dicetable:
     async def _d6_dicetable(self, number: int, modifier: int):
         """Rolls a number of d6's plus your modifier
         Example: `dicetable d6 4 2` rolls 4 d6s with a +2 modifier"""
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
@@ -191,7 +191,7 @@ class Dicetable:
     async def _d4_dicetable(self, number: int, modifier: int):
         """Rolls a number of d4's plus your modifier
         Example: `dicetable d4 6 2` rolls 6 d4s with a +2 modifier"""
-        if number > 20:
+        if number < 20:
             roll_name = ["Roll 1", "Roll 2", "Roll 3", "Roll 4", "Roll 5",
                          "Roll 6", "Roll 7", "Roll 8", "Roll 9", "Roll 10",
                          "Roll 11",  "Roll 12",  "Roll 13",  "Roll 14",
