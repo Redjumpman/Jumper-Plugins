@@ -13,11 +13,6 @@ try:   # Check if Tabulate is installed
     tabulateAvailable = True
 except:
     tabulateAvailable = False
-try:    # Check if Numpy is installed
-    import numpy as np
-    numpyAvailable = True
-except:
-    numpyAvailable = False
 
 
 class Pokedex:
@@ -78,10 +73,10 @@ class Pokedex:
 
                 # Slams the two list into one column This is made easy because
                 # both are 1 dimensional
-                    j = np.column_stack((pokeh, poke))
+                    m = list(zip(pokeh, poke))
                 # using the import from tabulate format the combined list into
                 # a nice looking table
-                    t = tabulate(j, headers=["Pokedex", "Data"])
+                    t = tabulate(m, headers=["Pokedex", "Data"])
                 # We add that data. Img is a image, but t is all text so we
                 # have to say so with str. \n creates a new line and the ```
                 # puts the output into the pretty code block
@@ -367,10 +362,8 @@ class Pokedex:
                 # a list of a list. Then we can stack and tabulate.
                 extract_loc = loc[0]
                 extract_version = version[0]
-                j = np.column_stack((extract_version, extract_loc))
-                # rows = table_body.find('tr')
-                # loc = rows.get_text()
-                t = tabulate(j, headers=["Game Version", "Location"])
+                m = list(zip(extract_version, extract_loc))
+                t = tabulate(m, headers=["Game Version", "Location"])
 
                 await self.bot.say("```" + str(t) + "```")
         else:
@@ -401,11 +394,8 @@ class Pokedex:
 def setup(bot):
     if soupAvailable:
         if tabulateAvailable:
-            if numpyAvailable:
-                n = Pokedex(bot)
-                bot.add_cog(n)
-            else:
-                raise RuntimeError("You need to run 'pip3 install numpy'")
+            n = Pokedex(bot)
+            bot.add_cog(n)
         else:
             raise RuntimeError("You need to run 'pip3 install tabulate'")
     else:
