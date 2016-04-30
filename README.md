@@ -3,6 +3,18 @@ Python Modules for Discord bot
 
 Developer: Redjumpman
 
+####*Lottery*
+- Enables admins to start a lottery
+- Only members who have signed up can play in a lottery
+- Requires you to be online and type !lottery play to participate in an on-going lottery
+- Ending a lottery will declare a winner, randomly picked from participating members
+- Members can check how many lotteries they have participated in
+
+#####*Note* This cog will create a data folder named "lottery" which contains three JSON files:
+- players - contains all the members who signed up and uses this to determine winners
+- system - determines if a lottery is active and records the number of lotteries ran
+- lottery - Creates a log for errors with the lottery.
+
 ####*Pokedex*
 - Search for pokemon catch locations
 - Search for items
@@ -49,6 +61,10 @@ To install a library follow these instructions:
 Library Requirements:
 - Tabulate
 - BeautifulSoup4
+
+####*Lottery*
+Library Requirements:
+- Tabulate
 
 ####*Dicetable*
 Library Requirements:
