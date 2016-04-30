@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Can start, end lotteries, make users signup, and can track the number of lotteries participated in. Creates 2 JSON files and a lottery log. Requires: pip3 install tabulate",
+    "DISABLED" : false,
+    "NAME" : "Start, Play, End, and signup for lotteries"
+}
