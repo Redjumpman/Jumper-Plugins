@@ -2,5 +2,5 @@
     "AUTHOR" : "Redjumpman",
     "DESCRIPTION" : "Ouputs each roll number, result, modifier, and total in a table.",
     "DISABLED" : false,
-    "NAME" : "Rolls a user defined number of dice and outputs the data in a table"
+    "NAME" : "Can roll multiple die and outputs to a table"
 }
