@@ -81,7 +81,7 @@ class Lottery:
                                      "lotteries_played": 0,
                                      "lotteries_won": 0,
                                      "current_ticket": "",
-                                     "ticket_played": "no"}
+                                     "ticket_played": "No"}
             fileIO("data/lottery/players.json", "save", self.players)
             await self.bot.say("You have joined the lottery system " +
                                user.mention + ". You can now participate in" +
