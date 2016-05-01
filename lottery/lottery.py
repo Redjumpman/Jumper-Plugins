@@ -50,23 +50,23 @@ class Lottery:
     @checks.admin_or_permissions(manage_server=True)
     async def end(self, ctx):
         """This will stop the lottery and pick a winner"""
-        user = ctx.message.author
-        id = user.id
         if self.system["lottery_start"] == "Active":
             self.system["lottery_start"] = "Inactive"
             fileIO("data/lottery/system.json", "save", self.system)
-            self.players[id]["ticket_played"] = "No"
-            fileIO("data/lottery/players.json", "save", self.players)
-            possible = ''.join(subdict[
-                                       'current_ticket'
-                                      ] for subdict in self.players.values())
-            winner = randchoice(possible.split())
+            results = []
             for subdict in self.players.values():
-                subdict['current_ticket'] = ""
+                results.append(subdict['current_ticket'])
+            for subdict in self.players.values():
+                subdict['ticket_played'] = "No"
             fileIO("data/lottery/players.json", "save", self.players)
+            f = list(filter(None, results))
+            winner = randchoice(f)
             await self.bot.say("The lottery has ended. The winner is:  " +
                                str(winner) + "!!!")
             await self.bot.say("Congratulations " + str(winner))
+            for subdict in self.players.values():
+                subdict['current_ticket'] = ""
+            fileIO("data/lottery/players.json", "save", self.players)
 
         else:
             await self.bot.say("You can't end a lottery that I have"
