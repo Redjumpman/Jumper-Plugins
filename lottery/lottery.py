@@ -1,15 +1,11 @@
 import os
 import logging
+import time
 from discord.ext import commands
 from .utils.dataIO import fileIO
 from .utils import checks
 from __main__ import send_cmd_help
 from random import choice as randchoice
-try:   # Check if Tabulate is installed
-    from tabulate import tabulate
-    tabulateAvailable = True
-except:
-    tabulateAvailable = False
 
 
 class Lottery:
@@ -19,12 +15,38 @@ class Lottery:
         self.bot = bot
         self.players = fileIO("data/lottery/players.json", "load")
         self.system = fileIO("data/lottery/system.json", "load")
+        self.funny = ["Rigging the system...",
+                      "Removing tickets that didn't pay me off...",
+                      "Adding fake tickets...", "Throwing out the bad names..",
+                      "Switching out the winning ticket...",
+                      "Picking from highest bribe...",
+                      "Looking for a marked ticket...",
+                      "Eeny, meeny, miny, moe...",
+                      "I lost the tickets so...",
+                      "Stop messaging me, I'm picking..."]
 
     @commands.group(name="lottery", pass_context=True)
     async def _lottery(self, ctx):
         """Lottery Commands."""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @_lottery.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def fun(self, ctx):
+        """Add/Removes some fun text to picking the winner"""
+        if self.system["funny"] == "Off":
+            self.system["funny"] = "On"
+            fileIO("data/lottery/system.json", "save", self.system)
+            await self.bot.say("Fun text for the lottery is now ON!")
+
+        elif self.system["funny"] == "On":
+            self.system["funny"] = "Off"
+            fileIO("data/lottery/system.json", "save", self.system)
+            await self.bot.say("Fun text for the lottery is now OFF!")
+        else:
+            await self.bot.say("Missing funny parameter. Delete your " +
+                               "system.json file in your lottery folder.")
 
     @_lottery.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -38,8 +60,8 @@ class Lottery:
                                                              ] + 1
             fileIO("data/lottery/system.json", "save", self.system)
             await self.bot.say("A lottery has been started by " +
-                               user.mention +
-                               "\n" + "To enter type, !lottery play." +
+                               user.mention + "\n" +
+                               "To enter type, !lottery play." +
                                " Make sure to sign up or you can't play!!")
         else:
             await self.bot.say("You cannot start another lottery while one" +
@@ -61,12 +83,23 @@ class Lottery:
             fileIO("data/lottery/players.json", "save", self.players)
             f = list(filter(None, results))
             winner = randchoice(f)
-            await self.bot.say("The lottery has ended. The winner is:  " +
-                               str(winner) + "!!!")
-            await self.bot.say("Congratulations " + str(winner))
-            for subdict in self.players.values():
-                subdict['current_ticket'] = ""
-            fileIO("data/lottery/players.json", "save", self.players)
+            funny = randchoice(self.funny)
+            await self.bot.say("The winner is...")
+            time.sleep(2)
+            if self.system["funny"] == "On":
+                await self.bot.say(str(funny))
+                time.sleep(5)
+                await self.bot.say(str(winner) + "!!!" +
+                                   "\n" + "Congratulations " + str(winner))
+                for subdict in self.players.values():
+                    subdict['current_ticket'] = ""
+                    fileIO("data/lottery/players.json", "save", self.players)
+            else:
+                await self.bot.say(str(winner) + "!!!" +
+                                   "\n" + "Congratulations " + str(winner))
+                for subdict in self.players.values():
+                    subdict['current_ticket'] = ""
+                    fileIO("data/lottery/players.json", "save", self.players)
 
         else:
             await self.bot.say("You can't end a lottery that I have"
@@ -120,13 +153,9 @@ class Lottery:
         user = ctx.message.author
         id = user.id
         if user.id in self.players:
-            results = self.players[id].values()
-            result_list = list(results)
-            keys = ["Lotteries Played:", "Lottery Player:", "Ticket Name:",
-                    "Lotteries Won:", "Playing in a lottery:"]
-            stats = list(zip(keys, result_list))
-            t = tabulate(stats)
-            await self.bot.say("\n" + "```" + str(t) + "```")
+            results = self.players[id]["lotteries_played"]
+            await self.bot.say("\n" + "```" + "Lotteries Played: " +
+                               str(results) + "```")
         else:
             await self.bot.say("You need to sign-up for lotteries first.")
 
@@ -138,7 +167,8 @@ def check_folders():
 
 
 def check_files():
-    system = {"lotteries_played": 0, "lottery_start": "Inactive"}
+    system = {"lotteries_played": 0, "lottery_start": "Inactive",
+              "funny": "Off"}
 
     f = "data/lottery/system.json"
     if not fileIO(f, "check"):
@@ -164,7 +194,4 @@ def setup(bot):
         handler.setFormatter(logging.Formatter('%(asctime)s %(message)s',
                                                datefmt="[%d/%m/%Y %H:%M]"))
         logger.addHandler(handler)
-        if tabulateAvailable:
-            bot.add_cog(Lottery(bot))
-        else:
-            raise RuntimeError("You need to run 'pip3 install tabulate'")
+        bot.add_cog(Lottery(bot))
