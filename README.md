@@ -62,10 +62,6 @@ Library Requirements:
 - Tabulate
 - BeautifulSoup4
 
-####*Lottery*
-Library Requirements:
-- Tabulate
-
 ####*Dicetable*
 Library Requirements:
 - Tabulate
