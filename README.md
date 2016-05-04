@@ -8,7 +8,7 @@ Developer: Redjumpman
 - Only members who have signed up can play in a lottery
 - Requires you to be online and type !lottery play to participate in an on-going lottery
 - Ending a lottery will declare a winner, randomly picked from participating members
-- Members can check how many lotteries they have participated in
+- Members can check how many lotteries they have participated in and won
 
 #####*Note* This cog will create a data folder named "lottery" which contains three JSON files:
 - players - contains all the members who signed up and uses this to determine winners
