@@ -91,12 +91,24 @@ class Lottery:
                 time.sleep(5)
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
+                lookup = which_dict_key(winner, self.players)
+                extract = lookup[0]
+                self.players[extract]["lotteries_won"] = self.players[
+                                                                     extract
+                                                        ]["lotteries_won"] + 1
+                fileIO("data/lottery/players.json", "save", self.players)
                 for subdict in self.players.values():
                     subdict['current_ticket'] = ""
                     fileIO("data/lottery/players.json", "save", self.players)
             else:
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
+                lookup = which_dict_key(winner, self.players)
+                extract = lookup[0]
+                self.players[extract]["lotteries_won"] = self.players[
+                                                                      extract
+                                                          ]["lotteries_won"] + 1
+                fileIO("data/lottery/players.json", "save", self.players)
                 for subdict in self.players.values():
                     subdict['current_ticket'] = ""
                     fileIO("data/lottery/players.json", "save", self.players)
@@ -153,11 +165,21 @@ class Lottery:
         user = ctx.message.author
         id = user.id
         if user.id in self.players:
-            results = self.players[id]["lotteries_played"]
+            played = self.players[id]["lotteries_played"]
+            wins = self.players[id]["lotteries_won"]
             await self.bot.say("\n" + "```" + "Lotteries Played: " +
-                               str(results) + "```")
+                               str(played) + "\n" +
+                               "Lotteries Won: " + str(wins) + "```")
         else:
             await self.bot.say("You need to sign-up for lotteries first.")
+
+
+def which_dict_key(value, dicts):
+    '''
+    Return a list of keys for a dictionary where the value dictionary
+    for that key includes the value provided.
+    '''
+    return [key for key in dicts if value in dicts[key].values()]
 
 
 def check_folders():
@@ -174,6 +196,15 @@ def check_files():
     if not fileIO(f, "check"):
         print("Creating default lottery system.json...")
         fileIO(f, "save", system)
+    else:  # consistency check
+        current = fileIO(f, "load")
+        if current.keys() != system.keys():
+            for key in system.keys():
+                if key not in current.keys():
+                    current[key] = system[key]
+                    print("Adding " + str(key) +
+                          " field to lottery system.json")
+            fileIO(f, "save", current)
 
     f = "data/lottery/players.json"
     if not fileIO(f, "check"):
