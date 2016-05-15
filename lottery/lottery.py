@@ -1,6 +1,6 @@
 import os
 import logging
-import time
+import asyncio
 from discord.ext import commands
 from .utils.dataIO import fileIO
 from .utils import checks
@@ -85,10 +85,10 @@ class Lottery:
             winner = randchoice(f)
             funny = randchoice(self.funny)
             await self.bot.say("The winner is...")
-            time.sleep(2)
+            await asyncio.sleep(2)
             if self.system["funny"] == "On":
                 await self.bot.say(str(funny))
-                time.sleep(5)
+                await asyncio.sleep(5)
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
                 lookup = which_dict_key(winner, self.players)
@@ -107,7 +107,8 @@ class Lottery:
                 extract = lookup[0]
                 self.players[extract]["lotteries_won"] = self.players[
                                                                       extract
-                                                          ]["lotteries_won"] + 1
+                                                          ]["lotteries_won"
+                                                            ] + 1
                 fileIO("data/lottery/players.json", "save", self.players)
                 for subdict in self.players.values():
                     subdict['current_ticket'] = ""
