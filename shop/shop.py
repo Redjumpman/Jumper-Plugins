@@ -28,9 +28,18 @@ class Shop:
     # Create the group to store the shop commands
     @commands.group(name="shop", pass_context=True)
     async def _shop(self, ctx):
-        """Shop Commands.
-        Use <p>inventory to check your inventory
-        <p>pending to check the pending list (admins only)"""
+        """Individual Commands:
+        ---------
+        inventory      Shows a list of items in your inventory
+        store          Shows a list of items for sale
+        --------
+        Pending List Commands:
+        --------
+        show           Shows a list of items waiting to be redeemed
+        clear          Clear one single item from pending list
+        clear all      Clears all items from the pending list
+        -------
+        Shop Commands:"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
