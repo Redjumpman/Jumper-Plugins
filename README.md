@@ -37,6 +37,17 @@ Allows the user to roll up to 20 dice and outputs the data into a table. Include
 
 Perfect for roleplaying games like DnD and Pathfinder!
 
+####*Shop*
+- Admins can create items and set prices
+- Users can purchase these items
+- Items are giftable to other players
+- Items can be "redeemed" by sending them to a pending list
+- Admins can approve and clear the pending list
+- Can check items in your inventory, type !inventory
+- Uses Economy.py system points  
+
+Perfect for integrating with other games on your discord server!
+
 # Installation
 
 ####*Cog Install*
