@@ -46,7 +46,8 @@ Perfect for roleplaying games like DnD and Pathfinder!
 - Can check items in your inventory, type !inventory
 - Uses Economy.py system points  
 
-Perfect for integrating with other games on your discord server!
+Perfect for integrating with other games on your discord server!  
+Check my wiki for further documentation
 
 # Installation
 
