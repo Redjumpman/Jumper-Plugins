@@ -41,6 +41,7 @@ class Shop:
         -------
         Shop Commands:"""
         if ctx.invoked_subcommand is None:
+            ctx.message.channel = ctx.message.author
             await send_cmd_help(ctx)
 
     # We want to seperate the store so it doesn't have a shop prefix
@@ -66,18 +67,15 @@ class Shop:
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def remove(self, ctx, cost: int, *, itemname):
+    async def remove(self, ctx, *, itemname):
         """Removes an item from the shop list"""
-        self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
-        fileIO("data/shop/shop.json", "save", self.shop)
-        await self.bot.say("```" + str(itemname) + " has been added to" +
-                           " the shop for purchase." + "```")
-
-    @commands.group(name="pending", pass_context=True)
-    async def _pending(self, ctx):
-        """List of pending commands for redemable items"""
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+        if itemname in self.shop:
+            del self.shop[itemname]
+            fileIO("data/shop/shop.json", "save", self.shop)
+            await self.bot.say("```" + str(itemname) + " has been removed from" +
+                               " the shop." + "```")
+        else:
+            await self.bot.say("That item is not in the store")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def redeem(self, ctx, *, itemname):
@@ -207,39 +205,11 @@ class Shop:
         else:
             await self.bot.say("```" + "You have already joined" + "```")
 
-        @_pending.command(pass_context=True, no_pm=True)
-        @checks.admin_or_permissions(manage_server=True)
-        async def show(self, ctx):
-            """Shows a list of items that can be purchased"""
-            if len(self.pending) > 0:
-                k = json.dumps(self.pending, indent=1, sort_keys=True)
-                m = "```"
-                m += k.replace('"', '',).replace('{', '').replace('}', '').replace(',', '')
-                m += "```"
-                await self.bot.say(m)
-            else:
-                await self.bot.say("The pending list is empty.")
-
-        @_pending.command(pass_context=True, no_pm=True)
-        @checks.admin_or_permissions(manage_server=True)
-        async def clear(self, ctx, user: discord.Member, *, itemname):
-            """Allows you to clear one item from the pending list"""
-            if len(self.pending) > 0:
-                if user.id in self.pending:
-                    if itemname in self.pending[user.id][user.name]:
-                        del self.pending[user.id][user.name][itemname]
-                        fileIO("data/shop/pending.json", "save", self.pending)
-                        await self.bot.say(itemname + "has been cleared from" +
-                                           " pending, for " + user.name +
-                                           "'s redeem request.")
-                    else:
-                        await self.bot.say("The item is not in the pending list" +
-                                           " for this user")
-                else:
-                    await self.bot.say("This user has no pending requests. Make" +
-                                       " sure their name is spelled correctly.")
-            else:
-                await self.bot.say("The pending list is empty")
+    @commands.group(name="pending", pass_context=True)
+    async def _pending(self, ctx):
+        """List of pending commands for redemable items"""
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
 
     @_pending.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
