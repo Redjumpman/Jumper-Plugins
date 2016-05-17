@@ -320,8 +320,8 @@ class Shop:
                 self.players[id]["Inventory"][itemname]["Item Quantity"] = self.players[id]["Inventory"][itemname]["Item Quantity"] + 1
                 fileIO("data/shop/players.json", "save", self.players)
             else:
-                self.players[user.id]["Inventory"][itemname] = {"Item Name": nametwo,
-                                                                "Item Quantity": 1}
+                self.players[id]["Inventory"][itemname] = {"Item Name": itemname,
+                                                           "Item Quantity": 1}
                 fileIO("data/shop/players.json", "save", self.players)
         else:
             return False
