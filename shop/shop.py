@@ -10,6 +10,11 @@ from .utils.dataIO import fileIO
 from __main__ import send_cmd_help
 from .utils import checks
 from time import strftime
+try:   # Check if Tabulate is installed
+    from tabulate import tabulate
+    tabulateAvailable = True
+except:
+    tabulateAvailable = False
 
 #  This is a global variable used for the time format
 time_now = strftime("%Y-%m-%d %H:%M:%S")
@@ -49,12 +54,23 @@ class Shop:
     async def store(self, ctx):
         """Shows a list of items that can be purchased"""
         # loads all the text in the file and dumps it into k
-        k = json.dumps(self.shop, sort_keys=False, indent=4)
-        msg = "```"
-        msg += k.replace('"', '',).replace('{', '').replace('}', '').replace(',', '')
-        msg += "```"
-        # After we replace all the junk, it has a prettier print
-        await self.bot.send_message(ctx.message.author, msg)
+        shop_name = self.config["Shop Name"]
+        column1 = []
+        column2 = []
+        for subdict in self.shop.values():
+            column1.append(subdict['Item Name'])
+        for subdict in self.shop.values():
+            column2.append(subdict['Item Cost'])
+        m = list(zip(column1, column2))
+        t = tabulate(m, headers=["Item Name", "Item Cost"])
+        header = "```"
+        header += "=" * 30
+        header += "\n" + "\n" + "\n"
+        header += " " + shop_name + " Store Listings"
+        header += "\n" + "\n"
+        header += "=" * 30
+        header += "```"
+        await self.bot.whisper(header + "```" + t + "```")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -87,6 +103,7 @@ class Shop:
         if len(name) > 0:
             self.config["Shop Name"] = name
             fileIO("data/shop/config.json", "save", self.config)
+            shop_name = self.config["Shop Name"]
             await self.bot.say("I have renamed the shop to " + shop_name)
         else:
             await self.bot.say("You need to enter a name for the shop")
@@ -425,4 +442,7 @@ def setup(bot):
         handler = logging.FileHandler(filename='data/economy/economy.log', encoding='utf-8', mode='a')
         handler.setFormatter(logging.Formatter('%(asctime)s %(message)s', datefmt="[%d/%m/%Y %H:%M]"))
         logger.addHandler(handler)
-    bot.add_cog(Shop(bot))
+    if tabulateAvailable:
+        bot.add_cog(Shop(bot))
+    else:
+            raise RuntimeError("You need to run 'pip3 install tabulate'")
