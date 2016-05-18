@@ -49,7 +49,7 @@ class Shop:
     async def store(self, ctx):
         """Shows a list of items that can be purchased"""
         # loads all the text in the file and dumps it into k
-        k = json.dumps(self.shop, indent=4)
+        k = json.dumps(self.shop, sort_keys=False, indent=4)
         msg = "```"
         msg += k.replace('"', '',).replace('{', '').replace('}', '').replace(',', '')
         msg += "```"
@@ -60,27 +60,42 @@ class Shop:
     @checks.admin_or_permissions(manage_server=True)
     async def add(self, ctx, cost: int, *, itemname):
         """Adds an item to the shop list"""
+        shop_name = self.config["Shop Name"]
         self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
         fileIO("data/shop/shop.json", "save", self.shop)
         await self.bot.say("```" + str(itemname) + " has been added to" +
-                           " the shop for purchase." + "```")
+                           " the " + shop_name + "'s shop for purchase." + "```")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def remove(self, ctx, *, itemname):
         """Removes an item from the shop list"""
+        shop_name = self.config["Shop Name"]
         if itemname in self.shop:
             del self.shop[itemname]
             fileIO("data/shop/shop.json", "save", self.shop)
             await self.bot.say("```" + str(itemname) + " has been removed from" +
-                               " the shop." + "```")
+                               " the " + shop_name + "'s shop." + "```")
         else:
-            await self.bot.say("That item is not in the store")
+            await self.bot.say("That item is not in " + shop_name + "'s store")
+
+    @_shop.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def name(self, ctx, *, name):
+        """Renames the shop"""
+        shop_name = self.config["Shop Name"]
+        if len(name) > 0:
+            self.config["Shop Name"] = name
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("I have renamed the shop to " + shop_name)
+        else:
+            await self.bot.say("You need to enter a name for the shop")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def toggle(self, ctx):
         """Opens and closes the shop"""
+        shop_name = self.config["Shop Name"]
         if self.config["Shop Closed"] == "No":
             self.config["Shop Closed"] = "Yes"
             fileIO("data/shop/config.json", "save", self.config)
@@ -88,7 +103,7 @@ class Shop:
         else:
             self.config["Shop Closed"] = "No"
             fileIO("data/shop/config.json", "save", self.config)
-            await self.bot.say("The shop is now open for business!")
+            await self.bot.say("The " + shop_name + " shop is now open for business!")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def redeem(self, ctx, *, itemname):
@@ -130,6 +145,7 @@ class Shop:
     @_shop.command(pass_context=True, no_pm=True)
     async def buy(self, ctx, *, itemname):
         """Buy an item from the store list"""
+        shop_name = self.config["Shop Name"]
         user = ctx.message.author
         if self.config["Shop Closed"] == "No":
             if self.inventory_check(user.id):
@@ -166,10 +182,10 @@ class Shop:
                 else:
                     await self.bot.say("This item is not in the shop")
             else:
-                await self.bot.say("You need to join the shop to purchase items." +
+                await self.bot.say("You need to join the " + shop_name + " shop to purchase items." +
                                    " Example: !shop join")
         else:
-            await self.bot.say("The shop is closed")
+            await self.bot.say("The " + shop_name + " shop is closed")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def gift(self, ctx, user: discord.Member, *, itemname):
@@ -204,11 +220,12 @@ class Shop:
                 await self.bot.say("You do not own this shop item.")
         else:
             await self.bot.say("I cant find a user with that name." +
-                               " Check to see if that user has joined the shop.")
+                               " Check to see if that user has joined the " + shop_name + " shop.")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def join(self, ctx):
-        """Adds you to the shop shop. Only need to do this once."""
+        """Adds you to the shop. Only need to do this once."""
+        shop_name = self.config["Shop Name"]
         user = ctx.message.author
         if user.id not in self.players:
             self.players[user.id] = {}
@@ -216,7 +233,7 @@ class Shop:
             self.players[user.id]["Inventory"] = {}
             fileIO("data/shop/players.json", "save", self.players)
             await self.bot.say("\n" + "```" + "You have" +
-                               " joined the shop shop. You can now buy" +
+                               " joined the" + shop_name + " shop. You can now buy" +
                                " items with points." + "```")
         else:
             await self.bot.say("```" + "You have already joined" + "```")
@@ -360,7 +377,7 @@ def check_folders():
 
 
 def check_files():
-    system = {"Shop Name": "RedJumpman's Shop",
+    system = {"Shop Name": "RedJumpman",
               "Shop Closed": "No"}
 
     f = "data/shop/pending.json"
