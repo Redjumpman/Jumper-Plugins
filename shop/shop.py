@@ -24,6 +24,7 @@ class Shop:
         self.shop = fileIO("data/shop/shop.json", "load")
         self.bank = fileIO("data/economy/bank.json", "load")
         self.pending = fileIO("data/shop/pending.json", "load")
+        self.config = fileIO("data/shop/config.json", "load")
 
     # Create the group to store the shop commands
     @commands.group(name="shop", pass_context=True)
@@ -41,7 +42,6 @@ class Shop:
         -------
         Shop Commands:"""
         if ctx.invoked_subcommand is None:
-            ctx.message.channel = ctx.message.author
             await send_cmd_help(ctx)
 
     # We want to seperate the store so it doesn't have a shop prefix
@@ -76,6 +76,19 @@ class Shop:
                                " the shop." + "```")
         else:
             await self.bot.say("That item is not in the store")
+
+    @_shop.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def toggle(self, ctx):
+        """Opens and closes the shop"""
+        if self.config["Shop Closed"] == "No":
+            self.config["Shop Closed"] = "Yes"
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("The shop is now closed")
+        else:
+            self.config["Shop Closed"] = "No"
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("The shop is now open for business!")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def redeem(self, ctx, *, itemname):
@@ -118,42 +131,45 @@ class Shop:
     async def buy(self, ctx, *, itemname):
         """Buy an item from the store list"""
         user = ctx.message.author
-        if self.inventory_check(user.id):
-            if itemname in self.shop:
-                points = self.shop[itemname]["Item Cost"]
-                if self.account_check(user.id):
-                    if self.enough_points(user.id, points):
-                        if self.inventory_item_check(user.id, itemname):
-                            points = self.shop[itemname]["Item Cost"]
-                            self.inventory_add(user.id, itemname)
-                            self.bank[user.id]["balance"] = self.bank[user.id]["balance"] - points
-                            fileIO("data/economy/bank.json", "save", self.bank)
-                            msg = "```"
-                            msg += "You have purchased a " + str(itemname)
-                            msg += " for " + str(points) + " points. " + "\n"
-                            msg += str(itemname) + " has been added to your inventory"
-                            msg += "```"
-                            await self.bot.say(msg)
+        if self.config["Shop Closed"] == "No":
+            if self.inventory_check(user.id):
+                if itemname in self.shop:
+                    points = self.shop[itemname]["Item Cost"]
+                    if self.account_check(user.id):
+                        if self.enough_points(user.id, points):
+                            if self.inventory_item_check(user.id, itemname):
+                                points = self.shop[itemname]["Item Cost"]
+                                self.inventory_add(user.id, itemname)
+                                self.bank[user.id]["balance"] = self.bank[user.id]["balance"] - points
+                                fileIO("data/economy/bank.json", "save", self.bank)
+                                msg = "```"
+                                msg += "You have purchased a " + str(itemname)
+                                msg += " for " + str(points) + " points. " + "\n"
+                                msg += str(itemname) + " has been added to your inventory"
+                                msg += "```"
+                                await self.bot.say(msg)
+                            else:
+                                points = self.shop[itemname]["Item Cost"]
+                                self.inventory_add(user.id, itemname)
+                                self.bank[user.id]["balance"] = self.bank[user.id]["balance"] - points
+                                fileIO("data/economy/bank.json", "save", self.bank)
+                                msg = "```"
+                                msg += "You have purchased a " + str(itemname)
+                                msg += " for " + str(points) + " points. " + "\n"
+                                msg += str(itemname) + " has been added to your inventory"
+                                msg += "```"
+                                await self.bot.say(msg)
                         else:
-                            points = self.shop[itemname]["Item Cost"]
-                            self.inventory_add(user.id, itemname)
-                            self.bank[user.id]["balance"] = self.bank[user.id]["balance"] - points
-                            fileIO("data/economy/bank.json", "save", self.bank)
-                            msg = "```"
-                            msg += "You have purchased a " + str(itemname)
-                            msg += " for " + str(points) + " points. " + "\n"
-                            msg += str(itemname) + " has been added to your inventory"
-                            msg += "```"
-                            await self.bot.say(msg)
+                            await self.bot.say("You don't have enough points to purchase this item")
                     else:
-                        await self.bot.say("You don't have enough points to purchase this item")
+                        await self.bot.say("You do not have a bank account")
                 else:
-                    await self.bot.say("You do not have a bank account")
+                    await self.bot.say("This item is not in the shop")
             else:
-                await self.bot.say("This item is not in the shop")
+                await self.bot.say("You need to join the shop to purchase items." +
+                                   " Example: !shop join")
         else:
-            await self.bot.say("You need to join the shop to purchase items." +
-                               " Example: !shop join")
+            await self.bot.say("The shop is closed")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def gift(self, ctx, user: discord.Member, *, itemname):
@@ -344,6 +360,8 @@ def check_folders():
 
 
 def check_files():
+    system = {"Shop Name": "RedJumpman's Shop",
+              "Shop Closed": "No"}
 
     f = "data/shop/pending.json"
     if not fileIO(f, "check"):
@@ -364,6 +382,20 @@ def check_files():
     if not fileIO(f, "check"):
         print("Adding economy bank.json...")
         fileIO(f, "save", {})
+
+    f = "data/shop/config.json"
+    if not fileIO(f, "check"):
+        print("Adding shop config.json...")
+        fileIO(f, "save", system)
+    else:  # consistency check
+        current = fileIO(f, "load")
+        if current.keys() != system.keys():
+            for key in system.keys():
+                if key not in current.keys():
+                    current[key] = system[key]
+                    print("Adding " + str(key) +
+                          " field to shop config.json")
+            fileIO(f, "save", current)
 
 
 def setup(bot):
