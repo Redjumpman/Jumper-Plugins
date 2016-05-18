@@ -78,6 +78,10 @@ Library Requirements:
 Library Requirements:
 - Tabulate
 
+####*Shop*
+Library Requirements:
+- Tabulate
+
 # What's planned?
 
 - League of Legends
