@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Allows admins to add items to the shop. Players can purchase, gift, and redeem items. Admins can check a redeem list to clear it. Uses points from economy.py. Creates 3 files in data folder",
+    "DISABLED" : false,
+    "NAME" : "Purchase, redeem, gift, and buy admin created items using economy.py points"
+}
