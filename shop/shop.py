@@ -63,11 +63,7 @@ class Shop:
         m = list(zip(column1, column2))
         t = tabulate(m, headers=["Item Name", "Item Cost"])
         header = "```"
-        header += "=" * 30
-        header += "\n" + "\n" + "\n"
-        header += " " + shop_name + " Store Listings"
-        header += "\n" + "\n"
-        header += "=" * 30
+        header += self.bordered(shop_name + " Store Listings")
         header += "```"
         await self.bot.whisper(header + "```" + t + "```")
 
@@ -78,7 +74,7 @@ class Shop:
         shop_name = self.config["Shop Name"]
         self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
         fileIO("data/shop/shop.json", "save", self.shop)
-        await self.bot.say("```" + str(itemname) + " has been added to" +
+        await self.bot.say("```" + str(itemname) + " has been added to " +
                            shop_name + " shop for purchase." + "```")
 
     @_shop.command(pass_context=True, no_pm=True)
@@ -172,12 +168,13 @@ class Shop:
                             points = self.shop[itemname]["Item Cost"]
                             if not self.inventory_item_check(user.id, itemname):
                                 self.inventory_add(user.id, itemname)
+                            self.inventory_add(user.id, itemname)
                             econ = self.bot.get_cog("Economy")
                             econ.withdraw_money(user.id, points)
                             msg = "```"
                             msg += "You have purchased a " + str(itemname)
                             msg += " for " + str(points) + " points. " + "\n"
-                            msg += str(itemname) + " has been added to your inventory"
+                            msg += str(itemname) + " has been added to your inventory."
                             msg += "```"
                             await self.bot.say(msg)
                         else:
@@ -224,8 +221,10 @@ class Shop:
             else:
                 await self.bot.say("You do not own this shop item.")
         else:
+            shop_name = self.config["Shop Name"]
             await self.bot.say("I cant find a user with that name." +
-                               " Check to see if that user has joined the " + shop_name + " shop.")
+                               " Check to see if that user has joined the " + shop_name +
+                               " shop system.")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def join(self, ctx):
@@ -304,11 +303,27 @@ class Shop:
                 await self.bot.say("You have not purchased any items for " +
                                    "me to display")
             else:
-                j = json.dumps(self.players[user.id]["Inventory"], indent=4)
-                msg = "```"
-                msg += j.replace('"', '',).replace('{', '').replace('}', '').replace(',', '')
-                msg += "```"
-                await self.bot.send_message(ctx.message.author, msg)
+                    column1 = []
+                    column2 = []
+                    for subdict in self.players[user.id]["Inventory"].values():
+                            column1.append(subdict["Item Name"])
+                    for subdict in self.players[user.id]["Inventory"].values():
+                            column2.append(subdict["Item Quantity"])
+                    m = list(zip(column1, column2))
+                    t = tabulate(m, headers=["Item Name", "Item Cost"])
+                    header = "```"
+                    header += self.bordered("I N V E N T O R Y")
+                    header += "```"
+                    await self.bot.whisper(header + "```" + t + "```")
+
+    def bordered(self, text):
+        lines = text.splitlines()
+        width = max(len(s) for s in lines)
+        res = ['┌' + '─' * width + '┐']
+        for s in lines:
+            res.append('│' + (s + ' ' * width)[:width] + '│')
+        res.append('└' + '─' * width + '┘')
+        return '\n'.join(res)
 
     def account_check(self, uid):
         econ = self.bot.get_cog('Economy')
