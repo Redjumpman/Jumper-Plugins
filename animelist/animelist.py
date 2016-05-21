@@ -7,6 +7,7 @@ import os
 from xml.etree import ElementTree
 from discord.ext import commands
 from .utils.dataIO import fileIO
+from cogs.utils import checks
 
 # Username and Password from myanime list webiste
 # You need to create an account there and input the information below
@@ -19,7 +20,8 @@ class Animelist:
         self.bot = bot
         self.credentials = fileIO("data/animelist/credentials.json", "load")
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command(pass_context=True, no_pm=False)
+    @checks.is_owner()
     async def animeset(self, ctx):
         """Sets your username and password from myanimelist"""
         await self.bot.say("Type your user name")
