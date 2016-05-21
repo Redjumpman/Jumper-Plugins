@@ -24,23 +24,23 @@ class Animelist:
     @checks.is_owner()
     async def animeset(self, ctx):
         """Sets your username and password from myanimelist"""
-        await self.bot.say("Type your user name")
-        username = await self.bot.wait_for_message(timeout=8,
+        await self.bot.whisper("Type your user name")
+        username = await self.bot.wait_for_message(timeout=15,
                                                    author=ctx.message.author)
         if username is None:
             return
         else:
             self.credentials["Username"] = username.content
             fileIO("data/animelist/credentials.json", "save", self.credentials)
-            await self.bot.say("Ok thanks. Now what is your password?")
-            password = await self.bot.wait_for_message(timeout=8,
+            await self.bot.whisper("Ok thanks. Now what is your password?")
+            password = await self.bot.wait_for_message(timeout=15,
                                                        author=ctx.message.author)
             if password is None:
                 return
             else:
                 self.credentials["Password"] = password.content
                 fileIO("data/animelist/credentials.json", "save", self.credentials)
-                await self.bot.say("Setup complete. Account details added. Try searching for an anime using !anime")
+                await self.bot.whisper("Setup complete. Account details added. Try searching for an anime using !anime")
 
     @commands.command(pass_context=True, no_pm=True)
     async def anime(self, ctx, *, name):
