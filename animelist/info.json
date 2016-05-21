@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Shows info about an anime. Requires a myanimelist.net account. Creates a 1 JSON file and a data folder to hold the username/password",
+    "DISABLED" : false,
+    "NAME" : "Shows info about anime. Use <p>animeset to set your credientials"
+}
