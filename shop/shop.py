@@ -65,7 +65,7 @@ class Shop:
         header = "```"
         header += self.bordered(shop_name + " Store Listings")
         header += "```"
-        await self.bot.whisper(header + "```" + t + "```")
+        await self.bot.whisper(header + "```\n" + t + "```")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -224,7 +224,7 @@ class Shop:
             shop_name = self.config["Shop Name"]
             await self.bot.say("I cant find a user with that name." +
                                " Check to see if that user has joined the " + shop_name +
-                               " shop system.")
+                               " shop system. They need to type <p>shop join before they can recieve a gift")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def join(self, ctx):
@@ -314,7 +314,7 @@ class Shop:
                     header = "```"
                     header += self.bordered("I N V E N T O R Y")
                     header += "```"
-                    await self.bot.whisper(header + "```" + t + "```")
+                    await self.bot.whisper(header + "```\n" + t + "```")
 
     def bordered(self, text):
         lines = text.splitlines()
