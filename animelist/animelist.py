@@ -20,7 +20,7 @@ class Animelist:
         self.bot = bot
         self.credentials = fileIO("data/animelist/credentials.json", "load")
 
-    @commands.command(pass_context=True, no_pm=False)
+    @commands.command(pass_context=True)
     @checks.is_owner()
     async def animeset(self, ctx):
         """Sets your username and password from myanimelist"""
