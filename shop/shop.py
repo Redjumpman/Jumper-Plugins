@@ -223,8 +223,8 @@ class Shop:
         else:
             shop_name = self.config["Shop Name"]
             await self.bot.say("I cant find a user with that name." +
-                               " Check to see if that user has joined the " + shop_name +
-                               " shop system. They need to type <p>shop join before they can recieve a gift")
+                               " Check to see if that user has joined " + shop_name +
+                               " shop. They need to type <p>shop join before they can recieve a gift")
 
     @_shop.command(pass_context=True, no_pm=True)
     async def join(self, ctx):
@@ -310,7 +310,7 @@ class Shop:
                     for subdict in self.players[user.id]["Inventory"].values():
                             column2.append(subdict["Item Quantity"])
                     m = list(zip(column1, column2))
-                    t = tabulate(m, headers=["Item Name", "Item Cost"])
+                    t = tabulate(m, headers=["Item Name", "Item Quantity"])
                     header = "```"
                     header += self.bordered("I N V E N T O R Y")
                     header += "```"
