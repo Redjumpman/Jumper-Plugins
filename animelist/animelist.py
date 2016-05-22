@@ -24,7 +24,7 @@ class Animelist:
     @checks.is_owner()
     async def animeset(self, ctx):
         """Sets your username and password from myanimelist"""
-        await self.bot.whisper("Type your user name")
+        await self.bot.whisper("Type your user name. You can reply in this private msg")
         username = await self.bot.wait_for_message(timeout=15,
                                                    author=ctx.message.author)
         if username is None:
