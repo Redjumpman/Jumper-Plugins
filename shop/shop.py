@@ -134,10 +134,15 @@ class Shop:
                                                  "Time Requested": time_now}
                     fileIO("data/shop/pending.json", "save", self.pending)
                     self.inventory_remove(user.id, itemname)
-                    await self.bot.say("```" + itemname + " has been added " +
-                                       "to pending list. Please wait for " +
-                                       "approval before adding more of the " +
-                                       "same item." + "```")
+                    if self.config["Shop Notify"]:
+                        names = self.role_check("Shopkeeper", ctx)
+                        destinations = [m for m in ctx.message.server.members if m.name in names]
+                        for destination in destinations:
+                            await self.bot.send_message(destination, itemname + " was added to the pending list by " + user.name)
+                        await self.bot.say("```" + itemname + " has been addddded " +
+                                           "to pending list. Please wait for " +
+                                           "approval before adding more of the " +
+                                           "same item." + "```")
                 else:
                     self.pending[user.id][user.name][itemname] = {"Item Name": itemname,
                                                                   "Time Requested": time_now}
@@ -148,6 +153,11 @@ class Shop:
                     msg += " pending list. Please wait for approval before "
                     msg += "adding more of the same item."
                     msg += "```"
+                    if self.config["Shop Notify"]:
+                        names = self.role_check("Shopkeeper", ctx)
+                        destinations = [m for m in ctx.message.server.members if m.name in names]
+                        for destination in destinations:
+                            await self.bot.send_message(destination, itemname + " was added to the pending list by " + user.name)
                     await self.bot.say(msg)
             else:
                 await self.bot.say("You do not have that item to redeem")
@@ -242,6 +252,20 @@ class Shop:
         else:
             await self.bot.say("```" + "You have already joined" + "```")
 
+    @_shop.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def notify(self, ctx):
+        """PM's all users with Shopkeeper role. Add this role if it does not exist.
+        This command will toggle notifications on/off"""
+        if self.config["Shop Notify"]:
+            self.config['Shop Notify'] = not self.config['Shop Notify']
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("Shop notifications are now OFF!")
+        else:
+            self.config["Shop Notify"] = True
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("Shop notifcations are now ON!")
+
     @commands.group(name="pending", pass_context=True)
     async def _pending(self, ctx):
         """List of pending commands for redemable items"""
@@ -332,6 +356,9 @@ class Shop:
         else:
             return False
 
+    def role_check(self, role, ctx):
+        return [m.name for m in ctx.message.server.members if role.lower() in [str(r).lower() for r in m.roles] and str(m.status) != 'offline']
+
     def enough_points(self, uid, amount):
         econ = self.bot.get_cog('Economy')
         if self.account_check(uid):
@@ -398,7 +425,8 @@ def check_folders():
 
 def check_files():
     system = {"Shop Name": "RedJumpman",
-              "Shop Open": True}
+              "Shop Open": True,
+              "Shop Notify": False}
 
     f = "data/shop/pending.json"
     if not fileIO(f, "check"):
