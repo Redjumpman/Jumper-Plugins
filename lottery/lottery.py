@@ -82,7 +82,9 @@ class Lottery:
                 subdict['ticket_played'] = "No"
             fileIO("data/lottery/players.json", "save", self.players)
             f = list(filter(None, results))
-            winner = randchoice(f)
+            names = randchoice(f)
+            discord_check = [m.mention for m in ctx.message.server.members if m.name in names]
+            winner = discord_check[0]
             funny = randchoice(self.funny)
             await self.bot.say("The winner is...")
             await asyncio.sleep(2)
@@ -193,6 +195,11 @@ def check_files():
     system = {"lotteries_played": 0, "lottery_start": "Inactive",
               "funny": "Off"}
 
+    f = "data/lottery/players.json"
+    if not fileIO(f, "check"):
+        print("Adding lottery player.json...")
+        fileIO(f, "save", {})
+
     f = "data/lottery/system.json"
     if not fileIO(f, "check"):
         print("Creating default lottery system.json...")
@@ -206,11 +213,6 @@ def check_files():
                     print("Adding " + str(key) +
                           " field to lottery system.json")
             fileIO(f, "save", current)
-
-    f = "data/lottery/players.json"
-    if not fileIO(f, "check"):
-        print("Adding lottery player.json...")
-        fileIO(f, "save", {})
 
 
 def setup(bot):
