@@ -1,5 +1,6 @@
+#  Lottery.py was created by Redjumpman for Redbot
+#  This will create a data folder with 2 JSON files
 import os
-import logging
 import asyncio
 from discord.ext import commands
 from .utils.dataIO import fileIO
@@ -83,8 +84,8 @@ class Lottery:
             fileIO("data/lottery/players.json", "save", self.players)
             f = list(filter(None, results))
             names = randchoice(f)
-            discord_check = [m.mention for m in ctx.message.server.members if m.name in names]
-            winner = discord_check[0]
+            b = self.discord_check(names, ctx)
+            winner = b[0]
             funny = randchoice(self.funny)
             await self.bot.say("The winner is...")
             await asyncio.sleep(2)
@@ -93,7 +94,7 @@ class Lottery:
                 await asyncio.sleep(5)
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
-                lookup = which_dict_key(winner, self.players)
+                lookup = self.which_dict_key(names, self.players)
                 extract = lookup[0]
                 self.players[extract]["lotteries_won"] = self.players[
                                                                      extract
@@ -105,7 +106,7 @@ class Lottery:
             else:
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
-                lookup = which_dict_key(winner, self.players)
+                lookup = self.which_dict_key(names, self.players)
                 extract = lookup[0]
                 self.players[extract]["lotteries_won"] = self.players[
                                                                       extract
@@ -141,13 +142,13 @@ class Lottery:
     async def play(self, ctx):
         """This let's a user play in an on-going lottery"""
         user = ctx.message.author
-        id = user.id
+        userid = user.id
         if self.system["lottery_start"] == "Active":
             if user.id in self.players:
-                if self.players[id]["ticket_played"] == "No":
-                    self.players[id]["ticket_played"] = "Yes"
-                    self.players[id]["current_ticket"] = user.name
-                    self.players[id]["lotteries_played"] = self.players[id][
+                if self.players[userid]["ticket_played"] == "No":
+                    self.players[userid]["ticket_played"] = "Yes"
+                    self.players[userid]["current_ticket"] = user.name
+                    self.players[userid]["lotteries_played"] = self.players[userid][
                         "lotteries_played"
                         ] + 1
                     fileIO("data/lottery/players.json", "save", self.players)
@@ -166,23 +167,26 @@ class Lottery:
     async def stats(self, ctx):
         """Retrieves a user's lottery stats"""
         user = ctx.message.author
-        id = user.id
+        userid = user.id
         if user.id in self.players:
-            played = self.players[id]["lotteries_played"]
-            wins = self.players[id]["lotteries_won"]
-            await self.bot.say("\n" + "```" + "Lotteries Played: " +
-                               str(played) + "\n" +
-                               "Lotteries Won: " + str(wins) + "```")
+            total = self.system["lotteries_played"]
+            played = self.players[userid]["lotteries_played"]
+            wins = self.players[userid]["lotteries_won"]
+            await self.bot.say("\n" + "```" + "Lotteries Ran: " + str(total) +
+                               "\n" + "Lotteries Played: " + str(played) +
+                               "\n" + "Lotteries Won: " + str(wins) + "```")
         else:
             await self.bot.say("You need to sign-up for lotteries first.")
 
+    def discord_check(self, names, ctx):
+        return [m.mention for m in ctx.message.server.members if m.name in names]
 
-def which_dict_key(value, dicts):
-    '''
-    Return a list of keys for a dictionary where the value dictionary
-    for that key includes the value provided.
-    '''
-    return [key for key in dicts if value in dicts[key].values()]
+    def which_dict_key(self, value, dicts):
+        '''
+        Return a list of keys for a dictionary where the value dictionary
+        for that key includes the value provided.
+        '''
+        return [key for key in dicts if value in dicts[key].values()]
 
 
 def check_folders():
@@ -216,16 +220,6 @@ def check_files():
 
 
 def setup(bot):
-    global logger
     check_folders()
     check_files()
-    logger = logging.getLogger("lottery")
-# Prevents the logger from being loaded again in case of module reload
-    if logger.level == 0:
-        logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename='data/lottery/lottery.log',
-                                      encoding='utf-8', mode='a')
-        handler.setFormatter(logging.Formatter('%(asctime)s %(message)s',
-                                               datefmt="[%d/%m/%Y %H:%M]"))
-        logger.addHandler(handler)
-        bot.add_cog(Lottery(bot))
+    bot.add_cog(Lottery(bot))
