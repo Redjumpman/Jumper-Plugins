@@ -152,7 +152,7 @@ class Lottery:
                         "lotteries_played"
                         ] + 1
                     fileIO("data/lottery/players.json", "save", self.players)
-                    await self.bot.say("You have been entered into the" +
+                    await self.bot.say(user.mention + " has been entered into the" +
                                        " lottery")
                 else:
                     await self.bot.say("You have already been entered into " +
