@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Retrives game info for Tibia. Check my docs for command info. Requires 2 pip3 installs:  pip3 install BeautifulSoup4, and pip3 install tabulate",
+    "DISABLED" : false,
+    "NAME" : "Retrievs game info for Tibia"
+}
