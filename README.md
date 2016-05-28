@@ -49,6 +49,14 @@ Perfect for roleplaying games like DnD and Pathfinder!
 Perfect for integrating with other games on your discord server!  
 Check my wiki for further documentation
 
+####*Tibia*
+- Retrieves creature information
+- Retrieves item information
+- Shows total players playing Tibia
+- Shows server information
+- Will tell you where Rashid is located for the day
+
+
 # Installation
 
 ####*Cog Install*
@@ -77,6 +85,11 @@ Library Requirements:
 ####*Dicetable*
 Library Requirements:
 - Tabulate
+
+####*Tibia*
+Library Requirements:
+- Tabulate
+- BeautifulSoup4
 
 ####*Shop*
 Library Requirements:
