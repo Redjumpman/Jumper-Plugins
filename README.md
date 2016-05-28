@@ -49,6 +49,12 @@ Perfect for roleplaying games like DnD and Pathfinder!
 Perfect for integrating with other games on your discord server!  
 Check my wiki for further documentation
 
+####*Animelist*
+- Retrieves anime info
+- retrieves manga info
+- converted plugin from mee6
+
+
 ####*Tibia*
 - Retrieves creature information
 - Retrieves item information
