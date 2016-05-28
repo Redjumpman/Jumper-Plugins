@@ -32,9 +32,9 @@ class Tibia:
             await send_cmd_help(ctx)
 
     @tibia.command(name="item", pass_context=False)
-    async def _item_tibia(self, *, item):
+    async def _item_tibia(self, *, itemname):
         """Get a item information from tibia wiki"""
-        item = item.replace(" ", "_").title()
+        item = itemname.replace(" ", "_").title()
         if len(item) > 0:
             try:
                 url = "http://tibia.wikia.com/wiki/" + str(item)
