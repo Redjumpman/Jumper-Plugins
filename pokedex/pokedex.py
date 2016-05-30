@@ -1,8 +1,8 @@
 # Developed by Redjumpman for Redbot by Twentysix26
-# Requires BeautifulSoup4, Tabulate, and Numpy to work.
+# Requires BeautifulSoup4, and Tabulate to work.
+import aiohttp
 from discord.ext import commands
 from __main__ import send_cmd_help
-import aiohttp
 try:   # check if BeautifulSoup4 is installed
     from bs4 import BeautifulSoup
     soupAvailable = True
@@ -43,8 +43,8 @@ class Pokedex:
         if len(pokemon) > 0:
             # All data is pulled from pokemondb.net
             url = "http://pokemondb.net/pokedex/" + str(pokemon)
-            async with aiohttp.get(url) as response:
-                try:
+            try:
+                async with aiohttp.get(url) as response:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     # This scrapes the pokemon image
                     img = soup.find("img")["src"]
@@ -57,6 +57,14 @@ class Pokedex:
                     table_body = table.find('tbody')
                     # This will start the scrape for the left column of data
                     headers = table_body.find_all('tr')
+                # -------------------Pokedex-Info----------------------------
+                    dex_table = soup.find_all('table', attrs={'class': 'vitals-table'})
+                    dex_rows = dex_table[4].find_all('tr')
+                    dex_info1 = dex_rows[0]
+                    dex_info2 = dex_rows[1]
+                    dex_text1 = dex_info1.get_text().replace("RedBlue", "")
+                    dex_text2 = dex_info2.get_text().replace("Yellow", "")
+                # -------------------Pokedex-Info-End---------------------------
                 # Iterates through the rows to grab the data held in headers
                 # This will also says that if there is no text, don't strip
                     for head in headers:
@@ -71,17 +79,19 @@ class Pokedex:
                         cols = [ele.text.strip() for ele in cols]
                         poke.append([ele for ele in cols if ele])
 
-                # Slams the two list into one column This is made easy because
-                # both are 1 dimensional
-                    m = list(zip(pokeh, poke))
-                # using the import from tabulate format the combined list into
+                    poke2 = [x for xs in poke for x in xs]
+                    pokeh2 = [x for xs in pokeh for x in xs]
+                    m = list(zip(pokeh2, poke2))
+                # using the import from tabulate format the combined lists into
                 # a nice looking table
                     t = tabulate(m, headers=["Pokedex", "Data"])
                 # We add that data. Img is a image, but t is all text so we
                 # have to say so with str. \n creates a new line and the ```
                 # puts the output into the pretty code block
-                    await self.bot.say(img + "\n" + "```" + str(t) + "```")
-                except:
+                    await self.bot.say("\n" + "```" + str(t) + "```")
+                    await self.bot.say("```" + dex_text1 + "\n" + dex_text2 + "```")
+                    await self.bot.say(img)
+            except:
                     await self.bot.say("Could not locate that pokemon." +
                                        " Please try a different name"
                                        )
