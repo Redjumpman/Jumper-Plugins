@@ -1,0 +1,6 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "DESCRIPTION" : "Allows players to play through rounds of russian roulette until a winner is found. Points are then added to your bank. Will safely modify your bank.json values",
+    "DISABLED" : false,
+    "NAME" : "Russian Roulette game using points from Economy"
+}
