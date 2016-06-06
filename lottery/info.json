@@ -1,6 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "DESCRIPTION" : "Can start, end lotteries, make users signup, and can track the number of lotteries participated in. Creates 2 JSON files.",
-    "DISABLED" : false,
-    "NAME" : "Start, Play, End, and signup for lotteries"
+    "INSTALL_MSG" : "This cog has no library requirements. PM me at Redjumpman#2375 if you have issues.",
+    "NAME" : "Lottery",
+    "SHORT" : "Can host lotteries for server users",
+    "DESCRIPTION" : "Enables an admin to host lotteries.\nPlayers will need to signup to be eligible to participate.\nIncludes lottery stats and a fun command for picking winners."
 }
