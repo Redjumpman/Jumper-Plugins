@@ -81,12 +81,19 @@ class Shop:
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def add(self, ctx, cost: int, *, itemname):
-        """Adds an item to the shop list"""
-        shop_name = self.config["Shop Name"]
-        self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
-        fileIO("data/shop/shop.json", "save", self.shop)
-        await self.bot.say("```" + str(itemname) + " has been added to " +
-                           shop_name + " shop for purchase." + "```")
+        """Adds an item to the shop list. Max 100 items"""
+        if self.config["Shop Items"] < 100:
+            self.config["Shop Items"] += 1
+            fileIO("data/shop/config.json", "save", self.config)
+            shop_name = self.config["Shop Name"]
+            self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
+            fileIO("data/shop/shop.json", "save", self.shop)
+            item_count = len(list(self.shop.keys()))
+            await self.bot.say("```" + str(itemname) + " has been added to " +
+                               shop_name + " shop for purchase." + "\n" + "There is now " +
+                               str(item_count) + " items for sale in the store." "```")
+        else:
+            await self.bot.say("You can only have 100 items for sale in the store.\nDelete an item to add more.")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -94,6 +101,8 @@ class Shop:
         """Removes an item from the shop list"""
         shop_name = self.config["Shop Name"]
         if itemname in self.shop:
+            self.config["Shop Items"] -= 1
+            fileIO("data/shop/config.json", "save", self.config)
             del self.shop[itemname]
             fileIO("data/shop/shop.json", "save", self.shop)
             await self.bot.say("```" + str(itemname) + " has been removed from " +
@@ -435,9 +444,12 @@ def check_folders():
 
 
 def check_files():
+    shop_dict = fileIO("data/shop/shop.json", "load")
+    shop_item_count = len(list(shop_dict.keys()))
     system = {"Shop Name": "RedJumpman",
               "Shop Open": True,
-              "Shop Notify": False}
+              "Shop Notify": False,
+              "Shop Items": shop_item_count}
 
     f = "data/shop/pending.json"
     if not fileIO(f, "check"):
