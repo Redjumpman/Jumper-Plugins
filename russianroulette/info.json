@@ -1,6 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "DESCRIPTION" : "Allows players to play through rounds of russian roulette until a winner is found. Points are then added to your bank. Will safely modify your bank.json values",
-    "DISABLED" : false,
-    "NAME" : "Russian Roulette game using points from Economy"
+    "INSTALL_MSG" : "This cog has no library requirements.\nPM me at Redjumpman#2375 on Discord if you have issues.",
+    "NAME" : "Russianroulette",
+    "SHORT" : "Play a game of russian roulette with up to 6 players",
+    "DESCRIPTION" : "Russian roulette simulator. Only one will survive. Change the initial bet requirement with <p>russianset"
 }
