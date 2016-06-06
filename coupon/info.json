@@ -1,6 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "DESCRIPTION" : "Creates unique coupon codes redeemable for points",
-    "DISABLED" : false,
-    "NAME" : "Creates unique coupon codes redeemable for points"
+    "INSTALL_MSG" : "This cog has no library requirements. PM me at Redjumpman#2375 if you have issues.",
+    "NAME" : "Coupon",
+    "SHORT" : "Creates coupons redeemable for points",
+    "DESCRIPTION" : "Admins can generate a unique coupon id, that can be redeemed for a set number of points only once. PM the code to the user of your choice."
 }
