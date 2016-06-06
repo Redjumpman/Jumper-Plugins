@@ -49,7 +49,7 @@ class Shop:
             await send_cmd_help(ctx)
 
     # We want to seperate the store so it doesn't have a shop prefix
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command(pass_context=True)
     async def store(self, ctx):
         """Shows a list of items that can be purchased"""
         # loads all the text in the file and dumps it into k
@@ -62,10 +62,21 @@ class Shop:
             column2.append(subdict['Item Cost'])
         m = list(zip(column1, column2))
         t = tabulate(m, headers=["Item Name", "Item Cost"])
+        print(len(t))
         header = "```"
         header += self.bordered(shop_name + " Store Listings")
         header += "```"
-        await self.bot.whisper(header + "```\n" + t + "```")
+        if len(t) > 2000:
+            first_msg1, first_msg2 = column1[::2], column1[1::2]
+            second_msg1, second_msg2 = column2[::2], column2[1::2]
+            m1 = list(zip(first_msg1, second_msg1))
+            m2 = list(zip(first_msg2, second_msg2))
+            t1 = tabulate(m1, headers=["Item Name", "Item Cost"])
+            t2 = tabulate(m2, headers=["Item Name", "Item Cost"])
+            await self.bot.whisper(header + "```\n" + t1 + "```")
+            await self.bot.whisper("```" + t2 + "```")
+        else:
+            await self.bot.whisper(header + "```\n" + t + "```")
 
     @_shop.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
