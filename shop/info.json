@@ -1,6 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "DESCRIPTION" : "Allows admins to add items to the shop. Players can purchase, gift, and redeem items. Admins can check a redeem list to clear it. Uses points from economy.py. Creates 3 files in data folder. Requires Tabulate.",
-    "DISABLED" : false,
-    "NAME" : "Purchase, redeem, gift, and buy admin created items using economy.py points"
+    "INSTALL_MSG" : "This cog requires Tabulate.\n Type pip3 install tabulate in cmd prompt to install this library.\nPM me at Redjumpman#2375 on Discord if you have issues.",
+    "NAME" : "Shop",
+    "SHORT" : "Allows server owner to create a shop",
+    "DESCRIPTION" : "Users can buy/gift/redeem items created by an Admin.\nAdmins can change the shop name and add/remove items from the shop and monitor the pending list."
 }
