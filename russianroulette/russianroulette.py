@@ -9,7 +9,7 @@ from discord.ext import commands
 from .utils import checks
 
 
-class Roulette:
+class Russianroulette:
     """Allows 6 players to play Russian Roulette"""
 
     def __init__(self, bot):
@@ -242,5 +242,5 @@ def check_files():
 def setup(bot):
     check_folders()
     check_files()
-    n = Roulette(bot)
+    n = Russianroulette(bot)
     bot.add_cog(n)
