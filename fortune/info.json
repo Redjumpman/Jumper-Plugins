@@ -1,6 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "DESCRIPTION" : "Simple cog that allows you to recieve a fortune.",
-    "DISABLED" : false,
-    "NAME" : "Gives the user a random fortune"
+    "INSTALL_MSG" : "This cog has no library requirements. PM me at Redjumpman#2375 if you have issues.",
+    "NAME" : "Fortune",
+    "SHORT" : "Gives a random fortune",
+    "DESCRIPTION" : "Simple example cog that outputs fortunes"
 }
