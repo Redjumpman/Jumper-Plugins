@@ -101,15 +101,10 @@ Library Requirements:
 Library Requirements:
 - Tabulate
 
-# What's planned?
+# What's planned?  
+I have a lot of stuff in the pipeline. I have started a dev tracker with what I am currently working on here:
 
-- League of Legends
-- WoW Armory
-- Raid Calendar (With support to sync your own)
-- Spotify (Will require you to have your own account)
-- DnD (will include spell lookups, magic item generator, and lore search)
-- I have a lot of ideas and will constantly update this list based on requests!
 
 # Suggestions
-Have an idea for a cog? Start an issue on this repository and I will try to work on it.
+Have an idea for a cog? Want a new feature for a current cog? Start an issue on this repository and I will try to work on it.
 
