@@ -1,80 +1,19 @@
-# Jumper-Cogs
-Python Modules for Discord bot
+# Jumper Cogs
 
-Developer: Redjumpman
+These cogs are designed to work with Red Bot designed by Twentysix26.    
+Some cogs will require a library install to work, so please read over my wiki and the info.json file before using.  
+Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2) 
 
-####*Lottery*
-- Enables admins to start a lottery
-- Only members who have signed up can play in a lottery
-- Requires you to be online and type !lottery play to participate in an on-going lottery
-- Ending a lottery will declare a winner, randomly picked from participating members
-- Members can check how many lotteries they have participated in and won
+## Installation
 
-#####*Note* This cog will create a data folder named "lottery" which contains three JSON files:
-- players - contains all the members who signed up and uses this to determine winners
-- system - determines if a lottery is active and records the number of lotteries ran
-- lottery - Creates a log for errors with the lottery.
+To install my cogs add my repo with the following command:  
+```cog repo add jumper-cogs https://github.com/Redjumpman/Jumper-Cogs```  
+Then check to see if the cog has any library dependencies and peform a pip3 install.  
+Please look over the installation section and my wiki for more details on library installations
 
-####*Pokedex*
-- Search for pokemon catch locations
-- Search for items
-- Retrieve base stats along with their min/max at Lvl. 100
-- Pokedex information
-- Evolution chains
-- Moveset lookup (By generations!)
+## Library Requirements
 
-####*Fortune*
-Simple extension that will display a fortune. Can add your own in the file.
-
-####*Dicetable*
-Allows the user to roll up to 20 dice and outputs the data into a table. Includes the following variants:
-- d20
-- d12
-- d10
-- d8
-- d6
-- d4
-
-Perfect for roleplaying games like DnD and Pathfinder!
-
-####*Shop*
-- Admins can create items and set prices
-- Users can purchase these items
-- Items are giftable to other players
-- Items can be "redeemed" by sending them to a pending list
-- Admins can approve and clear the pending list
-- Can check items in your inventory, type !inventory
-- Uses Economy.py system points  
-
-Perfect for integrating with other games on your discord server!  
-Check my wiki for further documentation
-
-####*Animelist*
-- Retrieves anime info
-- retrieves manga info
-- converted plugin from mee6
-
-
-####*Tibia*
-- Retrieves creature information
-- Retrieves item information
-- Shows total players playing Tibia
-- Shows server information
-- Will tell you where Rashid is located for the day
-
-
-# Installation
-
-####*Cog Install*
-
-cog install Jumper-Cogs "cogname"
-
-*OR*
-
-download the .py file and place it in your cog folder.
-
-####*Dependencies*
-Some of my cogs will require you download a library.
+Review the library requirements in the info.json file within the cog's folder. If you do not have the library downloaded it will prompt you with a message telling you what to do.
 
 To install a library follow these instructions:
 ```
@@ -82,29 +21,35 @@ To install a library follow these instructions:
 - Type pip3 install "Library name"   Example: pip3 install tabulate
 - Press enter and let the library load
 - Once this has loaded you just need to install the cog!
-```
-####*Pokedex cog* 
-Library Requirements:
-- Tabulate
-- BeautifulSoup4
+```  
+For more information please view my wiki page
 
-####*Dicetable*
-Library Requirements:
-- Tabulate
+## Contributing
 
-####*Tibia*
-Library Requirements:
-- Tabulate
-- BeautifulSoup4
+Tired of waiting for me to implement that feature you keep requesting? If you can design it your self follow the process below and I'll review your changes. If the changes do not conflict with Red, and do not stray from the intended use of the cog I will merge your commits.
 
-####*Shop*
-Library Requirements:
-- Tabulate
+1. Fork it!
+2. Create your feature branch:
+3. Commit your changes:`
+4. Push to the branch: 
+5. Submit a pull request :D
 
-# What's planned?  
-I have a lot of stuff in the pipeline. I have started a dev tracker with what I am currently working on here:
+## What's planned
 
+I have a lot of stuff in the pipeline. I have started a dev tracker with what I am currently working on here:   
+[Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2)
 
-# Suggestions
-Have an idea for a cog? Want a new feature for a current cog? Start an issue on this repository and I will try to work on it.
+## Contact Me
+
+If you have issues with one of my cogs, or need help beyond the scope of the wiki please contact me on discord @ Redjumpman#2375  
+Do not @mention me in the redbot server, please send me a PM directly and I will respond as soon as possible.
+
+## Credits
+
+Twentysix26 for recreating redbot into something fun and functional
+irdumbs for being my Python sensei
+
+## License
+
+Please see MIT License for details. This project is open source and you are free to modify my work so long as you credit me.
 
