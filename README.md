@@ -1,8 +1,12 @@
 # Jumper Cogs
 
+[<img align="right" src="http://i.imgur.com/oNPyK9t.png">](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML)
+
 These cogs are designed to work with Red Bot designed by Twentysix26.    
 Some cogs will require a library install to work, so please read over my wiki and the info.json file before using.  
-Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2) 
+Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2)  
+If you wish to donate please click on the donation jar. TY :D  
+I accept commission work, but please contact me on discord for  details.
 
 ## Installation
 
