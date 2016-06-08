@@ -9,7 +9,7 @@ Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](
 To install my cogs add my repo with the following command:  
 ```cog repo add jumper-cogs https://github.com/Redjumpman/Jumper-Cogs```  
 Then check to see if the cog has any library dependencies and peform a pip3 install.  
-Please look over the installation section and my wiki for more details on library installations
+Please look over the installation section and my wiki for more details on library installations  
 
 ## Library Requirements
 
@@ -36,7 +36,7 @@ Tired of waiting for me to implement that feature you keep requesting? If you ca
 
 ## What's planned
 
-I have a lot of stuff in the pipeline. I have started a dev tracker with what I am currently working on here:   
+I have a lot of stuff in the pipeline. I have started a dev tracker with what I am currently working on here:     
 [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2)
 
 ## Contact Me
@@ -46,7 +46,7 @@ Do not @mention me in the redbot server, please send me a PM directly and I will
 
 ## Credits
 
-Twentysix26 for recreating redbot into something fun and functional
+Twentysix26 for recreating redbot into something fun and functional  
 irdumbs for being my Python sensei
 
 ## License
