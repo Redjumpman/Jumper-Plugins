@@ -198,15 +198,24 @@ class Shop:
                             points = self.shop[itemname]["Item Cost"]
                             if not self.inventory_item_check(user.id, itemname):
                                 self.inventory_add(user.id, itemname)
-                            self.inventory_add(user.id, itemname)
-                            econ = self.bot.get_cog("Economy")
-                            econ.withdraw_money(user.id, points)
-                            msg = "```"
-                            msg += "You have purchased a " + str(itemname)
-                            msg += " for " + str(points) + " points. " + "\n"
-                            msg += str(itemname) + " has been added to your inventory."
-                            msg += "```"
-                            await self.bot.say(msg)
+                                econ = self.bot.get_cog("Economy")
+                                econ.withdraw_money(user.id, points)
+                                msg = "```"
+                                msg += "You have purchased a " + str(itemname)
+                                msg += " for " + str(points) + " points. " + "\n"
+                                msg += str(itemname) + " has been added to your inventory."
+                                msg += "```"
+                                await self.bot.say(msg)
+                            else:
+                                self.inventory_add(user.id, itemname)
+                                econ = self.bot.get_cog("Economy")
+                                econ.withdraw_money(user.id, points)
+                                msg = "```"
+                                msg += "You have purchased a " + str(itemname)
+                                msg += " for " + str(points) + " points. " + "\n"
+                                msg += str(itemname) + " has been added to your inventory."
+                                msg += "```"
+                                await self.bot.say(msg)
                         else:
                             await self.bot.say("You don't have enough points to purchase this item")
                     else:
