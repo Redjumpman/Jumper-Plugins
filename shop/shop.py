@@ -444,12 +444,18 @@ def check_folders():
 
 
 def check_files():
-    shop_dict = fileIO("data/shop/shop.json", "load")
-    shop_item_count = len(list(shop_dict.keys()))
-    system = {"Shop Name": "RedJumpman",
-              "Shop Open": True,
-              "Shop Notify": False,
-              "Shop Items": shop_item_count}
+    try:
+        shop_dict = fileIO("data/shop/shop.json", "load")
+        shop_item_count = len(list(shop_dict.keys()))
+        system = {"Shop Name": "RedJumpman",
+                  "Shop Open": True,
+                  "Shop Notify": False,
+                  "Shop Items": shop_item_count}
+    except:
+        system = {"Shop Name": "RedJumpman",
+                  "Shop Open": True,
+                  "Shop Notify": False,
+                  "Shop Items": 0}
 
     f = "data/shop/pending.json"
     if not fileIO(f, "check"):
