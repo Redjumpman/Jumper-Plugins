@@ -48,6 +48,7 @@ class Russianroulette:
                                 await self.bot.say("The winner is the last one alive!")
                                 await asyncio.sleep(3)
                                 await self.bot.say("Good Luck!")
+                                await asyncio.sleep(1)
                                 await self.roulette_game()
                             elif self.rrgame["System"]["Player Count"] < 2:
                                 await self.bot.say("Sorry I can't let you play by yourself, that's just suicide." + "\n" +
@@ -75,6 +76,7 @@ class Russianroulette:
                                     await self.bot.say("The winner is the last one alive!")
                                     await asyncio.sleep(3)
                                     await self.bot.say("Good Luck!")
+                                    await asyncio.sleep(1)
                                     await self.roulette_game()
                                 else:
                                     await self.bot.say(user.name + " has joined the roulette circle. I need " +
@@ -121,11 +123,12 @@ class Russianroulette:
         if high_noon > 1:
             while i > 0:
                 if i == 1:
-                    name_mention = [subdict for subdict in self.rrgame["Players"]]
-                    name_id = name_mention[0].replace("<", "").replace(">", "").replace("@", "")
+                    mention = [subdict for subdict in self.rrgame["Players"]]
+                    player_id = mention[0]
+                    name_id = player_id.replace("<", "").replace(">", "").replace("@", "")
                     pot = self.rrgame["System"]["Pot"]
                     await asyncio.sleep(2)
-                    await self.bot.say("Congratulations " + str(name_mention[0]) + ". You just won " + str(pot) + " points!")
+                    await self.bot.say("Congratulations " + str(mention[0]) + ". You just won " + str(pot) + " points!")
                     econ = self.bot.get_cog('Economy')
                     econ.add_money(name_id, pot)
                     self.system_reset()
@@ -161,6 +164,7 @@ class Russianroulette:
         list_names = player_names
         furd = 0
         await self.bot.say("Round " + str(turn))
+        await asyncio.sleep(2)
         while furd == 0:
             chance = random.randint(1, count)
             name_mention = random.choice(list_names)
