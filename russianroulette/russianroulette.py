@@ -42,11 +42,11 @@ class Russianroulette:
                             if self.rrgame["System"]["Player Count"] > 1 and self.rrgame["System"]["Player Count"] < 6:
                                 self.rrgame["System"]["Active"] = True
                                 await self.bot.say("I'm going to load some shells into the cylinder of this 6 shot revolver.")
-                                await asyncio.sleep(1)
+                                await asyncio.sleep(4)
                                 await self.bot.say("Then I'll give it a good spin, and pass it off, until one of you blows your head off.")
-                                await asyncio.sleep(1)
+                                await asyncio.sleep(5)
                                 await self.bot.say("The winner is the last one alive!")
-                                await asyncio.sleep(1)
+                                await asyncio.sleep(3)
                                 await self.bot.say("Good Luck!")
                                 await self.roulette_game()
                             elif self.rrgame["System"]["Player Count"] < 2:
@@ -69,9 +69,9 @@ class Russianroulette:
                                 if self.rrgame["System"]["Player Count"] > 5:
                                     self.rrgame["System"]["Active"] = True
                                     await self.bot.say("I'm going to load exactly **one** shell into the cylinder of this 6 shot revolver.")
-                                    await asyncio.sleep(2)
+                                    await asyncio.sleep(4)
                                     await self.bot.say("Then I'll give it a good spin, and pass it of until one of you blows your head off.")
-                                    await asyncio.sleep(1)
+                                    await asyncio.sleep(5)
                                     await self.bot.say("The winner is the last one alive!")
                                     await asyncio.sleep(3)
                                     await self.bot.say("Good Luck!")
@@ -120,7 +120,6 @@ class Russianroulette:
         high_noon = random.randint(1, 100)
         if high_noon > 1:
             while i > 0:
-                i = i - 1
                 if i == 1:
                     name_mention = [subdict for subdict in self.rrgame["Players"]]
                     name_id = name_mention[0].replace("<", "").replace(">", "").replace("@", "")
@@ -131,6 +130,7 @@ class Russianroulette:
                     econ.add_money(name_id, pot)
                     self.system_reset()
                 elif i > 1:
+                    i = i - 1
                     turn = turn + 1
                     names = [subdict for subdict in self.rrgame["Players"]]
                     count = len(names)
@@ -145,9 +145,9 @@ class Russianroulette:
             v = ", ".join(noon_names)
             boom = " **BOOM!** " * i
             await self.bot.say("A wild McCree appears!")
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             await self.bot.say("It's high noon...")
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
             await self.bot.say(str(boom))
             await asyncio.sleep(1)
             await self.bot.say("```" + str(v) + " just bit the dust." + "```")
@@ -167,24 +167,22 @@ class Russianroulette:
             name = self.rrgame["Players"][name_mention]["Name"]
             if chance > 1:
                 await self.bot.say(str(name) + " slowly squeezes the trigger...")
-                await asyncio.sleep(5)
+                await asyncio.sleep(4)
                 await self.bot.say("**CLICK!**")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await self.bot.say("```" + str(name) + " survived" + "```")
                 list_names.remove(name_mention)
                 count = count - 1
             elif chance <= 1:
                 await self.bot.say(str(name) + " slowly squeezes the trigger...")
-                await asyncio.sleep(3)
+                await asyncio.sleep(4)
                 await self.bot.say("**BOOM!**")
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
                 await self.bot.say(str(name_mention) + " just blew their brains out")
                 await asyncio.sleep(2)
                 await self.bot.say("Let me just clean this up before we move on...")
-                await asyncio.sleep(4)
+                await asyncio.sleep(2)
                 await self.bot.say("Done.")
-                await asyncio.sleep(1)
-                list_names.remove(name_mention)
                 del self.rrgame["Players"][name_mention]
                 fileIO("data/roulette/rrgame.json", "save", self.rrgame)
                 break
