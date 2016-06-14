@@ -1,4 +1,5 @@
-ifrom discord.ext import commands
+# Developed by Redjumpman for Redbot
+from discord.ext import commands
 from random import choice as randchoice
 
 
