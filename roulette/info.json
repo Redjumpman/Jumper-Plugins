@@ -1,0 +1,7 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "INSTALL_MSG" : "This cog requires Tabulate. type pip3 install tabulate in cmd prompt to install this library. PM me at Redjumpman#2375 if you have issues.",
+    "NAME" : "Lottery",
+    "SHORT" : "A casino roulette game",
+    "DESCRIPTION" : "Plays like a real casino roulette. If you have problems contact me on discord, Redjumpman#2375, and if you wish to contribute to me visit my github page https://github.com/Redjumpman/Jumper-Cogs to donate."
+}
