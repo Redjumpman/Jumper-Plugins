@@ -124,22 +124,25 @@ class Russianroulette:
             while i > 0:
                 if i == 1:
                     mention = [subdict for subdict in self.rrgame["Players"]]
-                    player_id = mention[0]
-                    name_id = player_id.replace("<", "").replace(">", "").replace("@", "")
+                    print(mention)
+                    player_id = str(mention[0])
+                    print(player_id)
+                    name_id = player_id.replace("<", "").replace(">", "").replace("@", "").replace("'", "")
+                    print(name_id)
                     pot = self.rrgame["System"]["Pot"]
                     await asyncio.sleep(2)
                     await self.bot.say("Congratulations " + str(mention[0]) + ". You just won " + str(pot) + " points!")
                     econ = self.bot.get_cog('Economy')
                     econ.add_money(name_id, pot)
                     self.system_reset()
+                    await self.bot.say("Game Over")
+                    break
                 elif i > 1:
                     i = i - 1
                     turn = turn + 1
                     names = [subdict for subdict in self.rrgame["Players"]]
                     count = len(names)
                     await self.roulette_round(count, names, turn)
-                else:
-                    await self.bot.say("Game Over")
         elif high_noon == 12:
             noon_names = []
             for player in players:
