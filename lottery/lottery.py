@@ -24,7 +24,11 @@ class Lottery:
                       "Looking for a marked ticket...",
                       "Eeny, meeny, miny, moe...",
                       "I lost the tickets so...",
-                      "Stop messaging me, I'm picking..."]
+                      "Stop messaging me, I'm picking...",
+                      "May the odds be ever in your favor...",
+                      "I'm going to ban that guy who keeps spamming me, 'please!'... ",
+                      "Winner winner, chicken dinner...",
+                      "Can someone tell the guy who keeps yelling 'Bingo!' that he is playing the wrong game..."]
 
     @commands.group(name="lottery", pass_context=True)
     async def _lottery(self, ctx):
@@ -48,6 +52,16 @@ class Lottery:
         else:
             await self.bot.say("Missing funny parameter. Delete your " +
                                "system.json file in your lottery folder.")
+
+    @_lottery.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def prize(self, ctx, points: int):
+        """Adds an optional point prize for the lottery winner"""
+        self.system["Prize"] = True
+        self.system["Prize Amount"] = points
+        fileIO("data/lottery/system.json", "save", self.system)
+        await self.bot.say("I have set a prize for the winner, in the amount of " +
+                           str(points) + " points.")
 
     @_lottery.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -94,6 +108,15 @@ class Lottery:
                 await asyncio.sleep(5)
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
+                if self.system["Prize"]:
+                    prize = self.system["Prize Amount"]
+                    await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
+                    userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
+                    econ = self.bot.get_cog("Economy")
+                    econ.add_money(userid, prize)
+                    self.system["Prize"] = False
+                    self.system["Prize Amount"] = 0
+                    fileIO("data/lottery/system.json", "save", self.system)
                 lookup = self.which_dict_key(names, self.players)
                 extract = lookup[0]
                 self.players[extract]["lotteries_won"] = self.players[
@@ -106,6 +129,15 @@ class Lottery:
             else:
                 await self.bot.say(str(winner) + "!!!" +
                                    "\n" + "Congratulations " + str(winner))
+                if self.system["Prize"]:
+                    prize = self.system["Prize Amount"]
+                    await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
+                    userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
+                    econ = self.bot.get_cog("Economy")
+                    econ.add_money(userid, prize)
+                    self.system["Prize"] = False
+                    self.system["Prize Amount"] = 0
+                    fileIO("data/lottery/system.json", "save", self.system)
                 lookup = self.which_dict_key(names, self.players)
                 extract = lookup[0]
                 self.players[extract]["lotteries_won"] = self.players[
@@ -197,7 +229,7 @@ def check_folders():
 
 def check_files():
     system = {"lotteries_played": 0, "lottery_start": "Inactive",
-              "funny": "Off"}
+              "funny": "Off", "Prize": False, "Prize Amount": 0}
 
     f = "data/lottery/players.json"
     if not fileIO(f, "check"):
