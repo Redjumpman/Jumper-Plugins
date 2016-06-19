@@ -14,7 +14,7 @@ class Language:
 
     @commands.command(pass_context=True, no_pm=False)
     async def jisho(self, ctx, word):
-        """Translates Japanese to English, and english to Japanese"""
+        """Translates Japanese to English, and english to Japanese (works with romanji, kanji, and katakana)"""
         channel = ctx.message.channel
         search_args = await self.dict_search_args_parse(word)
         if not search_args:
