@@ -51,6 +51,7 @@ class Russianroulette:
                                 await asyncio.sleep(1)
                                 await self.roulette_game()
                             elif self.rrgame["System"]["Player Count"] < 2:
+                                econ.add_money(user.id, bet)
                                 await self.bot.say("Sorry I can't let you play by yourself, that's just suicide." + "\n" +
                                                    "Try again later when you find some 'friends'.")
                                 self.system_reset()
