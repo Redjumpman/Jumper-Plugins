@@ -1,0 +1,7 @@
+{
+    "AUTHOR" : "Redjumpman",
+    "INSTALL_MSG" : "This cog has no library requirments. PM me at Redjumpman#2375 if you have issues.",
+    "NAME" : "Language",
+    "SHORT" : "Language dictionary that works with characters and alphabets",
+    "DESCRIPTION" : "Credit to jonnyli1125 for jisho design for Discordant.\n This has be repurposed for redbot and will continue to have new languages in the future.\n If you have problems contact me on discord, Redjumpman#2375, and if you wish to contribute to me visit my github page https://github.com/Redjumpman/Jumper-Cogs to donate."
+}
