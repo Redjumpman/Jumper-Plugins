@@ -88,7 +88,7 @@ class Raffle:
                                            " raffle tickets for " + str(points))
                 else:
                     await self.bot.say("You do not have enough points to purchase that many raffle tickets" + "\n" +
-                                       "Raffle tickets cost " + ticket_cost + " points each.")
+                                       "Raffle tickets cost " + str(ticket_cost) + " points each.")
             else:
                 await self.bot.say("There is not a raffle currently active")
         else:
