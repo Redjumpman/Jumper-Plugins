@@ -20,13 +20,14 @@ class Russianroulette:
     async def russian(self, ctx, bet: int):
         """Russian Roulette, requires 2 players, up to 6 max"""
         user = ctx.message.author
+        server = ctx.message.server
         if not self.rrgame["System"]["Active"]:
             if bet >= self.rrgame["Config"]["Min Bet"]:
                 if self.rrgame["System"]["Player Count"] < 6:
-                    if self.enough_points(user.id, bet):
+                    if self.enough_points(user, bet):
                         if not self.rrgame["System"]["Roulette Initial"]:
-                            econ = self.bot.get_cog('Economy')
-                            econ.withdraw_money(user.id, bet)
+                            bank = self.bot.get_cog('Economy').bank
+                            bank.withdraw_credits(user, bet)
                             self.rrgame["System"]["Player Count"] += 1
                             self.rrgame["System"]["Pot"] += bet
                             self.rrgame["System"]["Start Bet"] += bet
@@ -49,16 +50,16 @@ class Russianroulette:
                                 await asyncio.sleep(3)
                                 await self.bot.say("Good Luck!")
                                 await asyncio.sleep(1)
-                                await self.roulette_game()
+                                await self.roulette_game(server)
                             elif self.rrgame["System"]["Player Count"] < 2:
-                                econ.add_money(user.id, bet)
+                                bank.deposit_credits(user, bet)
                                 await self.bot.say("Sorry I can't let you play by yourself, that's just suicide." + "\n" +
                                                    "Try again later when you find some 'friends'.")
                                 self.system_reset()
                         elif user.mention not in self.rrgame["Players"]:
                             if bet >= self.rrgame["System"]["Start Bet"]:
-                                econ = self.bot.get_cog('Economy')
-                                econ.withdraw_money(user.id, bet)
+                                bank = self.bot.get_cog('Economy').bank
+                                bank.withdraw_credits(user, bet)
                                 self.rrgame["System"]["Pot"] += bet
                                 self.rrgame["System"]["Player Count"] += 1
                                 self.rrgame["Players"][user.mention] = {"Name": user.name,
@@ -78,7 +79,7 @@ class Russianroulette:
                                     await asyncio.sleep(3)
                                     await self.bot.say("Good Luck!")
                                     await asyncio.sleep(1)
-                                    await self.roulette_game()
+                                    await self.roulette_game(server)
                                 else:
                                     await self.bot.say(user.name + " has joined the roulette circle. I need " +
                                                        str(needed_players) + " to start the game immediately.")
@@ -115,7 +116,7 @@ class Russianroulette:
         else:
             await self.bot.say("I need a number higher than 0.")
 
-    async def roulette_game(self):
+    async def roulette_game(self, server):
         i = self.rrgame["System"]["Player Count"]
         players = [subdict for subdict in self.rrgame["Players"]]
         count = len(players)
@@ -125,16 +126,14 @@ class Russianroulette:
             while i > 0:
                 if i == 1:
                     mention = [subdict for subdict in self.rrgame["Players"]]
-                    print(mention)
                     player_id = str(mention[0])
-                    print(player_id)
                     name_id = player_id.replace("<", "").replace(">", "").replace("@", "").replace("'", "")
-                    print(name_id)
+                    mobj = server.get_member(name_id)
                     pot = self.rrgame["System"]["Pot"]
                     await asyncio.sleep(2)
                     await self.bot.say("Congratulations " + str(mention[0]) + ". You just won " + str(pot) + " points!")
-                    econ = self.bot.get_cog('Economy')
-                    econ.add_money(name_id, pot)
+                    bank = self.bot.get_cog('Economy').bank
+                    bank.deposit_credits(mobj, pot)
                     self.system_reset()
                     await self.bot.say("Game Over")
                     break
@@ -196,16 +195,16 @@ class Russianroulette:
                 break
 
     def account_check(self, uid):
-        econ = self.bot.get_cog('Economy')
-        if econ.account_check(uid):
+        bank = self.bot.get_cog('Economy').bank
+        if bank.account_exists(uid):
             return True
         else:
             return False
 
     def enough_points(self, uid, amount):
-        econ = self.bot.get_cog('Economy')
+        bank = self.bot.get_cog('Economy').bank
         if self.account_check(uid):
-            if econ.enough_money(uid, amount):
+            if bank.can_spend(uid, amount):
                 return True
             else:
                 return False
