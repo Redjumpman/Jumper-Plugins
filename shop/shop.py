@@ -193,13 +193,13 @@ class Shop:
             if self.inventory_check(user.id):
                 if itemname in self.shop:
                     points = self.shop[itemname]["Item Cost"]
-                    if self.account_check(user.id):
-                        if self.enough_points(user.id, points):
+                    if self.account_check(user):
+                        if self.enough_points(user, points):
                             points = self.shop[itemname]["Item Cost"]
                             if not self.inventory_item_check(user.id, itemname):
                                 self.inventory_add(user.id, itemname)
-                                econ = self.bot.get_cog("Economy")
-                                econ.withdraw_money(user.id, points)
+                                bank = self.bot.get_cog("Economy").bank
+                                bank.withdraw_credits(user, points)
                                 msg = "```"
                                 msg += "You have purchased a " + str(itemname)
                                 msg += " for " + str(points) + " points. " + "\n"
@@ -208,8 +208,8 @@ class Shop:
                                 await self.bot.say(msg)
                             else:
                                 self.inventory_add(user.id, itemname)
-                                econ = self.bot.get_cog("Economy")
-                                econ.withdraw_money(user.id, points)
+                                bank = self.bot.get_cog("Economy").bank
+                                bank.withdraw_credits(user, points)
                                 msg = "```"
                                 msg += "You have purchased a " + str(itemname)
                                 msg += " for " + str(points) + " points. " + "\n"
@@ -379,8 +379,8 @@ class Shop:
         return '\n'.join(res)
 
     def account_check(self, uid):
-        econ = self.bot.get_cog('Economy')
-        if econ.account_check(uid):
+        bank = self.bot.get_cog('Economy').bank
+        if bank.account_exists(uid):
             return True
         else:
             return False
@@ -389,9 +389,9 @@ class Shop:
         return [m.name for m in ctx.message.server.members if role.lower() in [str(r).lower() for r in m.roles] and str(m.status) != 'offline']
 
     def enough_points(self, uid, amount):
-        econ = self.bot.get_cog('Economy')
+        bank = self.bot.get_cog('Economy').bank
         if self.account_check(uid):
-            if econ.enough_money(uid, amount):
+            if bank.can_spend(uid, amount):
                 return True
             else:
                 return False
