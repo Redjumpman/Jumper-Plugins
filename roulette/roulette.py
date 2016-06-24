@@ -1,6 +1,6 @@
 #  Roulette.py was created by Redjumpman for Redbot
-#  This will create a roulette.JSON file, layouts.png, and a data folder
-#  This will modify values in your bank.json from economy.py
+#  This will create a bets.JSON file and a data folder
+#  This will modify values your bank.json from economy.py
 import os
 import random
 import asyncio
@@ -61,6 +61,7 @@ class Roulette:
     @_roulette.command(pass_context=True, no_pm=True)
     async def play(self, ctx):
         """Start a game of roulette"""
+        server = ctx.message.server
         if not self.roulette["Config"]["Active"]:
             self.roulette["Config"]["Active"] = True
             self.roulette["Config"]["Betting Closed"] = False
@@ -83,7 +84,7 @@ class Roulette:
                     await self.bot.say("Red " + str(outcome))
                     await asyncio.sleep(2)
                     await self.bot.say("Alotting payouts to winners...")
-                    self.game_payouts(outcome)
+                    self.game_payouts(outcome, server)
                     del self.roulette["Players"]
                     self.roulette["Players"] = {}
                     fileIO("data/casino/roulette.json", "save", self.roulette)
@@ -95,7 +96,7 @@ class Roulette:
                     await self.bot.say("Black " + str(outcome))
                     await asyncio.sleep(2)
                     await self.bot.say("Allotting payouts to winners and clearing chips from the board...")
-                    self.game_payouts(outcome)
+                    self.game_payouts(outcome, server)
                     del self.roulette["Players"]
                     self.roulette["Players"] = {}
                     fileIO("data/casino/roulette.json", "save", self.roulette)
@@ -109,7 +110,7 @@ class Roulette:
                 await self.bot.say("```" + "Green " + zero_outcome + "```")
                 await asyncio.sleep(2)
                 await self.bot.say("Allotting payouts to winners and clearing chips from the board...")
-                self.game_payouts(outcome)
+                self.game_payouts(outcome, server)
                 del self.roulette["Players"]
                 self.roulette["Players"] = {}
                 fileIO("data/casino/roulette.json", "save", self.roulette)
@@ -424,81 +425,93 @@ class Roulette:
         user = ctx.message.author
         await self.bot.say("Sorry this command is currently disabled, and will become active once complete")
 
-    def game_payouts(self, number):
-        econ = self.bot.get_cog("Economy")
+    def game_payouts(self, number, server):
+        bank = self.bot.get_cog("Economy").bank
         if number in self.rednum:
             for subdict in self.roulette["Players"]:
                 if "Red" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Red"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.blacknum:
             for subdict in self.roulette["Players"]:
                 if "Black" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Black"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.oddnum:
             for subdict in self.roulette["Players"]:
                 if "Odd" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Odd"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.evennum:
             for subdict in self.roulette["Players"]:
                 if "Even" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Even"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.half1num:
             for subdict in self.roulette["Players"]:
                 if "Half1" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Half1"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.half2num:
             for subdict in self.roulette["Players"]:
                 if "Half2" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Half2"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.dozen1num:
             for subdict in self.roulette["Players"]:
                 if "Dozen1" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Dozen1"]["Bet"]
                     amount = bet * 2 + bet
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.dozen2num:
             for subdict in self.roulette["Players"]:
                 if "Dozen2" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Dozen2"]["Bet"]
                     amount = bet * 2 + bet
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.dozen3num:
             for subdict in self.roulette["Players"]:
                 if "Dozen3" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Dozen3"]["Bet"]
                     amount = bet * 2 + bet
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.highnum:
             for subdict in self.roulette["Players"]:
                 if "High" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["High"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.lownum:
             for subdict in self.roulette["Players"]:
                 if "Low" in self.roulette["Players"][subdict]:
                     bet = self.roulette["Players"][subdict]["Low"]["Bet"]
                     amount = bet * 2
-                    econ.add_money(subdict, amount)
+                    mobj = server.get_member(subdict)
+                    bank.deposit_credits(mobj, amount)
         if number in self.numbers:
             for subdict in self.roulette["Players"]:
                 if "Straight" in self.roulette["Players"][subdict]:
                     if number == self.roulette["Players"][subdict]["Straight"]["Number"]:
                         bet = self.roulette["Players"][subdict]["Straight"]["Bet"]
                         amount = bet * 35 + bet
-                        econ.add_money(subdict, amount)
+                        mobj = server.get_member(subdict)
+                        bank.deposit_credits(mobj, amount)
 
 
 def check_folders():
