@@ -87,6 +87,7 @@ class Lottery:
     @checks.admin_or_permissions(manage_server=True)
     async def end(self, ctx):
         """This will stop the lottery and pick a winner"""
+        server = ctx.message.server
         if self.system["lottery_start"] == "Active":
             self.system["lottery_start"] = "Inactive"
             fileIO("data/lottery/system.json", "save", self.system)
@@ -112,8 +113,9 @@ class Lottery:
                     prize = self.system["Prize Amount"]
                     await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
                     userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
-                    econ = self.bot.get_cog("Economy")
-                    econ.add_money(userid, prize)
+                    mobj = server.get_member(userid)
+                    bank = self.bot.get_cog("Economy").bank
+                    bank.deposit_credits(mobj, prize)
                     self.system["Prize"] = False
                     self.system["Prize Amount"] = 0
                     fileIO("data/lottery/system.json", "save", self.system)
@@ -133,8 +135,9 @@ class Lottery:
                     prize = self.system["Prize Amount"]
                     await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
                     userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
-                    econ = self.bot.get_cog("Economy")
-                    econ.add_money(userid, prize)
+                    mobj = server.get_member(userid)
+                    bank = self.bot.get_cog("Economy").bank
+                    bank.deposit_credits(mobj, prize)
                     self.system["Prize"] = False
                     self.system["Prize Amount"] = 0
                     fileIO("data/lottery/system.json", "save", self.system)
