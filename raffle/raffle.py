@@ -63,22 +63,22 @@ class Raffle:
     async def buy(self, ctx, number: int):
         """Buys raffle ticket(s)"""
         user = ctx.message.author
-        econ = self.bot.get_cog('Economy')
+        bank = self.bot.get_cog('Economy').bank
         code = str(uuid.uuid4())
         if number > 0:
             if self.raffle["Config"]["Active"]:
                 ticket_cost = self.raffle["Config"]["Cost"]
                 points = ticket_cost * number
-                if econ.enough_money(user.id, points):
+                if bank.can_spend(user, points):
                     if user.id in self.raffle["Players"]:
-                        econ.withdraw_money(user.id, points)
+                        bank.withdraw_credits(user, points)
                         self.raffle["Players"][user.id]["Tickets"] += [code] * number
                         self.raffle["Config"]["Tickets"] += [code] * number
                         fileIO("data/raffle/raffle.json", "save", self.raffle)
                         await self.bot.say(user.mention + " has purchased " + str(number) +
                                            " raffle tickets for " + str(points))
                     else:
-                        econ.withdraw_money(user.id, points)
+                        bank.withdraw_credits(user, points)
                         self.raffle["Players"][user.id] = {}
                         self.raffle["Players"][user.id] = {"Tickets": []}
                         self.raffle["Players"][user.id]["Tickets"] += [code] * number
