@@ -35,8 +35,8 @@ class Coupon:
         if len(coupon) == 36:
             if coupon in self.coupons:
                 points = self.coupons[coupon]["Points"]
-                econ = self.bot.get_cog('Economy')
-                econ.add_money(user.id, points)
+                bank = self.bot.get_cog('Economy').bank
+                bank.deposit_credits(user, points)
                 del self.coupons[coupon]
                 fileIO("data/coupon/coupons.json", "save", self.coupons)
                 await self.bot.say("I have added " + str(points) + " to your account")
