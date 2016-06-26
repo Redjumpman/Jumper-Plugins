@@ -23,7 +23,7 @@ class Pokedex:
 
     # Because there is multiple commands with the parameter 'pokedex' we need
     # to create a group.
-    @commands.group(pass_context=True)
+    @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
         """This is the list of pokemon queries you can perform."""
 
@@ -323,11 +323,12 @@ class Pokedex:
                                )
 
     @pokedex.command(name="item", pass_context=False)
-    async def _item_pokedex(self, item):
+    async def _item_pokedex(self, *, item):
         """Get a description of an item.
         Use '-' for spaces. Example: !pokedex item master-ball
         """
         if len(item) > 0:
+            item = item.replace(" ", "-").lower()
             url = "http://pokemondb.net/item/" + str(item)
             async with aiohttp.get(url) as response:
                 try:
