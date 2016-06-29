@@ -1,6 +1,6 @@
 #  Bankheist.py was created by Redjumpman for Redbot
 #  This will create a system.JSON file and a data folder
-#  This will integrate with Econonmy using hooks.
+#  This will modify values your bank.json from economy.py
 import os
 import asyncio
 import random
@@ -268,7 +268,7 @@ class Heist:
                     self.system["Banks"][bankname]["Multiplier"] = multiplier
                     fileIO("data/bankheist/system.json", "save", self.system)
                     await self.bot.say("```" + bankname + "'s multiplier is now set to " +
-                                       multiplier + "```")
+                                       str(multiplier) + "```")
                 else:
                     await self.bot.say("This bank name does not exist")
             else:
