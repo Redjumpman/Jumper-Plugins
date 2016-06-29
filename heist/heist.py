@@ -221,6 +221,7 @@ class Heist:
         column2 = []
         column3 = []
         column4 = []
+        column5 = []
         for key in self.system["Banks"].keys():
             column1.append(key)
         for subdict in self.system["Banks"].values():
@@ -229,8 +230,11 @@ class Heist:
             column3.append(subdict['Multiplier'])
         for subdict in self.system["Banks"].values():
             column4.append(subdict["Vault"])
-        m = list(zip(column1, column2, column3, column4))
-        t = tabulate(m, headers=["Bank Name", "Min Crew", "Bet Multiplier", "Vault"])
+        for subdict in self.system["Banks"].values():
+            column5.append(subdict["Success"])
+        sr = [str(x) + "%" for x in column5]
+        m = list(zip(column1, column2, column3, column4, sr))
+        t = tabulate(m, headers=["Bank", "Crew", "Bet Multiplier", "Vault", "Success Rate"])
         await self.bot.say("```Python" + "\n" + t + "```")
 
     @heist.command(name="info", pass_context=True)
@@ -287,6 +291,19 @@ class Heist:
             await self.bot.say("I have now set the wait time to " + str(seconds) + " seconds.")
         else:
             await self.bot.say("Time must be greater than 0.")
+
+    @setheist.command(name="success", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _success_setheist(self, ctx, rate: int, *, bankname):
+        """Set the success rate for a bank. 1-100 %
+        """
+        if bankname in self.system["Banks"]:
+            if rate > 0 and rate <= 100:
+                self.system["Banks"][bankname]["Success"] = rate
+                fileIO("data/bankheist/system.json", "save", self.system)
+                await self.bot.say("I have now set the success rate for " + bankname + " to " + str(rate) + ".")
+            else:
+                await self.bot.say("Success rate must be greater than 0 or less than or equal to 100.")
 
     @setheist.command(name="vault", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
