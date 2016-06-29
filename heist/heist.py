@@ -1,6 +1,6 @@
 #  Bankheist.py was created by Redjumpman for Redbot
 #  This will create a system.JSON file and a data folder
-#  This will modify values your bank.json from economy.py
+#  This will integrate with Econonmy using hooks.
 import os
 import asyncio
 import random
@@ -16,7 +16,7 @@ except:
     tabulateAvailable = False
 
 
-class Bankheist:
+class Heist:
     """Bankheist system inspired by Deepbot, a Twitch bot. Integrates with Economy"""
 
     def __init__(self, bot):
@@ -540,6 +540,6 @@ def check_files():
 def setup(bot):
     check_folders()
     check_files()
-    n = Bankheist(bot)
+    n = Heist(bot)
     bot.add_listener(n.ready_up, "on_ready")
     bot.add_cog(n)
