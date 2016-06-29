@@ -26,17 +26,15 @@ class Shop:
     def __init__(self, bot):
         self.bot = bot
         self.players = fileIO("data/shop/players.json", "load")
-        self.shop = fileIO("data/shop/shop.json", "load")
+        self.shopsys = fileIO("data/shop/shop.json", "load")
         self.pending = fileIO("data/shop/pending.json", "load")
         self.config = fileIO("data/shop/config.json", "load")
 
-    # Create the group to store the shop commands
-    @commands.group(name="shop", pass_context=True)
-    async def _shop(self, ctx):
+    @commands.group(pass_context=True, no_pm=True)
+    async def shop(self, ctx):
         """Individual Commands:
         ---------
         inventory      Shows a list of items in your inventory
-        store          Shows a list of items for sale
         --------
         Pending List Commands:
         --------
@@ -45,20 +43,20 @@ class Shop:
         clear all      Clears all items from the pending list
         -------
         Shop Commands:"""
+
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
     # We want to seperate the store so it doesn't have a shop prefix
-    @commands.command(pass_context=True)
-    async def store(self, ctx):
+    @shop.command(name="list", pass_context=True)
+    async def _list_shop(self, ctx):
         """Shows a list of items that can be purchased"""
-        # loads all the text in the file and dumps it into k
         shop_name = self.config["Shop Name"]
         column1 = []
         column2 = []
-        for subdict in self.shop.values():
+        for subdict in self.shopsys.values():
             column1.append(subdict['Item Name'])
-        for subdict in self.shop.values():
+        for subdict in self.shopsys.values():
             column2.append(subdict['Item Cost'])
         m = list(zip(column1, column2))
         t = tabulate(m, headers=["Item Name", "Item Cost"])
@@ -78,41 +76,41 @@ class Shop:
         else:
             await self.bot.whisper(header + "```\n" + t + "```")
 
-    @_shop.command(pass_context=True, no_pm=True)
+    @shop.command(name="add", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def add(self, ctx, cost: int, *, itemname):
+    async def _add_shop(self, ctx, cost: int, *, itemname):
         """Adds an item to the shop list. Max 100 items"""
         if self.config["Shop Items"] < 100:
             self.config["Shop Items"] += 1
             fileIO("data/shop/config.json", "save", self.config)
             shop_name = self.config["Shop Name"]
-            self.shop[itemname] = {"Item Name": itemname, "Item Cost": cost}
-            fileIO("data/shop/shop.json", "save", self.shop)
-            item_count = len(list(self.shop.keys()))
+            self.shopsys[itemname] = {"Item Name": itemname, "Item Cost": cost}
+            fileIO("data/shop/shop.json", "save", self.shopsys)
+            item_count = len(list(self.shopsys.keys()))
             await self.bot.say("```" + str(itemname) + " has been added to " +
                                shop_name + " shop for purchase." + "\n" + "There is now " +
                                str(item_count) + " items for sale in the store." "```")
         else:
             await self.bot.say("You can only have 100 items for sale in the store.\nDelete an item to add more.")
 
-    @_shop.command(pass_context=True, no_pm=True)
+    @shop.command(name="remove", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def remove(self, ctx, *, itemname):
+    async def _remove_shop(self, ctx, *, itemname):
         """Removes an item from the shop list"""
         shop_name = self.config["Shop Name"]
-        if itemname in self.shop:
+        if itemname in self.shopsys:
             self.config["Shop Items"] -= 1
             fileIO("data/shop/config.json", "save", self.config)
-            del self.shop[itemname]
-            fileIO("data/shop/shop.json", "save", self.shop)
+            del self.shopsys[itemname]
+            fileIO("data/shop/shop.json", "save", self.shopsys)
             await self.bot.say("```" + str(itemname) + " has been removed from " +
                                shop_name + " shop." + "```")
         else:
             await self.bot.say("That item is not in " + shop_name + "'s store")
 
-    @_shop.command(pass_context=True, no_pm=True)
+    @shop.command(name="name", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def name(self, ctx, *, name):
+    async def _name_shop(self, ctx, *, name):
         """Renames the shop"""
         shop_name = self.config["Shop Name"]
         if len(name) > 0:
@@ -123,9 +121,9 @@ class Shop:
         else:
             await self.bot.say("You need to enter a name for the shop")
 
-    @_shop.command(pass_context=True, no_pm=True)
+    @shop.command(name="toggle", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def toggle(self, ctx):
+    async def _toggle_shop(self, ctx):
         """Opens and closes the shop"""
         shop_name = self.config["Shop Name"]
         if self.config["Shop Open"]:
@@ -137,8 +135,8 @@ class Shop:
             fileIO("data/shop/config.json", "save", self.config)
             await self.bot.say(shop_name + " shop is now open for business!")
 
-    @_shop.command(pass_context=True, no_pm=True)
-    async def redeem(self, ctx, *, itemname):
+    @shop.command(name="redeem", pass_context=True, no_pm=True)
+    async def _redeem_shop(self, ctx, *, itemname):
         """Sends a request to redeem an item"""
         user = ctx.message.author
         if self.inventory_item_check(user.id, itemname):
@@ -184,18 +182,18 @@ class Shop:
         else:
             await self.bot.say("You do not have that item to redeem")
 
-    @_shop.command(pass_context=True, no_pm=True)
-    async def buy(self, ctx, *, itemname):
+    @shop.command(name="buy", pass_context=True, no_pm=True)
+    async def _buy_shop(self, ctx, *, itemname):
         """Buy an item from the store list"""
         shop_name = self.config["Shop Name"]
         user = ctx.message.author
         if self.config["Shop Open"]:
             if self.inventory_check(user.id):
-                if itemname in self.shop:
-                    points = self.shop[itemname]["Item Cost"]
+                if itemname in self.shopsys:
+                    points = self.shopsys[itemname]["Item Cost"]
                     if self.account_check(user):
                         if self.enough_points(user, points):
-                            points = self.shop[itemname]["Item Cost"]
+                            points = self.shopsys[itemname]["Item Cost"]
                             if not self.inventory_item_check(user.id, itemname):
                                 self.inventory_add(user.id, itemname)
                                 bank = self.bot.get_cog("Economy").bank
@@ -228,8 +226,8 @@ class Shop:
         else:
             await self.bot.say(shop_name + " shop is currently closed")
 
-    @_shop.command(pass_context=True, no_pm=True)
-    async def gift(self, ctx, user: discord.Member, *, itemname):
+    @shop.command(name="gift", pass_context=True, no_pm=True)
+    async def _gift_shop(self, ctx, user: discord.Member, *, itemname):
         """Send a gift in your inventory to another member"""
         author = ctx.message.author
         if author == user:
@@ -242,13 +240,13 @@ class Shop:
             if self.inventory_item_check(author.id, itemname):
                 if self.inventory_item_amount(author.id, itemname):
                     if itemname in self.players[user.id]["Inventory"]:
-                        nametwo = self.shop[itemname]["Item Name"]
+                        nametwo = self.shopsys[itemname]["Item Name"]
                         self.inventory_remove(author.id, itemname)
                         self.inventory_add(user.id, itemname)
                         logger.info("{}({}) gifted a {} item to {}({})".format(author.name, author.id, itemname, user.name, user.id))
                         await self.bot.say("```" + "I have gifted {} to {}'s inventory".format(nametwo, user.name) + "```")
                     else:
-                        nametwo = self.shop[itemname]["Item Name"]
+                        nametwo = self.shopsys[itemname]["Item Name"]
                         self.players[user.id]["Inventory"][itemname] = {"Item Name": nametwo,
                                                                         "Item Quantity": 0}
                         self.inventory_remove(author.id, itemname)
@@ -265,8 +263,8 @@ class Shop:
                                " Check to see if that user has joined " + shop_name +
                                " shop. They need to type <p>shop join before they can recieve a gift")
 
-    @_shop.command(pass_context=True, no_pm=True)
-    async def join(self, ctx):
+    @shop.command(name="join", pass_context=True, no_pm=True)
+    async def _join_shop(self, ctx):
         """Adds you to the shop. Only need to do this once."""
         shop_name = self.config["Shop Name"]
         user = ctx.message.author
@@ -281,10 +279,10 @@ class Shop:
         else:
             await self.bot.say("```" + "You have already joined" + "```")
 
-    @_shop.command(pass_context=True, no_pm=True)
+    @shop.command(name="notify", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def notify(self, ctx):
-        """PM's all users with Shopkeeper role. Add this role if it does not exist.
+    async def _notify_shop(self, ctx):
+        """PM's all users with Shopkeeper role. Add this role to be notified.
         This command will toggle notifications on/off"""
         if self.config["Shop Notify"]:
             self.config['Shop Notify'] = not self.config['Shop Notify']
@@ -440,6 +438,9 @@ class Shop:
             if self.inventory_item_check(uid, itemname):
                 self.players[uid]["Inventory"][itemname]["Item Quantity"] -= 1
                 fileIO("data/shop/players.json", "save", self.players)
+                if self.players[uid]["Inventory"][itemname]["Item Quantity"] < 1:
+                    del self.players[uid]["Inventory"][itemname]
+                    fileIO("data/shop/players.json", "save", self.players)
             else:
                 return False
         else:
