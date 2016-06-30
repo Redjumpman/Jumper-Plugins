@@ -1,3 +1,5 @@
+[![Gratipay User](https://img.shields.io/gratipay/user/dougwilson.svg)]() [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)]()
+
 # Jumper Cogs
 
 [<img align="right" src="http://i.imgur.com/oNPyK9t.png">](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML)
