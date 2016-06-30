@@ -1,4 +1,5 @@
 [![Github All Releases](https://img.shields.io/github/downloads/atom/atom/total.svg)]() [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)]()
+![https://github.com/Twentysix26/Red-DiscordBot](https://img.shields.io/badge/Discord-Red%20Bot-red.svg)
 
 # Jumper Cogs
 
