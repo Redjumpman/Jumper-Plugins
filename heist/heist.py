@@ -84,6 +84,8 @@ class Heist:
     async def ready_up(self):
         flag = True
         while flag:
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await asyncio.sleep(1)
             self.system["Banks"]["The Local Bank"]["Vault"] += 22
             self.system["Banks"]["First National Bank"]["Vault"] += 31
             self.system["Banks"]["PNC Bank"]["Vault"] += 48
@@ -327,6 +329,8 @@ class Heist:
         """
         if seconds > 0:
             self.system["Config"]["Vault Frequency"] = seconds
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await self.bot.say("Vaults will now increase in credits every " + str(seconds) + " seconds.")
         else:
             await self.bot.say("You need to enter an amount higher than 0.")
 
@@ -508,7 +512,7 @@ def check_files():
               "Config": {"Bankheist Started": "No", "Planning Heist": "No",
                          "Cooldown": "Off", "Bankheist Running": "No", "Players": 0,
                          "Min Bet": 0, "Wait Time": 120, "Bank Target": "",
-                         "Vault Frequency": 60},
+                         "Vault Frequency": 120},
               "Heist Winners": {},
               "Banks": {"The Local Bank": {"Crew": 3, "Multiplier": 0.25, "Success": 46, "Vault": 2000},
                         "First National Bank": {"Crew": 5, "Multiplier": 0.31, "Success": 40, "Vault": 5000},
