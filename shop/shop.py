@@ -59,6 +59,7 @@ class Shop:
         for subdict in self.shopsys.values():
             column2.append(subdict['Item Cost'])
         m = list(zip(column1, column2))
+        m.sort()
         t = tabulate(m, headers=["Item Name", "Item Cost"])
         print(len(t))
         header = "```"
@@ -69,6 +70,8 @@ class Shop:
             second_msg1, second_msg2 = column2[::2], column2[1::2]
             m1 = list(zip(first_msg1, second_msg1))
             m2 = list(zip(first_msg2, second_msg2))
+            m1.sort()
+            m2.sort()
             t1 = tabulate(m1, headers=["Item Name", "Item Cost"])
             t2 = tabulate(m2, headers=["Item Name", "Item Cost"])
             await self.bot.whisper(header + "```\n" + t1 + "```")
@@ -361,6 +364,7 @@ class Shop:
                     for subdict in self.players[user.id]["Inventory"].values():
                             column2.append(subdict["Item Quantity"])
                     m = list(zip(column1, column2))
+                    m.sort()
                     t = tabulate(m, headers=["Item Name", "Item Quantity"])
                     header = "```"
                     header += self.bordered("I N V E N T O R Y")
