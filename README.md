@@ -1,4 +1,4 @@
-[![Gratipay User](https://img.shields.io/gratipay/user/dougwilson.svg)]() [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)]()
+[![Github All Releases](https://img.shields.io/github/downloads/atom/atom/total.svg)]() [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)]()
 
 # Jumper Cogs
 
