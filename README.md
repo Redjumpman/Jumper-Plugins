@@ -1,5 +1,6 @@
- [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)]()
-![https://github.com/Twentysix26/Red-DiscordBot](https://img.shields.io/badge/Discord-Red%20Bot-red.svg)
+ [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)](https://www.python.org/downloads/) 
+ [![PayPal donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML) 
+[![Red Bot](https://img.shields.io/badge/Discord-Red%20Bot-red.svg)](https://github.com/Twentysix26/Red-DiscordBot)
 
 # Jumper Cogs
 
