@@ -206,26 +206,27 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Straight" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Straight" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Straight"] = {}
+                            self.roulette["Players"][user.id]["Straight"] = {"Straight":  True,
+                                                                             "Number": number,
+                                                                             "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Straight bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Straight"] = {}
                         self.roulette["Players"][user.id]["Straight"] = {"Straight":  True,
                                                                          "Number": number,
                                                                          "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Straight bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Straight"] = {}
-                    self.roulette["Players"][user.id]["Straight"] = {"Straight":  True,
-                                                                     "Number": number,
-                                                                     "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -256,24 +257,25 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "High" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "High" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["High"] = {}
+                            self.roulette["Players"][user.id]["High"] = {"High":  True,
+                                                                         "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a High bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["High"] = {}
                         self.roulette["Players"][user.id]["High"] = {"High":  True,
                                                                      "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a High bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["High"] = {}
-                    self.roulette["Players"][user.id]["High"] = {"High":  True,
-                                                                 "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -285,22 +287,23 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Low" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Low" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Low"] = {"Low":  True,
+                                                                        "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Low bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Low"] = {"Low":  True,
                                                                     "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Low bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Low"] = {"Low":  True,
-                                                                "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -312,22 +315,23 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Red" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Red" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Red"] = {"Red":  True,
+                                                                        "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Red bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Red"] = {"Red":  True,
                                                                     "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Red bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Red"] = {"Red":  True,
-                                                                "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -339,22 +343,23 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Black" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Black" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Black"] = {"Black":  True,
+                                                                          "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Black bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Black"] = {"Black":  True,
                                                                       "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Black bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Black"] = {"Black":  True,
-                                                                  "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -366,22 +371,23 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Odd" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Odd" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Odd"] = {"Odd":  True,
+                                                                        "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Odd bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Odd"] = {"Odd":  True,
                                                                     "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Odd bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Odd"] = {"Odd":  True,
-                                                                "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -393,22 +399,23 @@ class Roulette:
         user = ctx.message.author
         if self.roulette["Config"]["Active"]:
             if not self.roulette["Config"]["Betting Closed"]:
-                if user.id in self.roulette["Players"]:
-                    if "Even" not in self.roulette["Players"][user.id]:
+                if await self.subtract_bet(user, bet):
+                    if user.id in self.roulette["Players"]:
+                        if "Even" not in self.roulette["Players"][user.id]:
+                            self.roulette["Players"][user.id]["Even"] = {"Even":  True,
+                                                                         "Bet": bet}
+                            fileIO("data/casino/roulette.json", "save", self.roulette)
+                            await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
+                                               " points, has been recorded.")
+                        else:
+                            await self.bot.say("You already have a Even bet.")
+                    else:
+                        self.roulette["Players"][user.id] = {}
                         self.roulette["Players"][user.id]["Even"] = {"Even":  True,
                                                                      "Bet": bet}
                         fileIO("data/casino/roulette.json", "save", self.roulette)
                         await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                           " points, has been recorded.")
-                    else:
-                        await self.bot.say("You already have a Even bet.")
-                else:
-                    self.roulette["Players"][user.id] = {}
-                    self.roulette["Players"][user.id]["Even"] = {"Even":  True,
-                                                                 "Bet": bet}
-                    fileIO("data/casino/roulette.json", "save", self.roulette)
-                    await self.bot.say("Thank you, " + user.name + ". Your bet of " + str(bet) +
-                                       " has been recorded.")
+                                           " has been recorded.")
             else:
                 await self.bot.say("Betting is currently closed.")
         else:
@@ -424,6 +431,19 @@ class Roulette:
         """Bet on first or second half"""
         user = ctx.message.author
         await self.bot.say("Sorry this command is currently disabled, and will become active once complete")
+
+    async def subtract_bet(self, user, number):
+        bank = self.bot.get_cog("Economy").bank
+        if bank.account_exists(user):
+            if bank.can_spend(user, number):
+                bank.withdraw_credits(user, number)
+                return True
+            else:
+                await self.bot.say("You do not have enough credits in your account to place that bet.")
+                return False
+        else:
+            await self.bot.say("You do not have a bank account.")
+            return False
 
     def game_payouts(self, number, server):
         bank = self.bot.get_cog("Economy").bank
