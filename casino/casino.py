@@ -62,7 +62,7 @@ class Casino:
                                                   }
             fileIO("data/casino/casino.json", "save", self.casinosys)
             name = self.casinosys["System Config"]["Casino Name"]
-            await self.bot.say("Your membership has been approved! Welcome to " + name + " Casino!\nAs a first time member we have credited your account with 100 free chips.\nHave fun!")
+            await self.bot.say("Your membership has been approved! Welcome to {} Casino!\nAs a first time member we have credited your account with 100 free chips.\nHave fun!".format(name))
         else:
             await self.bot.say("You are already a member.")
 
@@ -80,8 +80,7 @@ class Casino:
                     if amount <= self.casinosys["Players"][user.id]["Chips"]:
                         await self.subtract_chips(user.id, amount)
                         bank.deposit_credits(user, amount)
-                        await self.bot.say("I have exchanged " + str(amount) + " " + chips + " chips into credits.")
-                        await self.bot.say("Thank you for playing at " + casino_name + " Casino.")
+                        await self.bot.say("I have exchanged {} {} chips into credits.\nThank you for playing at {} Casino.".format(str(amount), chips, casino_name))
                     else:
                         await self.bot.say("You don't have that many chips to exchange")
                 else:
@@ -92,8 +91,7 @@ class Casino:
                         bank.withdraw_credits(user, amount)
                         self.casinosys["Players"][user.id]["Chips"] += amount
                         fileIO("data/casino/casino.json", "save", self.casinosys)
-                        await self.bot.say("I have exchanged " + str(amount) + " credits for " + str(amount) + " " + chips + " chips.")
-                        await self.bot.say("Enjoy your time at " + casino_name + " Casino!")
+                        await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(str(amount), str(amount), chips, casino_name))
                     else:
                         await self.bot.say("You don't have that many credits to exchange.")
                 else:
@@ -101,7 +99,7 @@ class Casino:
             else:
                 await self.bot.say("I can only exchange chips or credits, please specify one.")
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @casino.command(name="stats", pass_context=True)
     async def _stats_casino(self, ctx):
@@ -110,17 +108,13 @@ class Casino:
         casino_name = self.casinosys["System Config"]["Casino Name"]
         if user.id in self.casinosys["Players"]:
             column1 = ["Dice", "Cups", "All-In", "Coin", "Blackjack"]
-            column2 = []
-            column3 = []
-            for x in self.casinosys["Players"][user.id]["Played"].values():
-                column2.append(x)
-            for x in self.casinosys["Players"][user.id]["Won"].values():
-                column3.append(x)
+            column2 = [x for x in self.casinosys["Players"][user.id]["Played"].values()]
+            column3 = [x for x in self.casinosys["Players"][user.id]["Won"].values()]
             m = sorted(list(zip(column1, column2, column3)))
             t = tabulate(m, headers=["Game", "Played", "Won"])
             await self.bot.say("```Python\n" + t + "```")
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @casino.command(name="toggle", pass_context=True)
     async def _toggle_casino(self, ctx):
@@ -129,11 +123,11 @@ class Casino:
         if self.casinosys["System Config"]["Casino Open"]:
             self.casinosys["System Config"]["Casino Open"] = False
             fileIO("data/casino/casino.json", "save", self.casinosys)
-            await self.bot.say("The " + casino_name + " Casino is now closed.")
+            await self.bot.say("The {} Casino is now closed.".format(casino_name))
         else:
             self.casinosys["System Config"]["Casino Open"] = True
             fileIO("data/casino/casino.json", "save", self.casinosys)
-            await self.bot.say("The " + casino_name + " Casino is now open!")
+            await self.bot.say("The {} Casino is now open!".format(casino_name))
 
     @casino.command(name="balance", pass_context=True)
     async def _balance_casino(self, ctx):
@@ -143,12 +137,12 @@ class Casino:
         if user.id in self.casinosys["Players"]:
             amount = self.casinosys["Players"][user.id]["Chips"]
             chips = self.casinosys["System Config"]["Chip Name"]
-            await self.bot.say("```Python\nYou have " + str(amount) + " " + chips + " chips.```")
+            await self.bot.say("```Python\nYou have {} {} chips.```".format(str(amount), chips))
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
-    async def cups(self, ctx, bet: int, cup: int):
+    async def cups(self, ctx, cup: int, bet: int):
         """Pick the cup that is hiding the gold coin. Choose 1, 2, 3, or 4"""
         user = ctx.message.author
         game = "Cups"
@@ -166,21 +160,21 @@ class Casino:
                                 fileIO("data/casino/casino.json", "save", self.casinosys)
                                 if cup == outcome:
                                     amount = bet * self.casinosys["Games"]["Cups"]["Multiplier"]
-                                    await self.bot.say("Congratulations! The coin was under cup " + str(outcome) + "!")
+                                    await self.bot.say("Congratulations! The coin was under cup {}!".format(str(outcome)))
                                     self.casinosys["Players"][user.id]["Won"]["Cups Won"] += 1
                                     fileIO("data/casino/casino.json", "save", self.casinosys)
                                     await self.add_chips(user.id, amount)
                                 else:
-                                    await self.bot.say("Sorry! The coin was under cup " + str(outcome) + ".")
+                                    await self.bot.say("Sorry! The coin was under cup {}.".format(str(outcome)))
                             else:
                                 await self.bot.say("You need to pick a cup 1-4.")
             else:
-                await self.bot.say("The " + casino_name + " Casino is closed.")
+                await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
-    async def coin(self, ctx, bet: int, choice: str):
+    async def coin(self, ctx, choice: int, bet: str):
         """Bet on heads or tails"""
         user = ctx.message.author
         choice = choice.title()
@@ -200,18 +194,18 @@ class Casino:
                                 fileIO("data/casino/casino.json", "save", self.casinosys)
                                 if choice == outcome:
                                     amount = bet * self.casinosys["Games"]["Coin"]["Multiplier"]
-                                    await self.bot.say("Congratulations! The coin landed on " + outcome + "!")
+                                    await self.bot.say("Congratulations! The coin landed on {}!".format(outcome))
                                     await self.add_chips(user.id, amount)
                                     self.casinosys["Players"][user.id]["Won"]["Coin Won"] += 1
                                     fileIO("data/casino/casino.json", "save", self.casinosys)
                                 else:
-                                    await self.bot.say("Sorry! The coin landed on " + outcome + ".")
+                                    await self.bot.say("Sorry! The coin landed on {}.".format(outcome))
                             else:
                                 await self.bot.say("You need to pick heads or tails")
             else:
-                await self.bot.say("The " + casino_name + " Casino is closed.")
+                await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
     async def dice(self, ctx, bet: int):
@@ -232,16 +226,16 @@ class Casino:
                             fileIO("data/casino/casino.json", "save", self.casinosys)
                             if outcome in winning_numbers:
                                 amount = bet * self.casinosys["Games"]["Dice"]["Multiplier"]
-                                await self.bot.say("Congratulations! The dice landed on " + str(outcome) + ".")
+                                await self.bot.say("Congratulations! The dice landed on {}.".format(str(outcome)))
                                 await self.add_chips(user.id, amount)
                                 self.casinosys["Players"][user.id]["Won"]["Dice Won"] += 1
                                 fileIO("data/casino/casino.json", "save", self.casinosys)
                             else:
-                                await self.bot.say("Sorry! The dice landed on " + str(outcome) + ".")
+                                await self.bot.say("Sorry! The dice landed on {}.".format(str(outcome)))
             else:
-                await self.bot.say("The " + casino_name + " Casino is closed.")
+                await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
     async def blackjack(self, ctx, bet: int):
@@ -258,9 +252,9 @@ class Casino:
                             fileIO("data/casino/casino.json", "save", self.casinosys)
                             await self.blackjack_game(user, bet)
             else:
-                await self.bot.say("The " + casino_name + " Casino is closed.")
+                await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a " + casino_name + " Casino membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
     async def allin(self, ctx, multiplier: int):
@@ -281,14 +275,14 @@ class Casino:
                     if outcome == 0:
                         amount = multiplier * self.casinosys["Players"][user.id]["Chips"]
                         self.casinosys["Players"][user.id]["Chips"] = 0
-                        await self.bot.say("Jackpot!! You just won " + str(amount) + " credits!!")
+                        await self.bot.say("Jackpot!! You just won {} chips!!".format(str(amount)))
                         await self.add_chips(user.id, amount)
                         self.casinosys["Players"][user.id]["Won"]["Allin Won"] += 1
                         fileIO("data/casino/casino.json", "save", self.casinosys)
                     else:
-                        await self.bot.say("Sorry! Your all or nothing gamble failed you lost " + str(bet) + " " + chips + " chips.")
+                        await self.bot.say("Sorry! Your all or nothing gamble failed you lost {} {} chips.".format(str(bet), chips))
         else:
-            await self.bot.say("The " + casino_name + " Casino is closed.")
+            await self.bot.say("The {} Casino is closed.".format(casino_name))
 
     @commands.group(pass_context=True, no_pm=True)
     async def setcasino(self, ctx):
@@ -306,7 +300,7 @@ class Casino:
                 multiplier = float(abs(multiplier))
                 self.casinosys["Games"][game]["Multiplier"] = multiplier
                 fileIO("data/casino/casino.json", "save", self.casinosys)
-                await self.bot.say("Now setting the payout multiplier for " + game + " to " + str(multiplier))
+                await self.bot.say("Now setting the payout multiplier for {} to {}".format(game, str(multiplier)))
             else:
                 await self.bot.say("Multiplier needs to be higher than 0.")
         else:
@@ -322,9 +316,9 @@ class Casino:
         if user.id in self.casinosys["Players"]:
             self.casinosys["Players"]["Chips"] = chips
             fileIO("data/casino/casino.json", "save", self.casinosys)
-            await self.bot.say("```Python\nSet " + user.name + "'s chip balance to " + str(chips) + " " + chip_name + " chips.")
+            await self.bot.say("```Python\nSet {}'s chip balance to {} {} chips.".format(user.name, str(chips), chip_name))
         else:
-            await self.bot.say(user.name + " needs a  " + casino_name + " Casino membership.")
+            await self.bot.say("{} needs a {} Casino membership.".format(user.name, casino_name))
 
     @setcasino.command(name="membership", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -334,28 +328,28 @@ class Casino:
             m = "Membership Lvl " + str(level)
             self.casinosys["System Config"][m] = name
             fileIO("data/casino/casino.json", "save", self.casinosys)
-            await self.bot.say("Changed " + m + " name to " + name)
+            await self.bot.say("Changed {} name to {}".format(m, name))
         else:
             li = ", ".join(self.games)
             await self.bot.say("This game does not exist. Please pick from: " + li)
 
     @setcasino.command(name="name", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _name_setcasino(self, ctx, *, name):
+    async def _name_setcasino(self, ctx, *, name: str):
         """Sets the name of the Casino."""
-        self.casinosys["System Config"]["Casino Name"] = str(name)
+        self.casinosys["System Config"]["Casino Name"] = name
         fileIO("data/casino/casino.json", "save", self.casinosys)
-        await self.bot.say("Changed the casino name to " + str(name))
+        await self.bot.say("Changed the casino name to {}.".format(name))
 
     @setcasino.command(name="chipname", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _chipname_setcasino(self, ctx, *, name):
+    async def _chipname_setcasino(self, ctx, *, name: str):
         """Sets the name of your Casino chips."""
-        self.casinosys["System Config"]["Chip Name"] = str(name)
+        self.casinosys["System Config"]["Chip Name"] = name
         fileIO("data/casino/casino.json", "save", self.casinosys)
-        await self.bot.say("Changed the name of your chips to " + str(name))
+        await self.bot.say("Changed the name of your chips to {}.".format(name))
         await self.bot.say("Test display:")
-        await self.bot.say("```Python\nCongratulations, you just won 50 " + str(name) + " chips.```")
+        await self.bot.say("```Python\nCongratulations, you just won 50 {} chips.```".format(name))
 
     @setcasino.command(name="cooldown", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -367,7 +361,7 @@ class Casino:
             fileIO("data/casino/casino.json", "save", self.casinosys)
             m, s = divmod(seconds, 60)
             h, m = divmod(m, 60)
-            await self.bot.say("Setting the cooldown period for " + game + " to {} hours, {} minutes and {} seconds".format(h, m, s))
+            await self.bot.say("Setting the cooldown period for {} to {} hours, {} minutes and {} seconds".format(game, h, m, s))
 
     @setcasino.command(name="max", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -380,10 +374,10 @@ class Casino:
                     self.casinosys["Games"][game]["Max"] = maxbet
                     chips = self.casinosys["System Config"]["Chip Name"]
                     fileIO("data/casino/casino.json", "save", self.casinosys)
-                    await self.bot.say("Setting the maximum bet for " + game + " to " + str(maxbet) + " " + chips + " chips.")
+                    await self.bot.say("Setting the maximum bet for {} to {} {} chips.".format(game, str(maxbet), chips))
                 else:
                     minbet = self.casinosys["Games"][game]["Min"]
-                    await self.bot.say("The max bet needs be higher than the minimum bet of " + str(minbet) + ".")
+                    await self.bot.say("The max bet needs be higher than the minimum bet of {}.".format(str(minbet)))
             else:
                 await self.bot.say("You need to set a maximum bet higher than 0.")
         else:
@@ -401,10 +395,10 @@ class Casino:
                     self.casinosys["Games"][game]["Min"] = minbet
                     chips = self.casinosys["System Config"]["Chip Name"]
                     fileIO("data/casino/casino.json", "save", self.casinosys)
-                    await self.bot.say("Setting the minimum bet for " + game + " to " + str(minbet) + " " + chips + " chips.")
+                    await self.bot.say("Setting the minimum bet for {} to {} {} chips.".format(game, str(minbet), chips))
                 else:
                     maxbet = self.casinosys["Games"][game]["Max"]
-                    await self.bot.say("The minimum bet can't bet set higher than the maximum bet of " + str(maxbet) + " for " + game + ".")
+                    await self.bot.say("The minimum bet can't bet set higher than the maximum bet of {} for {}.".format(str(maxbet), game))
             else:
                 await self.bot.say("You need to set a minimum bet higher than 0.")
         else:
@@ -414,14 +408,14 @@ class Casino:
     async def add_credits(self, user, amount):
         bank = self.bot.get_cog('Economy').bank
         bank.deposit_credits(user, amount)
-        await self.bot.say(str(amount) + " credits were deposited into your account.")
+        await self.bot.say("{} credits were deposited into your account.".format(str(amount)))
 
     async def add_chips(self, user, amount):
         amount = int(round(amount))
         self.casinosys["Players"][user]["Chips"] += amount
         fileIO("data/casino/casino.json", "save", self.casinosys)
         chips = self.casinosys["System Config"]["Chip Name"]
-        await self.bot.say("```Python\n" + "Congratulations, you just won " + str(amount) + " " + chips + " chips.```")
+        await self.bot.say("```Python\n" + "Congratulations, you just won {} {} chips.```".format(str(amount), chips))
 
     async def subtract_chips(self, userid, number):
         chips = self.casinosys["System Config"]["Chip Name"]
@@ -432,10 +426,10 @@ class Casino:
                 fileIO("data/casino/casino.json", "save", self.casinosys)
                 return True
             else:
-                await self.bot.say("You do not have enough " + chips + " chips.")
+                await self.bot.say("You do not have enough {} chips.".format(chips))
                 return False
         else:
-            await self.bot.say("You need a " + casino_name + " membership. To get one type !casino join")
+            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
             return False
 
     async def subtract_credits(self, user, number):
@@ -458,10 +452,10 @@ class Casino:
             if bet <= mx:
                 return True
             else:
-                await self.bot.say("Your bet exceeds the maximum of " + str(mx) + " chips.")
+                await self.bot.say("Your bet exceeds the maximum of {} chips.".format(str(mx)))
                 return False
         else:
-            await self.bot.say("Your bet needs to be higher than " + str(mi) + " chips.")
+            await self.bot.say("Your bet needs to be higher than {} chips.".format(str(mi)))
             return False
 
     async def check_cooldowns(self, userid, game):
