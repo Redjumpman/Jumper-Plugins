@@ -43,20 +43,22 @@ class Roulette:
         self.lownum = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
                        15, 16, 17, 18]
 
-    @commands.command(pass_context=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def clearbets(self, ctx):
-        """Clears all bets in JSON file. For debugging use ONLY"""
-        del self.roulette["Players"]
-        self.roulette["Players"] = {}
-        fileIO("data/casino/roulette.json", "save", self.roulette)
-        await self.bot.say("Data cleared.")
-
     @commands.group(name="roulette", pass_context=True)
     async def _roulette(self, ctx):
         """Group Command for Roulette Commands"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @_roulette.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def reset(self, ctx):
+        """Resets the game. For debugging use ONLY"""
+        del self.roulette["Players"]
+        self.roulette["Players"] = {}
+        self.roulette["Config"]["Active"] = False
+        self.roulette["Config"]["Betting Closed"] = True
+        fileIO("data/casino/roulette.json", "save", self.roulette)
+        await self.bot.say("Data cleared.")
 
     @_roulette.command(pass_context=True, no_pm=True)
     async def play(self, ctx):
