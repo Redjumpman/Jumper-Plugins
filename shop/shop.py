@@ -5,6 +5,7 @@ import discord
 import os
 import json
 import logging
+from operator import itemgetter
 from discord.ext import commands
 from .utils.dataIO import fileIO
 from __main__ import send_cmd_help
@@ -52,14 +53,15 @@ class Shop:
     async def _list_shop(self, ctx):
         """Shows a list of items that can be purchased"""
         shop_name = self.config["Shop Name"]
-        column1 = []
-        column2 = []
-        for subdict in self.shopsys.values():
-            column1.append(subdict['Item Name'])
-        for subdict in self.shopsys.values():
-            column2.append(subdict['Item Cost'])
+        column1 = [subdict['Item Name'] for subdict in self.shopsys.values()]
+        column2 = [subdict['Item Cost'] for subdict in self.shopsys.values()]
         m = list(zip(column1, column2))
-        m.sort()
+        if self.config["Sort Method"] == "Alphabet":
+            m = m.sort()
+        elif self.config["Sort Method"] == "Lowest":
+            m = sorted(m, key=itemgetter(1), reverse=True)
+        elif self.config["Sort Method"] == "Highest":
+            m = sorted(m, key=itemgetter(1))
         t = tabulate(m, headers=["Item Name", "Item Cost"])
         print(len(t))
         header = "```"
@@ -70,8 +72,15 @@ class Shop:
             second_msg1, second_msg2 = column2[::2], column2[1::2]
             m1 = list(zip(first_msg1, second_msg1))
             m2 = list(zip(first_msg2, second_msg2))
-            m1.sort()
-            m2.sort()
+            if self.config["Sort Method"] == "Alphabet":
+                m1.sort()
+                m2.sort()
+            elif self.config["Sort Method"] == "Lowest":
+                m1 = sorted(m1, key=itemgetter(1))
+                m2 = sorted(m2, key=itemgetter(1))
+            elif self.config["Sort Method"] == "Highest":
+                m1 = sorted(m1, key=itemgetter(1), reverse=True)
+                m2 = sorted(m2, key=itemgetter(1), reverse=True)
             t1 = tabulate(m1, headers=["Item Name", "Item Cost"])
             t2 = tabulate(m2, headers=["Item Name", "Item Cost"])
             await self.bot.whisper(header + "```\n" + t1 + "```")
@@ -90,9 +99,7 @@ class Shop:
             self.shopsys[itemname] = {"Item Name": itemname, "Item Cost": cost}
             fileIO("data/shop/shop.json", "save", self.shopsys)
             item_count = len(list(self.shopsys.keys()))
-            await self.bot.say("```" + str(itemname) + " has been added to " +
-                               shop_name + " shop for purchase." + "\n" + "There is now " +
-                               str(item_count) + " items for sale in the store." "```")
+            await self.bot.say("```{} has been added to {} shop for purchase.\nThere is now {} items for sale in the store.```".format(itemname, shop_name, str(item_count)))
         else:
             await self.bot.say("You can only have 100 items for sale in the store.\nDelete an item to add more.")
 
@@ -106,10 +113,29 @@ class Shop:
             fileIO("data/shop/config.json", "save", self.config)
             del self.shopsys[itemname]
             fileIO("data/shop/shop.json", "save", self.shopsys)
-            await self.bot.say("```" + str(itemname) + " has been removed from " +
-                               shop_name + " shop." + "```")
+            await self.bot.say("```{} + has been removed from {} shop.```".format(itemname, shop_name))
         else:
-            await self.bot.say("That item is not in " + shop_name + "'s store")
+            await self.bot.say("That item is not in {}'s store listings".format(shop_name))
+
+    @shop.command(name="sort", pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _sort_shop(self, ctx, choice: str):
+        """Changes the sorting method for shop listings. Alphabet, Lowest, Highest"""
+        choice = choice.title()
+        if choice == "Alphabet":
+            self.config["Sort Method"] = "Alphabet"
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("Changing sorting method to Alphabetical.")
+        elif choice == "Lowest":
+            self.config["Sort Method"] = "Lowest"
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("Setting sorting method to Lowest.")
+        elif choice == "Highest":
+            self.config["Sort Method"] = "Highest"
+            fileIO("data/shop/config.json", "save", self.config)
+            await self.bot.say("Setting sorting method to Highest.")
+        else:
+            await self.bot.say("Please choose Alphabet, Lowest, or Highest.")
 
     @shop.command(name="name", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -120,7 +146,7 @@ class Shop:
             self.config["Shop Name"] = name
             fileIO("data/shop/config.json", "save", self.config)
             shop_name = self.config["Shop Name"]
-            await self.bot.say("I have renamed the shop to " + shop_name)
+            await self.bot.say("I have renamed the shop to {}".format(shop_name))
         else:
             await self.bot.say("You need to enter a name for the shop")
 
@@ -136,12 +162,13 @@ class Shop:
         else:
             self.config["Shop Open"] = True
             fileIO("data/shop/config.json", "save", self.config)
-            await self.bot.say(shop_name + " shop is now open for business!")
+            await self.bot.say("{} shop is now open for business!".format(shop_name))
 
     @shop.command(name="redeem", pass_context=True, no_pm=True)
     async def _redeem_shop(self, ctx, *, itemname):
         """Sends a request to redeem an item"""
         user = ctx.message.author
+        role = self.config["Shop Role"]
         if self.inventory_item_check(user.id, itemname):
             if self.inventory_item_amount(user.id, itemname):
                 if user.id not in self.pending:
@@ -156,14 +183,11 @@ class Shop:
                     fileIO("data/shop/pending.json", "save", self.pending)
                     self.inventory_remove(user.id, itemname)
                     if self.config["Shop Notify"]:
-                        names = self.role_check("Shopkeeper", ctx)
+                        names = self.role_check(role, ctx)
                         destinations = [m for m in ctx.message.server.members if m.name in names]
                         for destination in destinations:
                             await self.bot.send_message(destination, itemname + " was added to the pending list by " + user.name)
-                        await self.bot.say("```" + itemname + " has been addddded " +
-                                           "to pending list. Please wait for " +
-                                           "approval before adding more of the " +
-                                           "same item." + "```")
+                        await self.bot.say("```{} has been added to pending list. Please wait for approval before adding more of the same item.```".format(itemname))
                 else:
                     self.pending[user.id][user.name][itemname] = {"Item Name": itemname,
                                                                   "Time Requested": time_now}
@@ -175,10 +199,10 @@ class Shop:
                     msg += "adding more of the same item."
                     msg += "```"
                     if self.config["Shop Notify"]:
-                        names = self.role_check("Shopkeeper", ctx)
+                        names = self.role_check(role, ctx)
                         destinations = [m for m in ctx.message.server.members if m.name in names]
                         for destination in destinations:
-                            await self.bot.send_message(destination, itemname + " was added to the pending list by " + user.name)
+                            await self.bot.send_message(destination, "{} was added to the pending list by {}".format(itemname, user.name))
                     await self.bot.say(msg)
             else:
                 await self.bot.say("You do not have that item to redeem")
@@ -201,22 +225,12 @@ class Shop:
                                 self.inventory_add(user.id, itemname)
                                 bank = self.bot.get_cog("Economy").bank
                                 bank.withdraw_credits(user, points)
-                                msg = "```"
-                                msg += "You have purchased a " + str(itemname)
-                                msg += " for " + str(points) + " points. " + "\n"
-                                msg += str(itemname) + " has been added to your inventory."
-                                msg += "```"
-                                await self.bot.say(msg)
+                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.".format(itemname, str(points), itemname))
                             else:
                                 self.inventory_add(user.id, itemname)
                                 bank = self.bot.get_cog("Economy").bank
                                 bank.withdraw_credits(user, points)
-                                msg = "```"
-                                msg += "You have purchased a " + str(itemname)
-                                msg += " for " + str(points) + " points. " + "\n"
-                                msg += str(itemname) + " has been added to your inventory."
-                                msg += "```"
-                                await self.bot.say(msg)
+                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.".format(itemname, str(points), itemname))
                         else:
                             await self.bot.say("You don't have enough points to purchase this item")
                     else:
@@ -224,10 +238,9 @@ class Shop:
                 else:
                     await self.bot.say("This item is not in the shop")
             else:
-                await self.bot.say("You need to join the " + shop_name +
-                                   " shop to purchase items." + " Example: !shop join")
+                await self.bot.say("You need to join the {} shop to purchase items. Example: !shop join".format(shop_name))
         else:
-            await self.bot.say(shop_name + " shop is currently closed")
+            await self.bot.say("{} shop is currently closed".format(shop_name))
 
     @shop.command(name="gift", pass_context=True, no_pm=True)
     async def _gift_shop(self, ctx, user: discord.Member, *, itemname):
@@ -263,8 +276,7 @@ class Shop:
         else:
             shop_name = self.config["Shop Name"]
             await self.bot.say("I cant find a user with that name." +
-                               " Check to see if that user has joined " + shop_name +
-                               " shop. They need to type <p>shop join before they can recieve a gift")
+                               " Check to see if that user has joined {} shop. They need to type !shop join before they can recieve a gift".format(shop_name))
 
     @shop.command(name="join", pass_context=True, no_pm=True)
     async def _join_shop(self, ctx):
@@ -276,11 +288,9 @@ class Shop:
             fileIO("data/shop/players.json", "save", self.players)
             self.players[user.id]["Inventory"] = {}
             fileIO("data/shop/players.json", "save", self.players)
-            await self.bot.say("\n" + "```" + "You have" +
-                               " joined " + shop_name + " shop. You can now buy" +
-                               " items with points." + "```")
+            await self.bot.say("```You have joined {} shop. You can now buy items with points.```".format(shop_name))
         else:
-            await self.bot.say("```" + "You have already joined" + "```")
+            await self.bot.say("```You have already joined```")
 
     @shop.command(name="notify", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -295,6 +305,14 @@ class Shop:
             self.config["Shop Notify"] = True
             fileIO("data/shop/config.json", "save", self.config)
             await self.bot.say("Shop notifcations are now ON!")
+
+    @shop.command(name="role", pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _role_shop(self, ctx, *, rolename: str):
+        """Change the name of the notification role"""
+        self.config["Shop Role"] = rolename
+        fileIO("data/shop/config.json", "save", self.config)
+        await self.bot.say("Notify role set to {}. Assign this role to users you want to haven notifed of pending items.".format(rolename))
 
     @commands.group(name="pending", pass_context=True)
     async def _pending(self, ctx):
@@ -324,15 +342,11 @@ class Shop:
                 if itemname in self.pending[user.id][user.name]:
                     del self.pending[user.id][user.name][itemname]
                     fileIO("data/shop/pending.json", "save", self.pending)
-                    await self.bot.say(itemname + "has been cleared from" +
-                                       " pending, for " + user.name +
-                                       "'s redeem request.")
+                    await self.bot.say("{} has been cleared from pending, for {}'s redeem request.".format(itemname, user.name))
                 else:
-                    await self.bot.say("The item is not in the pending list" +
-                                       " for this user")
+                    await self.bot.say("The item is not in the pending list for this user")
             else:
-                await self.bot.say("This user has no pending requests. Make" +
-                                   " sure their name is spelled correctly.")
+                await self.bot.say("This user has no pending requests. Make sure their name is spelled correctly.")
         else:
             await self.bot.say("The pending list is empty")
 
@@ -354,15 +368,10 @@ class Shop:
         user = ctx.message.author
         if user.id in self.players:
             if self.players[user.id]["Inventory"] is None:
-                await self.bot.say("You have not purchased any items for " +
-                                   "me to display")
+                await self.bot.say("You have not purchased any items for me to display")
             else:
-                    column1 = []
-                    column2 = []
-                    for subdict in self.players[user.id]["Inventory"].values():
-                            column1.append(subdict["Item Name"])
-                    for subdict in self.players[user.id]["Inventory"].values():
-                            column2.append(subdict["Item Quantity"])
+                    column1 = [subdict['Item Name'] for subdict in self.players[user.id]["Inventory"].values()]
+                    column2 = [subdict["Item Quantity"] for subdict in self.players[user.id]["Inventory"].values()]
                     m = list(zip(column1, column2))
                     m.sort()
                     t = tabulate(m, headers=["Item Name", "Item Quantity"])
@@ -464,7 +473,9 @@ def check_files():
         system = {"Shop Name": "RedJumpman",
                   "Shop Open": True,
                   "Shop Notify": False,
-                  "Shop Items": shop_item_count}
+                  "Shop Items": shop_item_count,
+                  "Shop Role": "Shopkeeper",
+                  "Sort Method": "Alphabet"}
     except:
         system = {"Shop Name": "RedJumpman",
                   "Shop Open": True,
