@@ -174,7 +174,7 @@ class Casino:
             await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
     @commands.command(pass_context=True, no_pm=True)
-    async def coin(self, ctx, choice: int, bet: str):
+    async def coin(self, ctx, choice: str, bet: int):
         """Bet on heads or tails"""
         user = ctx.message.author
         choice = choice.title()
