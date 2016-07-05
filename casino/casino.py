@@ -314,9 +314,9 @@ class Casino:
         chip_name = self.casinosys["System Config"]["Chip Name"]
         casino_name = self.casinosys["System Config"]["Casino Name"]
         if user.id in self.casinosys["Players"]:
-            self.casinosys["Players"]["Chips"] = chips
+            self.casinosys["Players"][user.id]["Chips"] = chips
             fileIO("data/casino/casino.json", "save", self.casinosys)
-            await self.bot.say("```Python\nSet {}'s chip balance to {} {} chips.".format(user.name, str(chips), chip_name))
+            await self.bot.say("```Python\nSetting the chip balance of {} to {} {} chips.```".format(user.name, str(chips), chip_name))
         else:
             await self.bot.say("{} needs a {} Casino membership.".format(user.name, casino_name))
 
