@@ -125,10 +125,9 @@ class Russianroulette:
         if high_noon > 1:
             while i > 0:
                 if i == 1:
-                    mention = [subdict for subdict in self.rrgame["Players"]]
-                    player_id = str(mention[0])
-                    name_id = player_id.replace("<", "").replace(">", "").replace("@", "").replace("'", "")
-                    mobj = server.get_member(name_id)
+                    mention = [subdict["Mention"] for subdict in self.rrgame["Players"].values()]
+                    player_id = [subdict["ID"] for subdict in self.rrgame["Players"].values()]
+                    mobj = server.get_member(player_id[0])
                     pot = self.rrgame["System"]["Pot"]
                     await asyncio.sleep(2)
                     await self.bot.say("Congratulations " + str(mention[0]) + ". You just won " + str(pot) + " points!")
@@ -242,6 +241,15 @@ def check_files():
     if not fileIO(f, "check"):
         print("Creating default rrgame.json...")
         fileIO(f, "save", system)
+    else:  # consistency check
+        current = fileIO(f, "load")
+        if current.keys() != system.keys():
+            for key in system.keys():
+                if key not in current.keys():
+                    current[key] = system[key]
+                    print("Adding " + str(key) +
+                          " field to russian roulette rrgame.json")
+            fileIO(f, "save", current)
 
 
 def setup(bot):
