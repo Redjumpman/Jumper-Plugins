@@ -7,6 +7,7 @@ import discord
 import random
 import time
 import asyncio
+from operator import itemgetter
 from .utils.dataIO import fileIO
 from .utils import checks
 from discord.ext import commands
@@ -35,6 +36,26 @@ class Casino:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @casino.command(name="leaderboard", pass_context=True)
+    async def _leaderboard_casino(self, ctx):
+        """Displays Casino Leaderboard"""
+        channel = ctx.message.channel
+        pos = 0
+        players = [subdict["Name"] for subdict in self.casinosys["Players"].values()]
+        chips = [subdict["Chips"] for subdict in self.casinosys["Players"].values()]
+        rank = []
+        for item in players:
+            pos += 1
+            rank.append(pos)
+        m = zip(players, chips)
+        m = sorted(m, key=itemgetter(1), reverse=True)
+        players = [x[0] for x in m]
+        chips = [x[1] for x in m]
+        li = list(zip(rank, players, chips))
+        t = tabulate(li, headers=["Rank", "Names", "Chips"], numalign="left", tablefmt="orgtbl")
+        msg = "```Python\n" + t + "```"
+        await self.send_long_message(channel, msg)
 
     @casino.command(name="join", pass_context=True)
     async def _join_casino(self, ctx):
@@ -237,7 +258,7 @@ class Casino:
         else:
             await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
 
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command(pass_context=True, no_pm=True, aliases=["bj", "21"])
     async def blackjack(self, ctx, bet: int):
         """Modified Blackjack."""
         user = ctx.message.author
@@ -530,7 +551,8 @@ class Casino:
     async def player(self, dh, user):
         ph = self.draw_two()
         count = self.count_hand(ph)
-        msg = "Your cards: %s" % " ".join(ph) + "\n"
+        msg = user.mention + "\n"
+        msg += "Your cards: %s" % " ".join(ph) + "\n"
         msg += "Your score: %d" % count + "\n"
         msg += "The dealer shows: %s" % dh[0] + "\n"
         msg += "hit or stay?"
@@ -541,7 +563,8 @@ class Casino:
             if choice.content == "Hit" or choice.content == "hit":
                 ph = self.draw_card(ph)
                 count = self.count_hand(ph)
-                msg1 = "Your cards: %s" % " ".join(ph) + "\n"
+                msg1 = user.mention + "\n"
+                msg1 += "Your cards: %s" % " ".join(ph) + "\n"
                 msg1 += "Your score: %d" % count + "\n"
                 msg1 += "The dealer shows: %s" % dh[0] + "\n"
                 await self.bot.say(msg1)
@@ -572,9 +595,9 @@ class Casino:
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
             msg += "      Dealer Bust!" + "\n"
-            msg += "*******Winner!*******"
+            msg += "*******" + user.name + " Wins!*******"
             await self.bot.say("```" + msg + "```")
-            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"]
+            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"] + amount
             await self.add_chips(user.id, total)
             self.casinosys["Players"][user.id]["Won"]["BJ Won"] += 1
             fileIO("data/casino/casino.json", "save", self.casinosys)
@@ -584,7 +607,7 @@ class Casino:
             msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
-            msg += "  Push. Bet returned."
+            msg += user.name + "  Pushed. Bet returned."
             await self.bot.say("```" + msg + "```")
             amount = int(round(amount))
             self.casinosys["Players"][user.id]["Chips"] += amount
@@ -593,7 +616,7 @@ class Casino:
         elif pc > 21:
             msg = "----------------------" + "\n"
             msg += "        Bust!" + "\n"
-            msg += "======You  Lose!======" + "\n"
+            msg += "======" + user.name + "  Lost!======"
             await self.bot.say("```" + msg + "```")
             return False
         elif dc >= pc:
@@ -601,7 +624,7 @@ class Casino:
             msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
-            msg += "======You  Lose!======"
+            msg += "======" + user.name + "  Lost!======"
             await self.bot.say("```" + msg + "```")
             return False
         else:
@@ -609,9 +632,31 @@ class Casino:
             msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
-            msg += "*******Winner!*******"
+            msg += "*******" + user.name + " Wins!*******"
             await self.bot.say("```" + msg + "```")
-            return False
+            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"] + amount
+            await self.add_chips(user.id, total)
+            self.casinosys["Players"][user.id]["Won"]["BJ Won"] += 1
+            fileIO("data/casino/casino.json", "save", self.casinosys)
+            return True
+
+    async def send_long_message(self, channel, message, truncate=False,
+                                max_lines=15):
+        for msg in long_message(message, truncate, max_lines):
+            await self.bot.send_message(channel, msg)
+
+
+def split_every(s, n):
+    return [s[i:i + n] for i in range(0, len(s), n)]
+
+
+def long_message(output, truncate=False, max_lines=15):
+    output = output.strip()
+    return ["\n".join(output.split("\n")[:max_lines]) +
+            "\n... *Search results truncated. " +
+            "Send me a command over PM to show more!*"] \
+        if truncate and output.count("\n") > max_lines \
+        else split_every(output, 2000)
 
 
 def check_folders():
