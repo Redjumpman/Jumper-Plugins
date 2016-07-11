@@ -86,11 +86,16 @@ class Heist:
         while flag:
             fileIO("data/bankheist/system.json", "save", self.system)
             await asyncio.sleep(1)
-            self.system["Banks"]["The Local Bank"]["Vault"] += 22
-            self.system["Banks"]["First National Bank"]["Vault"] += 31
-            self.system["Banks"]["PNC Bank"]["Vault"] += 48
-            self.system["Banks"]["Bank of America"]["Vault"] += 53
-            self.system["Banks"]["Fort Knox"]["Vault"] += 60
+            if self.system["Banks"]["The Local Bank"]["Vault"] < 2000:
+                self.system["Banks"]["The Local Bank"]["Vault"] += 22
+            if self.system["Banks"]["First National Bank"]["Vault"] < 5000:
+                self.system["Banks"]["First National Bank"]["Vault"] += 31
+            if self.system["Banks"]["PNC Bank"]["Vault"] < 8000:
+                self.system["Banks"]["PNC Bank"]["Vault"] += 48
+            if self.system["Banks"]["Bank of America"]["Vault"] < 12000:
+                self.system["Banks"]["Bank of America"]["Vault"] += 53
+            if self.system["Banks"]["Fort Knox"]["Vault"] < 20000:
+                self.system["Banks"]["Fort Knox"]["Vault"] += 60
             fileIO("data/bankheist/system.json", "save", self.system)
             frequency = self.system["Config"]["Vault Frequency"]
             await asyncio.sleep(frequency)  # task runs every 60 seconds
@@ -236,6 +241,7 @@ class Heist:
             column5.append(subdict["Success"])
         sr = [str(x) + "%" for x in column5]
         m = list(zip(column1, column2, column3, column4, sr))
+        m.sort()
         t = tabulate(m, headers=["Bank", "Crew", "Bet Multiplier", "Vault", "Success Rate"])
         await self.bot.say("```Python" + "\n" + t + "```")
 
