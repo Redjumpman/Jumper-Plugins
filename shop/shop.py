@@ -63,7 +63,6 @@ class Shop:
         elif self.config["Sort Method"] == "Highest":
             m = sorted(m, key=itemgetter(1))
         t = tabulate(m, headers=["Item Name", "Item Cost"])
-        print(len(t))
         header = "```"
         header += self.bordered(shop_name + " Store Listings")
         header += "```"
