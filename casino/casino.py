@@ -665,7 +665,7 @@ class Casino:
             self.casinosys["Players"][user.id]["Won"]["BJ Won"] += 1
             fileIO("data/casino/casino.json", "save", self.casinosys)
             return True
-        elif dc == 21 and pc == 21:
+        elif dc == pc:
             msg = "----------------------" + "\n"
             msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
