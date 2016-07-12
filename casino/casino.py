@@ -93,6 +93,8 @@ class Casino:
         bank = self.bot.get_cog('Economy').bank
         user = ctx.message.author
         currency = currency.title()
+        chip_rate = self.casinosys["System Config"]["Chip Rate"]
+        credit_rate = self.casinosys["System Config"]["Credit Rate"]
         chips = self.casinosys["System Config"]["Chip Name"]
         casino_name = self.casinosys["System Config"]["Casino Name"]
         if user.id in self.casinosys["Players"]:
@@ -100,8 +102,9 @@ class Casino:
                 if amount > 0:
                     if amount <= self.casinosys["Players"][user.id]["Chips"]:
                         await self.subtract_chips(user.id, amount)
-                        bank.deposit_credits(user, amount)
-                        await self.bot.say("I have exchanged {} {} chips into credits.\nThank you for playing at {} Casino.".format(str(amount), chips, casino_name))
+                        credits = int(round(amount * credit_rate))
+                        bank.deposit_credits(user, credits)
+                        await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank you for playing at {} Casino.".format(str(amount), chips, str(credits), casino_name))
                     else:
                         await self.bot.say("You don't have that many chips to exchange")
                 else:
@@ -110,9 +113,10 @@ class Casino:
                 if amount > 0:
                     if bank.can_spend(user, amount):
                         bank.withdraw_credits(user, amount)
-                        self.casinosys["Players"][user.id]["Chips"] += amount
+                        chip_amount = int(round(amount * chip_rate))
+                        self.casinosys["Players"][user.id]["Chips"] += chip_amount
                         fileIO("data/casino/casino.json", "save", self.casinosys)
-                        await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(str(amount), str(amount), chips, casino_name))
+                        await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(str(amount), str(chip_amount), chips, casino_name))
                     else:
                         await self.bot.say("You don't have that many credits to exchange.")
                 else:
@@ -136,6 +140,30 @@ class Casino:
             await self.bot.say("```Python\n" + t + "```")
         else:
             await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+
+    @casino.command(name="info", pass_context=True)
+    async def _info_casino(self, ctx):
+        """Shows information about the server casino"""
+        games = self.games
+        min_bet = [subdict["Min"] for subdict in self.casinosys["Games"].values()]
+        max_bet = [subdict["Max"] for subdict in self.casinosys["Games"].values()]
+        cooldown = [subdict["Cooldown"] for subdict in self.casinosys["Games"].values()]
+        time = []
+        multiplier = [subdict["Multiplier"] for subdict in self.casinosys["Games"].values()]
+        chip_exchange_rate = self.casinosys["System Config"]["Chip Rate"]
+        credit_exchange_rate = self.casinosys["System Config"]["Credit Rate"]
+        for x in cooldown:
+            d = self.time_format(x)
+            time.append(d)
+        m = list(zip(games, multiplier, min_bet, max_bet, time))
+        t = tabulate(m, headers=["Game", "Multiplier", "Min Bet", "Max Bet", "Cooldown"])
+        msg = "```\n"
+        msg += t + "\n" + "\n"
+        msg += "Credit Exchange Rate: x" + str(credit_exchange_rate) + "\n"
+        msg += "Chip Exchange Rate: x" + str(chip_exchange_rate) + "\n"
+        msg += "Casino Members: " + str(len(self.casinosys["Players"].keys()))
+        msg += "```"
+        await self.bot.say(msg)
 
     @casino.command(name="toggle", pass_context=True)
     async def _toggle_casino(self, ctx):
@@ -362,6 +390,24 @@ class Casino:
         fileIO("data/casino/casino.json", "save", self.casinosys)
         await self.bot.say("Changed the casino name to {}.".format(name))
 
+    @setcasino.command(name="exchange", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _exchange_setcasino(self, ctx, rate: float, currency: str):
+        """Sets the exchange rate for chips or credits"""
+        if rate > 0:
+            if currency.title() == "Chips":
+                self.casinosys["System Config"]["Chip Rate"] = rate
+                fileIO("data/casino/casino.json", "save", self.casinosys)
+                await self.bot.say("Setting the exchange rate for credits to chips to {}".format(str(rate)))
+            elif currency.title() == "Credits":
+                self.casinosys["System Config"]["Credit Rate"] = rate
+                fileIO("data/casino/casino.json", "save", self.casinosys)
+                await self.bot.say("Setting the exchange rate for chips to credits to {}".format(str(rate)))
+            else:
+                await self.bot.say("Please specify chips or credits")
+        else:
+            await self.bot.say("Rate must be higher than 0. Default is 1.")
+
     @setcasino.command(name="chipname", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _chipname_setcasino(self, ctx, *, name: str):
@@ -500,6 +546,19 @@ class Casino:
         h, m = divmod(m, 60)
         await self.bot.say("```{} hours, {} minutes and {} seconds remaining```".format(h, m, s))
 
+    def time_format(self, seconds):
+        m, s = divmod(seconds, 60)
+        h, m = divmod(m, 60)
+        if h > 0:
+            msg = "{} hours, {} minutes, {} seconds".format(h, m, s)
+        elif h == 0 and m > 0:
+            msg = "{} minutes, {} seconds".format(h, m, s)
+        elif m == 0 and h == 0 and s > 0:
+            msg = "{} seconds".format(h, m, s)
+        elif m == 0 and h == 0 and s == 0:
+            msg = "No cooldown"
+        return msg
+
     def draw_two(self):
         card1 = random.choice(self.deck)
         card2 = random.choice(self.deck)
@@ -555,7 +614,9 @@ class Casino:
         msg += "Your cards: %s" % " ".join(ph) + "\n"
         msg += "Your score: %d" % count + "\n"
         msg += "The dealer shows: %s" % dh[0] + "\n"
-        msg += "hit or stay?"
+        if count == 21:
+            return ph
+        msg += "hit or stay"
         await self.bot.say(msg)
         a = True
         while a:
@@ -585,6 +646,7 @@ class Casino:
         return ph
 
     async def blackjack_game(self, user, amount):
+        chips = self.casinosys["System Config"]["Chip Name"]
         dh = self.dealer()
         ph = await self.player(dh, user)
         dc = self.count_hand(dh)
@@ -597,7 +659,8 @@ class Casino:
             msg += "      Dealer Bust!" + "\n"
             msg += "*******" + user.name + " Wins!*******"
             await self.bot.say("```" + msg + "```")
-            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"] + amount
+            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"]
+            self.casinosys["Players"][user.id]["Chips"] += amount
             await self.add_chips(user.id, total)
             self.casinosys["Players"][user.id]["Won"]["BJ Won"] += 1
             fileIO("data/casino/casino.json", "save", self.casinosys)
@@ -607,10 +670,11 @@ class Casino:
             msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
-            msg += user.name + "  Pushed. Bet returned."
+            msg += user.name + "  Pushed."
             await self.bot.say("```" + msg + "```")
             amount = int(round(amount))
             self.casinosys["Players"][user.id]["Chips"] += amount
+            await self.bot.say("Returned {} {} chips to your account.".format(str(amount), chips))
             fileIO("data/casino/casino.json", "save", self.casinosys)
             return False
         elif pc > 21:
@@ -634,7 +698,8 @@ class Casino:
             msg += "        Your score: %d" % pc + "\n"
             msg += "*******" + user.name + " Wins!*******"
             await self.bot.say("```" + msg + "```")
-            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"] + amount
+            total = amount * self.casinosys["Games"]["Blackjack"]["Multiplier"]
+            self.casinosys["Players"][user.id]["Chips"] += amount
             await self.add_chips(user.id, total)
             self.casinosys["Players"][user.id]["Won"]["BJ Won"] += 1
             fileIO("data/casino/casino.json", "save", self.casinosys)
@@ -669,6 +734,8 @@ def check_files():
     system = {"System Config": {"Casino Name": "Redjumpman",
                                 "Casino Open": True,
                                 "Chip Name": "Jump",
+                                "Chip Rate": 1,
+                                "Credit Rate": 1,
                                 "Membership Lvl 0": "Basic",
                                 "Membership Lvl 1": "Silver",
                                 "Membership Lvl 2": "Gold",
@@ -686,6 +753,15 @@ def check_files():
     if not fileIO(f, "check"):
         print("Creating default casino.json...")
         fileIO(f, "save", system)
+    else:  # consistency check
+        current = fileIO(f, "load")
+        if current["System Config"].keys() != system["System Config"].keys():
+            for key in system["System Config"].keys():
+                if key not in current["System Config"].keys():
+                    current["System Config"][key] = system["System Config"][key]
+                    print("Adding " + str(key) +
+                          " field to casino's casinosys.json")
+            fileIO(f, "save", current)
 
 
 def setup(bot):
