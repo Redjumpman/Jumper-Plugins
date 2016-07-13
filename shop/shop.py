@@ -57,7 +57,7 @@ class Shop:
         column2 = [subdict['Item Cost'] for subdict in self.shopsys.values()]
         m = list(zip(column1, column2))
         if self.config["Sort Method"] == "Alphabet":
-            m = m.sort()
+            m = sorted(m)
         elif self.config["Sort Method"] == "Lowest":
             m = sorted(m, key=itemgetter(1), reverse=True)
         elif self.config["Sort Method"] == "Highest":
@@ -72,8 +72,8 @@ class Shop:
             m1 = list(zip(first_msg1, second_msg1))
             m2 = list(zip(first_msg2, second_msg2))
             if self.config["Sort Method"] == "Alphabet":
-                m1.sort()
-                m2.sort()
+                sorted(m1)
+                sorted(m2)
             elif self.config["Sort Method"] == "Lowest":
                 m1 = sorted(m1, key=itemgetter(1))
                 m2 = sorted(m2, key=itemgetter(1))
@@ -479,7 +479,9 @@ def check_files():
         system = {"Shop Name": "RedJumpman",
                   "Shop Open": True,
                   "Shop Notify": False,
-                  "Shop Items": 0}
+                  "Shop Items": 0,
+                  "Shop Role": "Shopkeeper",
+                  "Sort Method": "Alphabet"}
 
     f = "data/shop/pending.json"
     if not fileIO(f, "check"):
