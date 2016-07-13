@@ -259,12 +259,12 @@ class Heist:
 
     @setheist.command(name="vaultmax", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _vaultmax_setheist(self, ctx, bank: int, maximum: int):
+    async def _vaultmax_setheist(self, ctx, banklvl: int, maximum: int):
         """Sets the maximum credit amount a vault can hold.
         """
-        if bank > 0 and bank <= 5:
+        if banklvl > 0 and banklvl <= 5:
             if maximum > 0:
-                banklvl = "Lvl " + str(bank) + " Bank"
+                banklvl = "Lvl " + str(banklvl) + " Bank"
                 self.system["Banks"][banklvl]["Max"] = maximum
                 fileIO("data/bankheist/system.json", "save", self.system)
                 await self.bot.say("Changed {}'s vault max to {}".format(banklvl, maximum))
@@ -275,20 +275,18 @@ class Heist:
 
     @setheist.command(name="multiplier", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _multiplier_setheist(self, ctx, multiplier: float, *, bankname):
+    async def _multiplier_setheist(self, ctx, multiplier: float, banklvl: int):
         """Set the payout multiplier for a bank
         """
         if multiplier > 0:
-            if len(bankname) > 0:
-                if bankname in self.system["Banks"]:
-                    self.system["Banks"][bankname]["Multiplier"] = multiplier
-                    fileIO("data/bankheist/system.json", "save", self.system)
-                    await self.bot.say("```" + bankname + "'s multiplier is now set to " +
-                                       str(multiplier) + "```")
-                else:
-                    await self.bot.say("This bank name does not exist")
+            if banklvl > 0 and banklvl <= 5:
+                banklvl = "Lvl " + str(banklvl) + " Bank"
+                self.system["Banks"][banklvl]["Multiplier"] = multiplier
+                fileIO("data/bankheist/system.json", "save", self.system)
+                await self.bot.say("```" + banklvl + "'s multiplier is now set to " +
+                                   str(multiplier) + "```")
             else:
-                await self.bot.say("You need to give a bank name")
+                await self.bot.say("This bank name does not exist")
         else:
             await self.bot.say("You need to specify a multiplier")
 
@@ -330,27 +328,29 @@ class Heist:
 
     @setheist.command(name="success", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _success_setheist(self, ctx, rate: int, *, bankname):
+    async def _success_setheist(self, ctx, rate: int, banklvl: int):
         """Set the success rate for a bank. 1-100 %
         """
-        if bankname in self.system["Banks"]:
+        if banklvl > 0 and banklvl <= 5:
+            banklvl = "Lvl " + str(banklvl) + " Bank"
             if rate > 0 and rate <= 100:
-                self.system["Banks"][bankname]["Success"] = rate
+                self.system["Banks"][banklvl]["Success"] = rate
                 fileIO("data/bankheist/system.json", "save", self.system)
-                await self.bot.say("I have now set the success rate for " + bankname + " to " + str(rate) + ".")
+                await self.bot.say("I have now set the success rate for " + banklvl + " to " + str(rate) + ".")
             else:
                 await self.bot.say("Success rate must be greater than 0 or less than or equal to 100.")
 
     @setheist.command(name="vault", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _vault_setheist(self, ctx, amount: int, *, bankname):
+    async def _vault_setheist(self, ctx, amount: int, banklvl: int):
         """Set the amount of credits in a bank's vault.
         """
         if amount > 0:
-            if bankname in self.system["Banks"]:
-                self.system["Banks"][bankname]["Vault"] = amount
+            if banklvl > 0 and banklvl <= 5:
+                banklvl = "Lvl " + str(banklvl) + " Bank"
+                self.system["Banks"][banklvl]["Vault"] = amount
                 fileIO("data/bankheist/system.json", "save", self.system)
-                await self.bot.say("I have set " + bankname + "'s vault to " + str(amount) + " credits.")
+                await self.bot.say("I have set " + banklvl + "'s vault to " + str(amount) + " credits.")
             else:
                 await self.bot.say("That bank does not exist. Use the !heistbanks command to see a list of names.")
         else:
