@@ -4,6 +4,8 @@
 import os
 import asyncio
 import random
+import time
+from operator import itemgetter
 from discord.ext import commands
 from .utils.dataIO import fileIO
 from random import randint
@@ -81,25 +83,6 @@ class Heist:
                     "Swat came through the vents, and neutralized {}." + "\n" +
                     "```{} dropped out.```"]
 
-    async def ready_up(self):
-        flag = True
-        while flag:
-            fileIO("data/bankheist/system.json", "save", self.system)
-            await asyncio.sleep(1)
-            if self.system["Banks"]["The Local Bank"]["Vault"] < 2000:
-                self.system["Banks"]["The Local Bank"]["Vault"] += 22
-            if self.system["Banks"]["First National Bank"]["Vault"] < 5000:
-                self.system["Banks"]["First National Bank"]["Vault"] += 31
-            if self.system["Banks"]["PNC Bank"]["Vault"] < 8000:
-                self.system["Banks"]["PNC Bank"]["Vault"] += 48
-            if self.system["Banks"]["Bank of America"]["Vault"] < 12000:
-                self.system["Banks"]["Bank of America"]["Vault"] += 53
-            if self.system["Banks"]["Fort Knox"]["Vault"] < 20000:
-                self.system["Banks"]["Fort Knox"]["Vault"] += 60
-            fileIO("data/bankheist/system.json", "save", self.system)
-            frequency = self.system["Config"]["Vault Frequency"]
-            await asyncio.sleep(frequency)  # task runs every 60 seconds
-
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
         """General heist related commands"""
@@ -115,7 +98,7 @@ class Heist:
         if bet >= 50:
             if self.account_check(user):
                 if self.enough_points(user.id, bet, server):
-                    if self.cooldown:  # time between heists
+                    if await self.check_cooldowns():  # time between heists
                         if self.heist_started:  # Checks if a heist is currently happening
                             if self.heist_plan():  # checks if a heist is being planned or not
                                 self.system["Config"]["Min Bet"] = bet
@@ -124,13 +107,13 @@ class Heist:
                                 self.crew_add(user.id, user.name, bet)
                                 self.subtract_bet(user.id, bet, server)
                                 wait = self.system["Config"]["Wait Time"]
-                                time = int(wait / 2)
-                                half_time = int(time / 2)
+                                wait_time = int(wait / 2)
+                                half_time = int(wait_time / 2)
                                 split_time = int(half_time / 2)
                                 await self.bot.say("A heist as been started by " + user.name +
                                                    "\n" + str(wait) + " seconds until the heist begins")
-                                await asyncio.sleep(time)
-                                await self.bot.say(str(time) + " seconds until the heist begins")
+                                await asyncio.sleep(wait_time)
+                                await self.bot.say(str(wait_time) + " seconds until the heist begins")
                                 await asyncio.sleep(half_time)
                                 await self.bot.say(str(half_time) + " seconds until the heist begins")
                                 await asyncio.sleep(split_time)
@@ -166,7 +149,7 @@ class Heist:
                                             vault_remainder = vtotal - amount * len(winners)
                                             self.system["Banks"][target]["Vault"] -= int(round(vault_remainder))
                                             fileIO("data/bankheist/system.json", "save", self.system)
-                                            multiplier = self.system["Banks"][bank]["Multiplier"]
+                                            multiplier = self.system["Banks"][target]["Multiplier"]
                                             sm_raw = [int(round(x)) * multiplier for x in winners_bets]
                                             success_multiplier = [int(round(x)) for x in sm_raw]
                                             cs_raw = [amount] * int(round(self.system["Config"]["Players"]))
@@ -178,11 +161,15 @@ class Heist:
                                             await self.bot.say("The total haul was split " +
                                                                "among the winners: ")
                                             await self.bot.say("```Python" + "\n" + t + "```")
+                                            self.system["Config"]["Time Remaining"] = int(time.perf_counter())
+                                            fileIO("data/bankheist/system.json", "save", self.system)
                                             self.heistclear()
                                             self.winners_clear()
                                             break
                                         else:
                                             await self.bot.say("No one made it out safe.")
+                                            self.system["Config"]["Time Remaining"] = int(time.perf_counter())
+                                            fileIO("data/bankheist/system.json", "save", self.system)
                                             self.heistclear()
                                             break
                                     else:
@@ -205,8 +192,6 @@ class Heist:
                                 await self.bot.say("If you are seeing this, I dun fucked up.")
                         else:
                             await self.bot.say("You can't join an ongoing heist")
-                    else:
-                        await self.bot.say("The cops are on high alert. Let's lay low for a while")
                 else:
                     await self.bot.say("You don't have enough points to cover the minimum bet.")
             else:
@@ -224,24 +209,14 @@ class Heist:
     @heist.command(name="banks", pass_context=True)
     async def _banks_heist(self, ctx):
         """Shows banks info"""
-        column1 = []
-        column2 = []
-        column3 = []
-        column4 = []
-        column5 = []
-        for key in self.system["Banks"].keys():
-            column1.append(key)
-        for subdict in self.system["Banks"].values():
-            column2.append(subdict['Crew'])
-        for subdict in self.system["Banks"].values():
-            column3.append(subdict['Multiplier'])
-        for subdict in self.system["Banks"].values():
-            column4.append(subdict["Vault"])
-        for subdict in self.system["Banks"].values():
-            column5.append(subdict["Success"])
+        column1 = [subdict["Name"] for subdict in self.system["Banks"].values()]
+        column2 = [subdict["Crew"] for subdict in self.system["Banks"].values()]
+        column3 = [subdict["Multiplier"] for subdict in self.system["Banks"].values()]
+        column4 = [subdict["Vault"] for subdict in self.system["Banks"].values()]
+        column5 = [subdict["Success"] for subdict in self.system["Banks"].values()]
         sr = [str(x) + "%" for x in column5]
         m = list(zip(column1, column2, column3, column4, sr))
-        m.sort()
+        m = sorted(m, key=itemgetter(1), reverse=True)
         t = tabulate(m, headers=["Bank", "Crew", "Bet Multiplier", "Vault", "Success Rate"])
         await self.bot.say("```Python" + "\n" + t + "```")
 
@@ -268,6 +243,35 @@ class Heist:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @setheist.command(name="bankname", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _bankname_setheist(self, ctx, level: int, *, name: str):
+        """Sets the name of the bank for each level (1-5).
+        """
+        if level > 0 and level <= 5:
+            banklvl = "Lvl " + str(level) + " Bank"
+            self.system["Banks"][banklvl]["Name"] = name
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await self.bot.say("Changed {}'s name to {}".format(banklvl, name))
+        else:
+            await self.bot.say("You need to pick a level from 1 to 5")
+
+    @setheist.command(name="vaultmax", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _vaultmax_setheist(self, ctx, bank: int, maximum: int):
+        """Sets the maximum credit amount a vault can hold.
+        """
+        if bank > 0 and bank <= 5:
+            if maximum > 0:
+                banklvl = "Lvl " + str(bank) + " Bank"
+                self.system["Banks"][banklvl]["Max"] = maximum
+                fileIO("data/bankheist/system.json", "save", self.system)
+                await self.bot.say("Changed {}'s vault max to {}".format(banklvl, maximum))
+            else:
+                await self.bot.say("Need to set a maximum higher than 0.")
+        else:
+            await self.bot.say("You need to pick a level from 1 to 5.")
 
     @setheist.command(name="multiplier", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -299,6 +303,30 @@ class Heist:
             await self.bot.say("I have now set the wait time to " + str(seconds) + " seconds.")
         else:
             await self.bot.say("Time must be greater than 0.")
+
+    @setheist.command(name="cooldown", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _cooldown_setheist(self, ctx):
+        """Toggles cooldowns on/off and sets the time"""
+        if self.system["Config"]["Cooldown"]:
+            self.system["Config"]["Cooldown"] = False
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await self.bot.say("Heist cooldowns are now OFF.")
+        else:
+            self.system["Config"]["Cooldown"] = True
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await self.bot.say("heist cooldowns are now ON.")
+
+    @setheist.command(name="cdtime", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _cdtime_setheist(self, ctx, timer: int):
+        """Set's the cooldown timer in seconds. 3600"""
+        if timer > 0:
+            self.system["Config"]["Default CD"] = timer
+            fileIO("data/bankheist/system.json", "save", self.system)
+            await self.bot.say("Setting the cooldown timer to {}".format(self.time_format(timer)))
+        else:
+            await self.bot.say("Needs to be higher than 0. If you don't want a cooldown turn it off.")
 
     @setheist.command(name="success", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -340,12 +368,65 @@ class Heist:
         else:
             await self.bot.say("You need to enter an amount higher than 0.")
 
+    async def vault_update(self):
+        while self == self.bot.get_cog("Heist"):
+            if self.system["Banks"]["Lvl 1 Bank"]["Vault"] < self.system["Banks"]["Lvl 1 Bank"]["Max"]:
+                self.system["Banks"]["Lvl 1 Bank"]["Vault"] += 22
+            if self.system["Banks"]["Lvl 2 Bank"]["Vault"] < self.system["Banks"]["Lvl 2 Bank"]["Max"]:
+                self.system["Banks"]["Lvl 2 Bank"]["Vault"] += 31
+            if self.system["Banks"]["Lvl 3 Bank"]["Vault"] < self.system["Banks"]["Lvl 3 Bank"]["Max"]:
+                self.system["Banks"]["Lvl 3 Bank"]["Vault"] += 48
+            if self.system["Banks"]["Lvl 4 Bank"]["Vault"] < self.system["Banks"]["Lvl 4 Bank"]["Max"]:
+                self.system["Banks"]["Lvl 4 Bank"]["Vault"] += 53
+            if self.system["Banks"]["Lvl 5 Bank"]["Vault"] < self.system["Banks"]["Lvl 5 Bank"]["Max"]:
+                self.system["Banks"]["Lvl 5 Bank"]["Vault"] += 60
+            fileIO("data/bankheist/system.json", "save", self.system)
+            frequency = self.system["Config"]["Vault Frequency"]
+            await asyncio.sleep(frequency)  # task runs every 60 seconds
+
     def account_check(self, uid):
         bank = self.bot.get_cog('Economy').bank
         if bank.account_exists(uid):
             return True
         else:
             return False
+
+    async def check_cooldowns(self):
+        if self.system["Config"]["Cooldown"] is False:
+            return True
+        elif abs(self.system["Config"]["Time Remaining"] - int(time.perf_counter())) >= self.system["Config"]["Default CD"]:
+            return True
+        elif self.system["Config"]["Time Remaining"] == 0:
+            return True
+        else:
+            s = abs(self.system["Config"]["Time Remaining"] - int(time.perf_counter()))
+            seconds = abs(s - self.system["Config"]["Default CD"])
+            await self.bot.say("The police are on high alert after the last job. Let's let things cool off before another heist.")
+            await self.time_formatting(seconds)
+            return False
+
+    def time_format(self, seconds):
+        m, s = divmod(seconds, 60)
+        h, m = divmod(m, 60)
+        if h > 0:
+            msg = "{} hours, {} minutes, {} seconds".format(h, m, s)
+        elif h == 0 and m > 0:
+            msg = "{} minutes, {} seconds".format(m, s)
+        elif m == 0 and h == 0 and s > 0:
+            msg = "{} seconds".format(s)
+        elif m == 0 and h == 0 and s == 0:
+            msg = "No cooldown"
+        return msg
+
+    async def time_formatting(self, seconds):
+        m, s = divmod(seconds, 60)
+        h, m = divmod(m, 60)
+        if h > 0:
+            await self.bot.say("```{} hours, {} minutes and {} seconds remaining```".format(h, m, s))
+        elif h == 0 and m > 0:
+            await self.bot.say("{} minutes, {} seconds remaining".format(m, s))
+        elif m == 0 and h == 0 and s > 0:
+            await self.bot.say("{} seconds remaining".format(s))
 
     def heistclear(self):
         self.winners_clear()
@@ -373,26 +454,26 @@ class Heist:
             return False
 
     def check_banks(self):
-        if self.system["Config"]["Players"] <= self.system["Banks"]["The Local Bank"]["Crew"]:
-            self.system["Config"]["Bank Target"] = "The Local Bank"
+        if self.system["Config"]["Players"] <= self.system["Banks"]["Lvl 1 Bank"]["Crew"]:
+            self.system["Config"]["Bank Target"] = "Lvl 1 Bank"
             fileIO("data/bankheist/system.json", "save", self.system)
-            return "The Local Bank"
-        elif self.system["Config"]["Players"] <= self.system["Banks"]["First National Bank"]["Crew"]:
-            self.system["Config"]["Bank Target"] = "First National Bank"
+            return self.system["Banks"]["Lvl 1 Bank"]["Name"]
+        elif self.system["Config"]["Players"] <= self.system["Banks"]["Lvl 2 Bank"]["Crew"]:
+            self.system["Config"]["Bank Target"] = "Lvl 2 Bank"
             fileIO("data/bankheist/system.json", "save", self.system)
-            return "First National Bank"
-        elif self.system["Config"]["Players"] <= self.system["Banks"]["PNC Bank"]["Crew"]:
-            self.system["Config"]["Bank Target"] = "PNC Bank"
+            return self.system["Banks"]["Lvl 2 Bank"]["Name"]
+        elif self.system["Config"]["Players"] <= self.system["Banks"]["Lvl 3 Bank"]["Crew"]:
+            self.system["Config"]["Bank Target"] = "Lvl 3 Bank"
             fileIO("data/bankheist/system.json", "save", self.system)
-            return "PNC Bank"
-        elif self.system["Config"]["Players"] <= self.system["Banks"]["Bank of America"]["Crew"]:
-            self.system["Config"]["Bank Target"] = "Bank of America"
+            return self.system["Banks"]["Lvl 3 Bank"]["Name"]
+        elif self.system["Config"]["Players"] <= self.system["Banks"]["Lvl 4 Bank"]["Crew"]:
+            self.system["Config"]["Bank Target"] = "Lvl 4 Bank"
             fileIO("data/bankheist/system.json", "save", self.system)
-            return "Bank of America"
-        elif self.system["Config"]["Players"] > self.system["Banks"]["Bank of America"]["Crew"]:
-            self.system["Config"]["Bank Target"] = "Fort Knox"
+            return self.system["Banks"]["Lvl 4 Bank"]["Name"]
+        elif self.system["Config"]["Players"] > self.system["Banks"]["Lvl 5 Bank"]["Crew"]:
+            self.system["Config"]["Bank Target"] = "Lvl 5 Bank"
             fileIO("data/bankheist/system.json", "save", self.system)
-            return "Fort Knox"
+            return self.system["Banks"]["Lvl 5 Bank"]["Name"]
 
     def winners(self):
         for subdict in self.system["Heist Winners"].values():
@@ -425,16 +506,16 @@ class Heist:
         return results
 
     def heist_chance(self):
-        if self.system["Config"]["Bank Target"] == "The Local Bank":
-            return self.system["Banks"]["The Local Bank"]["Success"]
-        elif self.system["Config"]["Bank Target"] == "First National Bank":
-            return self.system["Banks"]["First National Bank"]["Success"]
-        elif self.system["Config"]["Bank Target"] == "PNC Bank":
-            return self.system["Banks"]["PNC Bank"]["Success"]
-        elif self.system["Config"]["Bank Target"] == "Bank of America":
-            return self.system["Banks"]["Bank of America"]["Success"]
-        elif self.system["Config"]["Bank Target"] == "Fort Knox":
-            return self.system["Banks"]["Fort Knox"]["Success"]
+        if self.system["Config"]["Bank Target"] == "Lvl 1 Bank":
+            return self.system["Banks"]["Lvl 1 Bank"]["Success"]
+        elif self.system["Config"]["Bank Target"] == "Lvl 2 Bank":
+            return self.system["Banks"]["Lvl 2 Bank"]["Success"]
+        elif self.system["Config"]["Bank Target"] == "Lvl 3 Bank":
+            return self.system["Banks"]["Lvl 3 Bank"]["Success"]
+        elif self.system["Config"]["Bank Target"] == "Lvl 4 Bank":
+            return self.system["Banks"]["Lvl 4 Bank"]["Success"]
+        elif self.system["Config"]["Bank Target"] == "Lvl 5 Bank":
+            return self.system["Banks"]["Lvl 5 Bank"]["Success"]
 
     def winners_clear(self):
         del self.system["Heist Winners"]
@@ -516,15 +597,16 @@ def check_folders():
 def check_files():
     system = {"Players": {},
               "Config": {"Bankheist Started": "No", "Planning Heist": "No",
-                         "Cooldown": "Off", "Bankheist Running": "No", "Players": 0,
+                         "Cooldown": False, "Time Remaining": 0, "Default CD": 0,
+                         "Bankheist Running": "No", "Players": 0,
                          "Min Bet": 0, "Wait Time": 120, "Bank Target": "",
                          "Vault Frequency": 120},
               "Heist Winners": {},
-              "Banks": {"The Local Bank": {"Crew": 3, "Multiplier": 0.25, "Success": 46, "Vault": 2000},
-                        "First National Bank": {"Crew": 5, "Multiplier": 0.31, "Success": 40, "Vault": 5000},
-                        "PNC Bank": {"Crew": 8, "Multiplier": 0.35, "Success": 37, "Vault": 8000},
-                        "Bank of America": {"Crew": 10, "Multiplier": 0.42, "Success": 32, "Vault": 12000},
-                        "Fort Knox": {"Crew": 15, "Multiplier": 0.5, "Success": 28, "Vault": 20000},
+              "Banks": {"Lvl 1 Bank": {"Name": "The Local Bank", "Crew": 3, "Multiplier": 0.25, "Success": 46, "Vault": 2000, "Max": 2000},
+                        "Lvl 2 Bank": {"Name": "First National Bank", "Crew": 5, "Multiplier": 0.31, "Success": 40, "Vault": 5000, "Max": 5000},
+                        "Lvl 3 Bank": {"Name": "PNC Bank", "Crew": 8, "Multiplier": 0.35, "Success": 37, "Vault": 8000, "Max": 8000},
+                        "Lvl 4 Bank": {"Name": "Bank of America", "Crew": 10, "Multiplier": 0.42, "Success": 32, "Vault": 12000, "Max": 12000},
+                        "Lvl 5 Bank": {"Name": "Fort Knox", "Crew": 15, "Multiplier": 0.5, "Success": 28, "Vault": 20000, "Max": 20000},
                         },
               }
 
@@ -541,24 +623,80 @@ def check_files():
                     print("Adding " + str(key) +
                           " field to bankheist system.json")
             fileIO(f, "save", current)
-        elif current["Config"].keys() != system["Config"].keys():
+        current = fileIO(f, "load")
+        if current["Config"].keys() != system["Config"].keys():
             for key in system["Config"].keys():
                 if key not in current["Config"].keys():
                     current["Config"][key] = system["Config"][key]
                     print("Adding " + str(key) +
                           " field to bankheist system.json")
             fileIO(f, "save", current)
-        elif current["Banks"].keys() != system["Banks"].keys():
+        current = fileIO(f, "load")
+        if current["Banks"].keys() != system["Banks"].keys():
+            try:
+                del current["Banks"]["The Local Bank"]
+                del current["Banks"]["First National Bank"]
+                del current["Banks"]["PNC Bank"]
+                del current["Banks"]["Bank of America"]
+                del current["Banks"]["Fort Knox"]
+                for key in system["Banks"].keys():
+                    if key not in current["Banks"].keys():
+                        current["Banks"][key] = system["Banks"][key]
+                        print("Adding " + str(key) +
+                              " field to bankheist system.json")
+                fileIO(f, "save", current)
+            except:
+                for key in system["Banks"].keys():
+                    if key not in current["Banks"].keys():
+                        current["Banks"][key] = system["Banks"][key]
+                        print("Adding " + str(key) +
+                              " field to bankheist system.json")
+                fileIO(f, "save", current)
+        current = fileIO(f, "load")
+        if current["Banks"].keys() != system["Banks"].keys():
             for key in system["Banks"].keys():
                 if key not in current["Banks"].keys():
                     current["Banks"][key] = system["Banks"][key]
                     print("Adding " + str(key) +
                           " field to bankheist system.json")
             fileIO(f, "save", current)
-        elif current["Banks"].keys() != system["Banks"].keys():
-            for key in system["Banks"].keys():
+        current = fileIO(f, "load")
+        if current["Banks"]["Lvl 1 Bank"].keys() != system["Banks"]["Lvl 1 Bank"].keys():
+            for key in system["Banks"]["Lvl 1 Bank"].keys():
+                if key not in current["Banks"]["Lvl 1 Bank"].keys():
+                    current["Banks"]["Lvl 1 Bank"][key] = system["Banks"]["Lvl 1 Bank"][key]
+                    print("Adding " + str(key) +
+                          " field to bankheist system.json")
+            fileIO(f, "save", current)
+        current = fileIO(f, "load")
+        if current["Banks"]["Lvl 2 Bank"].keys() != system["Banks"]["Lvl 2 Bank"].keys():
+            for key in system["Banks"]["Lvl 2 Bank"].keys():
+                if key not in current["Banks"]["Lvl 2 Bank"].keys():
+                    current["Banks"]["Lvl 2 Bank"][key] = system["Banks"]["Lvl 2 Bank"][key]
+                    print("Adding " + str(key) +
+                          " field to bankheist system.json")
+            fileIO(f, "save", current)
+        current = fileIO(f, "load")
+        if current["Banks"]["Lvl 3 Bank"].keys() != system["Banks"]["Lvl 3 Bank"].keys():
+            for key in system["Banks"]["Lvl 3 Bank"].keys():
+                if key not in current["Banks"]["Lvl 3 Bank"].keys():
+                    current["Banks"]["Lvl 3 Bank"][key] = system["Banks"]["Lvl 3 Bank"][key]
+                    print("Adding " + str(key) +
+                          " field to bankheist system.json")
+            fileIO(f, "save", current)
+        current = fileIO(f, "load")
+        if current["Banks"]["Lvl 4 Bank"].keys() != system["Banks"]["Lvl 4 Bank"].keys():
+            for key in system["Banks"]["Lvl 4 Bank"].keys():
                 if key not in current["Banks"].keys():
-                    current["Banks"][key] = system["Banks"][key]
+                    current["Banks"]["Lvl 4 Bank"][key] = system["Banks"]["Lvl 4 Bank"][key]
+                    print("Adding " + str(key) +
+                          " field to bankheist system.json")
+            fileIO(f, "save", current)
+        current = fileIO(f, "load")
+        if current["Banks"]["Lvl 5 Bank"].keys() != system["Banks"]["Lvl 5 Bank"].keys():
+            for key in system["Banks"]["Lvl 5 Bank"].keys():
+                if key not in current["Banks"]["Lvl 5 Bank"].keys():
+                    current["Banks"]["Lvl 5 Bank"][key] = system["Banks"]["Lvl 5 Bank"][key]
                     print("Adding " + str(key) +
                           " field to bankheist system.json")
             fileIO(f, "save", current)
@@ -568,5 +706,5 @@ def setup(bot):
     check_folders()
     check_files()
     n = Heist(bot)
-    bot.add_listener(n.ready_up, "on_ready")
     bot.add_cog(n)
+    bot.loop.create_task(n.vault_update())
