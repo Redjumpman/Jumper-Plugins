@@ -286,7 +286,7 @@ class Heist:
                 await self.bot.say("```" + banklvl + "'s multiplier is now set to " +
                                    str(multiplier) + "```")
             else:
-                await self.bot.say("This bank name does not exist")
+                await self.bot.say("That bank level does not exist. Use levels 1 through 5.")
         else:
             await self.bot.say("You need to specify a multiplier")
 
@@ -352,7 +352,7 @@ class Heist:
                 fileIO("data/bankheist/system.json", "save", self.system)
                 await self.bot.say("I have set " + banklvl + "'s vault to " + str(amount) + " credits.")
             else:
-                await self.bot.say("That bank does not exist. Use the !heistbanks command to see a list of names.")
+                await self.bot.say("That bank level does not exist. Use levels 1 through 5.")
         else:
             await self.bot.say("You need to enter an amount higher than 0.")
 
