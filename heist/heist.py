@@ -40,6 +40,7 @@ class Heist:
                      ["{} counter sniped a sniper +100 points", 100],
                      ["{} distracted the guard +25 points", 25],
                      ["{} brought a Go-Bag for the team +25 points", 25],
+                     ["{} infiltrated the bank as an employee +50 points", 25],
                      ["{} found a secret stash in the deposit box room +50 points", 25],
                      ["{} found a box of jewelry on a civilian, +25 points", 25]]
         self.bad = ["A shoot out with local authorities began and {} was hit." + "\n" +
@@ -233,6 +234,7 @@ class Heist:
         msg += "Those who are successful will take a portion of the vaults credits, and their bet times a multiplier" + "\n"
         msg += "Bigger banks have bigger vaults, and higher bet multipliers, but you will need a larger crew." + "\n"
         msg += "Banks will gradually refill their vaults over time." + "\n"
+        msg += "If the vault frequency is changed, you will need to wait for the current time to expire before the changes take effect" + "\n"
         msg += "To check out the banks, type !heist banks" + "\n"
         msg += "To change heist settings, type !setheist (admins only)" + "```"
         await self.bot.say(msg)
@@ -286,7 +288,7 @@ class Heist:
                 await self.bot.say("```" + banklvl + "'s multiplier is now set to " +
                                    str(multiplier) + "```")
             else:
-                await self.bot.say("That bank level does not exist. Use levels 1 through 5.")
+                await self.bot.say("This bank name does not exist")
         else:
             await self.bot.say("You need to specify a multiplier")
 
@@ -340,6 +342,43 @@ class Heist:
             else:
                 await self.bot.say("Success rate must be greater than 0 or less than or equal to 100.")
 
+    @setheist.command(name="crew", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _crew_setheist(self, ctx, crew: int, banklvl: int):
+        """Sets the crew size needed for each bank level
+        """
+        if banklvl > 0 and banklvl <= 5:
+            if banklvl < 2:
+                nlvl = "Lvl " + str(banklvl + 1) + " Bank"
+                lvl = "Lvl " + str(banklvl) + " Bank"
+                if crew < self.system["Banks"][nlvl]["Crew"]:
+                    self.system["Banks"][lvl]["Crew"] = crew
+                    fileIO("data/bankheist/system.json", "save", self.system)
+                    await self.bot.say("```Python\nSetting Level 1 Bank to crew size {}.```".format(str(crew)))
+                else:
+                    await self.bot.say("Level 1 bank's crewsize should be lower than the Level 2 Bank.")
+            elif banklvl > 1 and banklvl < 5:
+                nlvl = "Lvl " + str(banklvl + 1) + " Bank"
+                lvl = "Lvl " + str(banklvl) + " Bank"
+                plvl = "Lvl " + str(banklvl - 1) + " Bank"
+                if crew < self.system["Banks"][nlvl]["Crew"] and crew > self.system["Banks"][plvl]["Crew"]:
+                    self.system["Banks"][lvl]["Crew"] = crew
+                    fileIO("data/bankheist/system.json", "save", self.system)
+                    await self.bot.say("```Python\nSetting {} to crew size {}.```".format(lvl, str(crew)))
+                else:
+                    await self.bot.say("The crew size for {} must be higher than {}, but lower than {}".format(lvl, plvl, nlvl))
+            else:
+                lvlfive = "Lvl " + str(banklvl) + " Bank"
+                lvlfour = "Lvl " + str(banklvl - 1) + " Bank"
+                if crew > self.system["Banks"][lvlfour]["Crew"]:
+                    self.system["Banks"][lvlfive]["Crew"] = crew
+                    fileIO("data/bankheist/system.json", "save", self.system)
+                    await self.bot.say("```Python\nSetting Level 5 Bank to crew size {}.```".format(str(crew)))
+                else:
+                    await self.bot.say("The crewsize for the Lvl 5 bank must be higher than the lvl 4 bank.")
+        else:
+            await self.bot.say("You need to pick a level from 1 to 5")
+
     @setheist.command(name="vault", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _vault_setheist(self, ctx, amount: int, banklvl: int):
@@ -352,7 +391,7 @@ class Heist:
                 fileIO("data/bankheist/system.json", "save", self.system)
                 await self.bot.say("I have set " + banklvl + "'s vault to " + str(amount) + " credits.")
             else:
-                await self.bot.say("That bank level does not exist. Use levels 1 through 5.")
+                await self.bot.say("That bank level does not exist. Use levels 1 through 5")
         else:
             await self.bot.say("You need to enter an amount higher than 0.")
 
