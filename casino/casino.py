@@ -482,7 +482,7 @@ class Casino:
         self.casinosys["Players"][user]["Chips"] += amount
         fileIO("data/casino/casino.json", "save", self.casinosys)
         chips = self.casinosys["System Config"]["Chip Name"]
-        await self.bot.say("```Python\n" + "Congratulations, you just won {} {} chips.```".format(str(amount), chips))
+        await self.bot.say("```Python\nCongratulations, you just won {} {} chips.```".format(str(amount), chips))
 
     async def subtract_chips(self, userid, number):
         chips = self.casinosys["System Config"]["Chip Name"]
