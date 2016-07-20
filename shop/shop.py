@@ -1,9 +1,9 @@
 #  Shop.py was created by Redjumpman for Redbot
 #  This will create a data folder with 3 JSON files and 1 logger
 #  The logger will contain information for admin use
+import uuid
 import discord
 import os
-import json
 import logging
 from operator import itemgetter
 from discord.ext import commands
@@ -169,42 +169,21 @@ class Shop:
         user = ctx.message.author
         role = self.config["Shop Role"]
         if self.inventory_item_check(user.id, itemname):
-            if self.inventory_item_amount(user.id, itemname):
-                if user.id not in self.pending:
-                    self.pending[user.id] = {}
-                    fileIO("data/shop/pending.json", "save", self.pending)
-                    self.pending[user.id][user.name] = {}
-                    fileIO("data/shop/pending.json", "save", self.pending)
-                    self.pending[user.id][user.name
-                                          ][itemname
-                                            ] = {"Item Name": itemname,
-                                                 "Time Requested": time_now}
-                    fileIO("data/shop/pending.json", "save", self.pending)
-                    self.inventory_remove(user.id, itemname)
-                    if self.config["Shop Notify"]:
-                        names = self.role_check(role, ctx)
-                        destinations = [m for m in ctx.message.server.members if m.name in names]
-                        for destination in destinations:
-                            await self.bot.send_message(destination, itemname + " was added to the pending list by " + user.name)
-                        await self.bot.say("```{} has been added to pending list. Please wait for approval before adding more of the same item.```".format(itemname))
-                else:
-                    self.pending[user.id][user.name][itemname] = {"Item Name": itemname,
-                                                                  "Time Requested": time_now}
-                    fileIO("data/shop/pending.json", "save", self.pending)
-                    self.inventory_remove(user.id, itemname)
-                    msg = "```"
-                    msg += itemname + " has been added to the"
-                    msg += " pending list. Please wait for approval before "
-                    msg += "adding more of the same item."
-                    msg += "```"
-                    if self.config["Shop Notify"]:
-                        names = self.role_check(role, ctx)
-                        destinations = [m for m in ctx.message.server.members if m.name in names]
-                        for destination in destinations:
-                            await self.bot.send_message(destination, "{} was added to the pending list by {}".format(itemname, user.name))
-                    await self.bot.say(msg)
-            else:
-                await self.bot.say("You do not have that item to redeem")
+            confirmation_number = str(uuid.uuid4())
+            self.pending[confirmation_number] = {"Confirmation Number": confirmation_number,
+                                                 "Time Stamp": time_now,
+                                                 "Name": user.name,
+                                                 "ID": user.id,
+                                                 "Item": itemname}
+            fileIO("data/shop/pending.json", "save", self.pending)
+            self.inventory_remove(user.id, itemname)
+            if self.config["Shop Notify"]:
+                names = self.role_check(role, ctx)
+                destinations = [m for m in ctx.message.server.members if m.name in names]
+                for destination in destinations:
+                    await self.bot.send_message(destination, "{} was added to the pending list by {}.".format(itemname, user.name))
+                await self.bot.say("```{} has been added to pending list. Your confirmation number is {}```".format(itemname, confirmation_number))
+            await self.bot.say("```{} has been added to pending list. Your confirmation number is {}```".format(itemname, confirmation_number))
         else:
             await self.bot.say("You do not have that item to redeem")
 
@@ -224,12 +203,12 @@ class Shop:
                                 self.inventory_add(user.id, itemname)
                                 bank = self.bot.get_cog("Economy").bank
                                 bank.withdraw_credits(user, points)
-                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.".format(itemname, str(points), itemname))
+                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.```".format(itemname, str(points), itemname))
                             else:
                                 self.inventory_add(user.id, itemname)
                                 bank = self.bot.get_cog("Economy").bank
                                 bank.withdraw_credits(user, points)
-                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.".format(itemname, str(points), itemname))
+                                await self.bot.say("```You have purchased a {} for {} points.\n{} has been added to your inventory.```".format(itemname, str(points), itemname))
                         else:
                             await self.bot.say("You don't have enough points to purchase this item")
                     else:
@@ -320,32 +299,50 @@ class Shop:
             await send_cmd_help(ctx)
 
     @_pending.command(pass_context=True, no_pm=True)
+    async def check(self, ctx, *, code):
+        """Checks if an item is on the pending list with conf #"""
+        if code in self.pending:
+            item = self.pending[code]["Item"]
+            await self.bot.say("{} is still on the pending list".format(item))
+        else:
+            await self.bot.say("This code is either not valid, or the item is no longer on the list.")
+
+    @_pending.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def show(self, ctx):
         """Shows a list of items waiting to be redeemed"""
         if len(self.pending) > 0:
-            k = json.dumps(self.pending, indent=1, sort_keys=True)
-            m = "```"
-            m += k.replace('"', '',).replace('{', '').replace('}', '').replace(',', '')
-            m += "```"
-            await self.bot.say(m)
+            keys = ['Item', 'User Name', 'User ID', 'Time Stamp', 'Confirmation Number']
+            items = []
+            user_names = []
+            user_ids = []
+            time_stamps = []
+            conf_nums = []
+            for x in self.pending:
+                items.append(self.pending[x]['Item'])
+                user_names.append(self.pending[x]['Name'])
+                time_stamps.append(self.pending[x]['Time Stamp'])
+                conf_nums.append(self.pending[x]['Confirmation Number'])
+                user_ids.append(self.pending[x]['ID'])
+            table = list(zip(items, user_names, user_ids, time_stamps, conf_nums))
+            t = tabulate(table, headers=keys, numalign="left")
+            await self.bot.say("```" + t + "```")
         else:
             await self.bot.say("The pending list is empty.")
 
     @_pending.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def clear(self, ctx, user: discord.Member, *, itemname):
-        """Allows you to clear one item from the pending list"""
+    async def clear(self, ctx, *, number):
+        """Allows you to clear one item by confirmation number"""
         if len(self.pending) > 0:
-            if user.id in self.pending:
-                if itemname in self.pending[user.id][user.name]:
-                    del self.pending[user.id][user.name][itemname]
-                    fileIO("data/shop/pending.json", "save", self.pending)
-                    await self.bot.say("{} has been cleared from pending, for {}'s redeem request.".format(itemname, user.name))
-                else:
-                    await self.bot.say("The item is not in the pending list for this user")
+            if number in self.pending:
+                name = self.pending[number]['Name']
+                item = self.pending[number]['Item']
+                del self.pending[number]
+                fileIO("data/shop/pending.json", "save", self.pending)
+                await self.bot.say("{}'s {} has been cleared from the pending list.'.".format(name, item))
             else:
-                await self.bot.say("This user has no pending requests. Make sure their name is spelled correctly.")
+                await self.bot.say("Could not find this code in the pending. It may have been cleared or does not exist.")
         else:
             await self.bot.say("The pending list is empty")
 
@@ -378,6 +375,8 @@ class Shop:
                     header += self.bordered("I N V E N T O R Y")
                     header += "```"
                     await self.bot.whisper(header + "```\n" + t + "```")
+        else:
+            await self.bot.say("You need to join the shop. Type use the `shop join` command.")
 
     def bordered(self, text):
         lines = text.splitlines()
