@@ -576,11 +576,12 @@ class Heist:
 
     def add_total(self, winners, totals, server):
         bank = self.bot.get_cog('Economy').bank
+        i = -1
         for winner in winners:
-            for total in totals:
-                userid = winner.replace(',', '')
-                mobj = server.get_member(userid)
-                bank.deposit_credits(mobj, total)
+            i = i + 1
+            userid = winner.replace(',', '')
+            mobj = server.get_member(userid)
+            bank.deposit_credits(mobj, totals[i])
 
     def subtract_bet(self, userid, bet, server):
         bank = self.bot.get_cog('Economy').bank
