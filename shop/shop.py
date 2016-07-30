@@ -641,13 +641,12 @@ def check_files():
     else:
         current = fileIO(f, "load")
         if current.keys() is not None:
-            for player in current.keys():
-                if all(item in current[player].items() for item in pconfig.items()):
+            for player in current:
                     for key in pconfig.keys():
-                        if key not in player:
+                        if key not in current[player].keys():
                             current[player][key] = pconfig[key]
                             print("Adding " + str(key) + " field to shop players.json")
-                    fileIO(f, "save", current)
+                            fileIO(f, "save", current)
     f = "data/shop/config.json"
     if not fileIO(f, "check"):
         print("Adding shop config.json...")
