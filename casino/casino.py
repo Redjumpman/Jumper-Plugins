@@ -12,6 +12,7 @@ from .utils.dataIO import fileIO
 from .utils import checks
 from discord.ext import commands
 from __main__ import send_cmd_help
+from __main__ import settings
 try:   # Check if Tabulate is installed
     from tabulate import tabulate
     tabulateAvailable = True
@@ -124,7 +125,7 @@ class Casino:
             else:
                 await self.bot.say("I can only exchange chips or credits, please specify one.")
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @casino.command(name="stats", pass_context=True)
     async def _stats_casino(self, ctx):
@@ -139,7 +140,7 @@ class Casino:
             t = tabulate(m, headers=["Game", "Played", "Won"])
             await self.bot.say("```Python\n" + t + "```")
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @casino.command(name="info", pass_context=True)
     async def _info_casino(self, ctx):
@@ -188,7 +189,7 @@ class Casino:
             chips = self.casinosys["System Config"]["Chip Name"]
             await self.bot.say("```Python\nYou have {} {} chips.```".format(str(amount), chips))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @commands.command(pass_context=True, no_pm=True)
     async def cups(self, ctx, cup: int, bet: int):
@@ -220,7 +221,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @commands.command(pass_context=True, no_pm=True)
     async def coin(self, ctx, choice: str, bet: int):
@@ -254,7 +255,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @commands.command(pass_context=True, no_pm=True)
     async def dice(self, ctx, bet: int):
@@ -284,7 +285,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @commands.command(pass_context=True, no_pm=True, aliases=["bj", "21"])
     async def blackjack(self, ctx, bet: int):
@@ -303,7 +304,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
 
     @commands.command(pass_context=True, no_pm=True)
     async def allin(self, ctx, multiplier: int):
@@ -496,7 +497,7 @@ class Casino:
                 await self.bot.say("You do not have enough {} chips.".format(chips))
                 return False
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join".format(casino_name,settings.prefixes[0]))
             return False
 
     async def subtract_credits(self, user, number):
