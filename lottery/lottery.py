@@ -55,13 +55,13 @@ class Lottery:
 
     @_lottery.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def prize(self, ctx, points: int):
+    async def prize(self, ctx, credits: int):
         """Adds an optional point prize for the lottery winner"""
         self.system["Prize"] = True
-        self.system["Prize Amount"] = points
+        self.system["Prize Amount"] = credits
         fileIO("data/lottery/system.json", "save", self.system)
         await self.bot.say("I have set a prize for the winner, in the amount of " +
-                           str(points) + " points.")
+                           str(credits) + " credits.")
 
     @_lottery.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -99,21 +99,22 @@ class Lottery:
             fileIO("data/lottery/players.json", "save", self.players)
             f = list(filter(None, results))
             names = randchoice(f)
+            a = self.discord_id(names, ctx)
             b = self.discord_check(names, ctx)
             winner = b[0]
+            winner_id = a[0]
             funny = randchoice(self.funny)
             await self.bot.say("The winner is...")
             await asyncio.sleep(2)
             if self.system["funny"] == "On":
                 await self.bot.say(str(funny))
                 await asyncio.sleep(5)
-                await self.bot.say(str(winner) + "!!!" +
-                                   "\n" + "Congratulations " + str(winner))
+                await self.bot.say(winner + "!!!" +
+                                   "\n" + "Congratulations " + winner)
                 if self.system["Prize"]:
                     prize = self.system["Prize Amount"]
-                    await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
-                    userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
-                    mobj = server.get_member(userid)
+                    await self.bot.say("The prize of " + str(prize) + " credits has been deposited into your account.")
+                    mobj = server.get_member(winner_id)
                     bank = self.bot.get_cog("Economy").bank
                     bank.deposit_credits(mobj, prize)
                     self.system["Prize"] = False
@@ -133,7 +134,7 @@ class Lottery:
                                    "\n" + "Congratulations " + str(winner))
                 if self.system["Prize"]:
                     prize = self.system["Prize Amount"]
-                    await self.bot.say("The prize of " + str(prize) + " points has been deposited into your account.")
+                    await self.bot.say("The prize of " + str(prize) + " credits has been deposited into your account.")
                     userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
                     mobj = server.get_member(userid)
                     bank = self.bot.get_cog("Economy").bank
@@ -215,6 +216,9 @@ class Lottery:
 
     def discord_check(self, names, ctx):
         return [m.mention for m in ctx.message.server.members if m.name in names]
+
+    def discord_id(self, names, ctx):
+        return [m.id for m in ctx.message.server.members if m.name in names]
 
     def which_dict_key(self, value, dicts):
         '''
