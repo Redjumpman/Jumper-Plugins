@@ -42,13 +42,11 @@ class Casino:
     async def _leaderboard_casino(self, ctx):
         """Displays Casino Leaderboard"""
         channel = ctx.message.channel
-        pos = 0
         players = [subdict["Name"] for subdict in self.casinosys["Players"].values()]
         chips = [subdict["Chips"] for subdict in self.casinosys["Players"].values()]
         rank = []
-        for item in players:
-            pos += 1
-            rank.append(pos)
+        for position in enumerate(players):
+            rank.append(position[0])
         m = zip(players, chips)
         m = sorted(m, key=itemgetter(1), reverse=True)
         players = [x[0] for x in m]
@@ -104,7 +102,7 @@ class Casino:
             if currency == "Chips":
                 if amount > 0 and amount % credit_multiple == 0:
                     if amount <= self.casinosys["Players"][user.id]["Chips"]:
-                        await self.subtract_chips(user.id, amount)
+                        await self.subtract_chips(user.id, amount, ctx)
                         credits = amount * credit_rate
                         bank.deposit_credits(user, credits)
                         await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank you for playing at {} Casino.".format(str(amount), chips, str(credits), casino_name))
@@ -142,7 +140,7 @@ class Casino:
             t = tabulate(m, headers=["Game", "Played", "Won"])
             await self.bot.say("```Python\n" + t + "```")
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @casino.command(name="info", pass_context=True)
     async def _info_casino(self, ctx):
@@ -197,7 +195,7 @@ class Casino:
             chips = self.casinosys["System Config"]["Chip Name"]
             await self.bot.say("```Python\nYou have {} {} chips.```".format(str(amount), chips))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @commands.command(pass_context=True, no_pm=True)
     async def cups(self, ctx, cup: int, bet: int):
@@ -209,7 +207,7 @@ class Casino:
             if self.casinosys["System Config"]["Casino Open"]:
                 if await self.check_cooldowns(user.id, game):
                     if await self.minmax_check(bet, game):
-                        if await self.subtract_chips(user.id, bet):
+                        if await self.subtract_chips(user.id, bet, ctx):
                             if cup < 5 and cup > 0:
                                 outcome = random.randint(1, 4)
                                 await self.bot.say("The cups start shuffling along the table...")
@@ -229,7 +227,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @commands.command(pass_context=True, no_pm=True)
     async def coin(self, ctx, choice: str, bet: int):
@@ -243,7 +241,7 @@ class Casino:
             if self.casinosys["System Config"]["Casino Open"]:
                 if await self.check_cooldowns(user.id, game):
                     if await self.minmax_check(bet, game):
-                        if await self.subtract_chips(user.id, bet):
+                        if await self.subtract_chips(user.id, bet, ctx):
                             if choice == "Heads" or choice == "Tails":
                                 outcome = random.choice(possible)
                                 await self.bot.say("The coin flips into the air...")
@@ -263,7 +261,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @commands.command(pass_context=True, no_pm=True)
     async def dice(self, ctx, bet: int):
@@ -276,7 +274,7 @@ class Casino:
             if self.casinosys["System Config"]["Casino Open"]:
                 if await self.check_cooldowns(user.id, game):
                     if await self.minmax_check(bet, game):
-                        if await self.subtract_chips(user.id, bet):
+                        if await self.subtract_chips(user.id, bet, ctx):
                             outcome = random.randint(1, 12)
                             await self.bot.say("The dice strike the back of the table and begin to tumble into place...")
                             await asyncio.sleep(3)
@@ -293,7 +291,7 @@ class Casino:
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @commands.command(pass_context=True, no_pm=True, aliases=["bj", "21"])
     async def blackjack(self, ctx, bet: int):
@@ -305,14 +303,14 @@ class Casino:
             if self.casinosys["System Config"]["Casino Open"]:
                 if await self.check_cooldowns(user.id, game):
                     if await self.minmax_check(bet, game):
-                        if await self.subtract_chips(user.id, bet):
+                        if await self.subtract_chips(user.id, bet, ctx):
                             self.casinosys["Players"][user.id]["Played"]["BJ Played"] += 1
                             fileIO("data/casino/casino.json", "save", self.casinosys)
-                            await self.blackjack_game(user, bet)
+                            await self.blackjack_game(user, bet, ctx)
             else:
                 await self.bot.say("The {} Casino is closed.".format(casino_name))
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
 
     @commands.command(pass_context=True, no_pm=True)
     async def allin(self, ctx, multiplier: int):
@@ -324,15 +322,14 @@ class Casino:
         casino_name = self.casinosys["System Config"]["Casino Name"]
         if self.casinosys["System Config"]["Casino Open"]:
             if await self.check_cooldowns(user.id, game):
-                if await self.subtract_chips(user.id, bet):
+                amount = multiplier * self.casinosys["Players"][user.id]["Chips"]
+                if await self.subtract_chips(user.id, bet, ctx):
                     outcome = random.randrange(0, multiplier + 1)
                     await self.bot.say("You put all your chips into the machine and pull the lever...")
                     self.casinosys["Players"][user.id]["Played"]["Allin Played"] += 1
                     fileIO("data/casino/casino.json", "save", self.casinosys)
                     await asyncio.sleep(3)
                     if outcome == 0:
-                        amount = multiplier * self.casinosys["Players"][user.id]["Chips"]
-                        self.casinosys["Players"][user.id]["Chips"] = 0
                         await self.bot.say("Jackpot!! You just won {} chips!!".format(str(amount)))
                         await self.add_chips(user.id, amount)
                         self.casinosys["Players"][user.id]["Won"]["Allin Won"] += 1
@@ -493,7 +490,7 @@ class Casino:
         chips = self.casinosys["System Config"]["Chip Name"]
         await self.bot.say("```Python\n" + "Congratulations, you just won {} {} chips.```".format(str(amount), chips))
 
-    async def subtract_chips(self, userid, number):
+    async def subtract_chips(self, userid, number, ctx):
         chips = self.casinosys["System Config"]["Chip Name"]
         casino_name = self.casinosys["System Config"]["Casino Name"]
         if userid in self.casinosys["Players"]:
@@ -505,7 +502,7 @@ class Casino:
                 await self.bot.say("You do not have enough {} chips.".format(chips))
                 return False
         else:
-            await self.bot.say("You need a {} Casino membership. To get one type !casino join".format(casino_name))
+            await self.bot.say("You need a {} Casino membership. To get one type {}casino join .".format(casino_name, ctx.prefix))
             return False
 
     async def subtract_credits(self, user, number):
@@ -617,7 +614,7 @@ class Casino:
             count = self.count_hand(dh)
         return dh
 
-    async def player(self, dh, user, amount):
+    async def player(self, dh, user, amount, ctx):
         ph = self.draw_two()
         count = self.count_hand(ph)
         msg = user.mention + "\n"
@@ -633,7 +630,10 @@ class Casino:
         while a:
             i = i + 1
             choice = await self.bot.wait_for_message(timeout=15, author=user)
-            if choice.content.title() == "Hit":
+            if choice is None:
+                a = False
+                break
+            elif choice.content.title() == "Hit":
                 ph = self.draw_card(ph)
                 count = self.count_hand(ph)
                 msg1 = user.mention + "\n"
@@ -648,7 +648,7 @@ class Casino:
                     await self.bot.say("Hit or stay?")
             elif choice.content.title() == "Double":
                 if i <= 1:
-                    if await self.subtract_chips(user.id, amount):
+                    if await self.subtract_chips(user.id, amount, ctx):
                         amount = amount * 2
                         ph = self.draw_card(ph)
                         count = self.count_hand(ph)
@@ -663,18 +663,15 @@ class Casino:
             elif choice.content.title() == "Stay":
                 a = False
                 break
-            elif choice is None:
-                a = False
-                break
             else:
                 await self.bot.say("You must choose hit or stay.")
                 continue
         return ph, amount
 
-    async def blackjack_game(self, user, amount):
+    async def blackjack_game(self, user, amount, ctx):
         chips = self.casinosys["System Config"]["Chip Name"]
         dh = self.dealer()
-        ph, amount = await self.player(dh, user, amount)
+        ph, amount = await self.player(dh, user, amount, ctx)
         dc = self.count_hand(dh)
         pc = self.count_hand(ph)
         if dc > 21 and pc <= 21:
