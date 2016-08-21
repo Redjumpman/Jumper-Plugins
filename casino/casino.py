@@ -27,7 +27,7 @@ class Casino:
         self.bot = bot
         self.casinosys = fileIO("data/casino/casino.json", "load")
         self.games = ["Blackjack", "Allin", "Coin", "Cups", "Dice"]
-        self.deck = ['Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King']
+        self.deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
         self.card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                             '10': 10, 'Jack': 10, 'Queen': 10, 'King': 10}
 
@@ -584,8 +584,6 @@ class Casino:
         for i in hand:
             if i in self.card_values:
                 count += self.card_values[i]
-            else:
-                pass
         for x in hand:
             if x == 'Ace':
                 # Ace exceptions:
@@ -595,8 +593,6 @@ class Casino:
                     count += 11
                 else:
                     count += 1
-            else:
-                pass
         return count
 
     def dealer(self):
@@ -622,61 +618,56 @@ class Casino:
         msg += "Your score: %d" % count + "\n"
         msg += "The dealer shows: %s" % dh[0] + "\n"
         if count == 21:
-            return ph
-        msg += "hit, stay, or double"
-        await self.bot.say(msg)
-        a = True
-        i = 0
-        while a:
-            i = i + 1
-            choice = await self.bot.wait_for_message(timeout=15, author=user)
-            if choice is None:
-                a = False
-                break
-            elif choice.content.title() == "Hit":
-                ph = self.draw_card(ph)
-                count = self.count_hand(ph)
-                msg1 = user.mention + "\n"
-                msg1 += "Your cards: %s" % " ".join(ph) + "\n"
-                msg1 += "Your score: %d" % count + "\n"
-                msg1 += "The dealer shows: %s" % dh[0] + "\n"
-                await self.bot.say(msg1)
-                if count >= 21:
-                    a = False
+            return ph, dh, amount
+        else:
+            msg += "hit, stay, or double"
+            await self.bot.say(msg)
+            i = 0
+            while count < 21:
+                i = i + 1
+                choice = await self.bot.wait_for_message(timeout=15, author=user)
+                if choice is None:
                     break
-                else:
-                    await self.bot.say("Hit or stay?")
-            elif choice.content.title() == "Double":
-                if i <= 1:
-                    if await self.subtract_chips(user.id, amount, ctx):
-                        amount = amount * 2
-                        ph = self.draw_card(ph)
-                        count = self.count_hand(ph)
-                        a = False
+                elif choice.content.title() == "Hit":
+                    ph = self.draw_card(ph)
+                    count = self.count_hand(ph)
+                    msg1 = user.mention + "\n"
+                    msg1 += "Your cards: %s" % " ".join(ph) + "\n"
+                    msg1 += "Your score: %d" % count + "\n"
+                    msg1 += "The dealer shows: %s" % dh[0] + "\n"
+                    await self.bot.say(msg1)
+                    if count >= 21:
                         break
                     else:
-                        await self.bot.say("Because you can't cover this bet, please choose hit or stay.")
+                        await self.bot.say("Hit or stay?")
+                elif choice.content.title() == "Double":
+                    if i <= 1:
+                        if await self.subtract_chips(user.id, amount, ctx):
+                            amount = amount * 2
+                            ph = self.draw_card(ph)
+                            count = self.count_hand(ph)
+                            break
+                        else:
+                            await self.bot.say("Because you can't cover this bet, please choose hit or stay.")
+                            continue
+                    else:
+                        await self.bot.say("You may only double down on the first deal.")
                         continue
+                elif choice.content.title() == "Stay":
+                    break
                 else:
-                    await self.bot.say("You may only double down on the first deal.")
+                    await self.bot.say("You must choose hit or stay.")
                     continue
-            elif choice.content.title() == "Stay":
-                a = False
-                break
-            else:
-                await self.bot.say("You must choose hit or stay.")
-                continue
-        return ph, amount
+            return ph, dh, amount
 
     async def blackjack_game(self, user, amount, ctx):
         chips = self.casinosys["System Config"]["Chip Name"]
-        dh = self.dealer()
-        ph, amount = await self.player(dh, user, amount, ctx)
+        dhand = self.dealer()
+        ph, dh, amount = await self.player(dhand, user, amount, ctx)
         dc = self.count_hand(dh)
         pc = self.count_hand(ph)
         if dc > 21 and pc <= 21:
-            msg = "----------------------" + "\n"
-            msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
+            msg = "The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
             msg += "      Dealer Bust!" + "\n"
@@ -689,15 +680,13 @@ class Casino:
             fileIO("data/casino/casino.json", "save", self.casinosys)
             return True
         elif pc > 21:
-            msg = "----------------------" + "\n"
-            msg += "        Your score: %d" % pc + "\n"
-            msg += "        Bust!" + "\n"
+            msg = "      Your score: %d" % pc + "\n"
+            msg += "          BUST!" + "\n"
             msg += "======" + user.name + "  Lost!======"
             await self.bot.say("```" + msg + "```")
             return False
         elif dc == pc and dc <= 21 and pc <= 21:
-            msg = "----------------------" + "\n"
-            msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
+            msg = "The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
             msg += user.name + "  Pushed."
@@ -708,16 +697,14 @@ class Casino:
             fileIO("data/casino/casino.json", "save", self.casinosys)
             return False
         elif dc > pc and dc <= 21:
-            msg = "----------------------" + "\n"
-            msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
+            msg = "The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
             msg += "======" + user.name + "  Lost!======"
             await self.bot.say("```" + msg + "```")
             return False
         else:
-            msg = "----------------------" + "\n"
-            msg += " The dealer's hand: %s" % " ".join(dh) + "\n"
+            msg = "The dealer's hand: %s" % " ".join(dh) + "\n"
             msg += "The dealer's score: %d" % dc + "\n"
             msg += "        Your score: %d" % pc + "\n"
             msg += "*******" + user.name + " Wins!*******"
