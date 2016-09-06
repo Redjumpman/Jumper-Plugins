@@ -66,24 +66,24 @@ class Casino:
         user = ctx.message.author
         if user.id not in self.system["Players"]:
             self.system["Players"][user.id] = {"Chips": 100,
-                                                  "Membership": None,
-                                                  "Name": user.name,
-                                                  "Played": {"Dice Played": 0,
-                                                             "Cups Played": 0,
-                                                             "BJ Played": 0,
-                                                             "Coin Played": 0,
-                                                             "Allin Played": 0},
-                                                  "Won": {"Dice Won": 0,
-                                                          "Cups Won": 0,
-                                                          "BJ Won": 0,
-                                                          "Coin Won": 0,
-                                                          "Allin Won": 0},
-                                                  "CD": {"Dice CD": 0,
-                                                         "Cups CD": 0,
-                                                         "Blackjack CD": 0,
-                                                         "Coin CD": 0,
-                                                         "Allin CD": 0}
-                                                  }
+                                               "Membership": None,
+                                               "Name": user.name,
+                                               "Played": {"Dice Played": 0,
+                                                          "Cups Played": 0,
+                                                          "BJ Played": 0,
+                                                          "Coin Played": 0,
+                                                          "Allin Played": 0},
+                                               "Won": {"Dice Won": 0,
+                                                       "Cups Won": 0,
+                                                       "BJ Won": 0,
+                                                       "Coin Won": 0,
+                                                       "Allin Won": 0},
+                                               "CD": {"Dice CD": 0,
+                                                      "Cups CD": 0,
+                                                      "Blackjack CD": 0,
+                                                      "Coin CD": 0,
+                                                      "Allin CD": 0}
+                                               }
             dataIO.save_json(self.file_path, self.system)
             name = self.system["System Config"]["Casino Name"]
             await self.bot.say("Your membership has been approved! Welcome to {} Casino!\nAs a first time member we have credited your account with 100 free chips.\nHave fun!".format(name))
