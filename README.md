@@ -10,7 +10,7 @@ These cogs are designed to work with Red Bot designed by Twentysix26.
 Some cogs will require a library install to work, so please read over my wiki and the info.json file before using.  
 Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/2)  
 If you wish to donate please click on the donation jar. TY :D  
-I accept commission work, but please contact me on discord for  details.
+I accept commission work, but please contact me on discord for details.
 
 ## Installation
 
@@ -28,7 +28,7 @@ To install a library follow these instructions:
 - Open command prompt
 - Type pip3 install "Library name"   Example: pip3 install tabulate
 - Press enter and let the library load
-- Once this has loaded you just need to install the cog!
+- Once this has loaded you just need to install the cog or reload it!
 ```  
 For more information please view my wiki page
 
@@ -37,9 +37,9 @@ For more information please view my wiki page
 Tired of waiting for me to implement that feature you keep requesting? If you can design it your self follow the process below and I'll review your changes. If the changes do not conflict with Red, and do not stray from the intended use of the cog I will merge your commits.
 
 1. Fork it!
-2. Create your feature branch:
-3. Commit your changes:`
-4. Push to the branch: 
+2. Develop your feature branch:
+3. Commit your changes:
+4. Push to the main branch: 
 5. Submit a pull request :D
 
 ## What's planned
