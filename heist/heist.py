@@ -105,7 +105,6 @@ class Heist:
                             if self.heist_plan(settings):  # checks if a heist is being planned or not
                                 settings["Config"]["Min Bet"] = bet
                                 self.heist_ptoggle(settings)
-                                self.heist_stoggle(settings)
                                 self.crew_add(user.id, user.name, bet, settings)
                                 self.subtract_bet(user.id, bet, server)
                                 wait = settings["Config"]["Wait Time"]
@@ -121,6 +120,7 @@ class Heist:
                                 await asyncio.sleep(split_time)
                                 await self.bot.say("Hurry up! " + str(split_time) + " seconds until the heist begins")
                                 await asyncio.sleep(split_time)
+                                self.heist_stoggle(settings)
                                 await self.bot.say("Lock and load. The heist is starting")
                                 settings["Config"]["Bankheist Running"] = "Yes"
                                 dataIO.save_json(self.file_path, self.system)
