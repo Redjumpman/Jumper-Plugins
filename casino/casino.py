@@ -151,7 +151,7 @@ class Casino:
     @casino.command(name="info", pass_context=True)
     async def _info_casino(self, ctx):
         """Shows information about the server casino"""
-        games = self.games
+        games = self.system["Games"].keys()
         multiplier = [subdict["Multiplier"] for subdict in self.system["Games"].values()]
         min_bet = [subdict["Min"] for subdict in self.system["Games"].values()]
         max_bet = [subdict["Max"] for subdict in self.system["Games"].values()]
@@ -169,6 +169,7 @@ class Casino:
             d = self.time_format(x)
             time.append(d)
         m = list(zip(games, multiplier, min_bet, max_bet, time))
+        m = sorted(m, key=itemgetter(0))
         t = tabulate(m, headers=["Game", "Multiplier", "Min Bet", "Max Bet", "Cooldown"])
         msg = "```\n"
         msg += t + "\n" + "\n"
@@ -179,6 +180,7 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="toggle", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
     async def _toggle_casino(self, ctx):
         """Opens and closes the casino"""
         casino_name = self.system["System Config"]["Casino Name"]
