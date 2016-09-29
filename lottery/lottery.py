@@ -1,21 +1,21 @@
-#  Lottery.py was created by Redjumpman for Redbot
-#  This will create a data folder with 2 JSON files
+#  Lottery was created by Redjumpman for Redbot
+#  This will create 2 data folders with 1 JSON file
 import os
 import asyncio
 from discord.ext import commands
-from .utils.dataIO import fileIO
+from .utils.dataIO import dataIO
 from .utils import checks
 from __main__ import send_cmd_help
 from random import choice as randchoice
 
 
 class Lottery:
-    """Starts a lottery on the server"""
+    """Hosts lotteries on the server"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.players = fileIO("data/lottery/players.json", "load")
-        self.system = fileIO("data/lottery/system.json", "load")
+        self.file_path = "data/JumperCogs/lottery/system.json"
+        self.system = dataIO.load_json(self.file_path)
         self.funny = ["Rigging the system...",
                       "Removing tickets that didn't pay me off...",
                       "Adding fake tickets...", "Throwing out the bad names..",
@@ -30,235 +30,440 @@ class Lottery:
                       "Winner winner, chicken dinner...",
                       "Can someone tell the guy who keeps yelling 'Bingo!' that he is playing the wrong game..."]
 
-    @commands.group(name="lottery", pass_context=True)
-    async def _lottery(self, ctx):
-        """Lottery Commands."""
+    @commands.group(name="setlottery", pass_context=True)
+    async def setlottery(self, ctx):
+        """Lottery Settings"""
+
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @_lottery.command(pass_context=True, no_pm=True)
+    @setlottery.command(name="prize", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def fun(self, ctx):
-        """Add/Removes some fun text to picking the winner"""
-        if self.system["funny"] == "Off":
-            self.system["funny"] = "On"
-            fileIO("data/lottery/system.json", "save", self.system)
-            await self.bot.say("Fun text for the lottery is now ON!")
-
-        elif self.system["funny"] == "On":
-            self.system["funny"] = "Off"
-            fileIO("data/lottery/system.json", "save", self.system)
-            await self.bot.say("Fun text for the lottery is now OFF!")
-        else:
-            await self.bot.say("Missing funny parameter. Delete your " +
-                               "system.json file in your lottery folder.")
-
-    @_lottery.command(pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def prize(self, ctx, credits: int):
-        """Adds an optional point prize for the lottery winner"""
-        self.system["Prize"] = True
-        self.system["Prize Amount"] = credits
-        fileIO("data/lottery/system.json", "save", self.system)
-        await self.bot.say("I have set a prize for the winner, in the amount of " +
-                           str(credits) + " credits.")
-
-    @_lottery.command(pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def start(self, ctx):
-        """Begins the lottery until you enter a stop command"""
-        user = ctx.message.author
-        if self.system["lottery_start"] == "Inactive":
-            self.system["lottery_start"] = "Active"
-            self.system["lotteries_played"] = self.system[
-                                                             "lotteries_played"
-                                                             ] + 1
-            fileIO("data/lottery/system.json", "save", self.system)
-            await self.bot.say("A lottery has been started by " +
-                               user.mention + "\n" +
-                               "To enter type, !lottery play." +
-                               " Make sure to sign up or you can't play!!")
-        else:
-            await self.bot.say("You cannot start another lottery while one" +
-                               " is active." + "\n" + "End the current" +
-                               " lottery to start another.")
-
-    @_lottery.command(pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def end(self, ctx):
-        """This will stop the lottery and pick a winner"""
+    async def _prize_setlottery(self, ctx, amount: int):
+        """Set's the prize amount for a lottery. Set to 0 to cancel."""
         server = ctx.message.server
-        if self.system["lottery_start"] == "Active":
-            self.system["lottery_start"] = "Inactive"
-            fileIO("data/lottery/system.json", "save", self.system)
-            results = []
-            for subdict in self.players.values():
-                results.append(subdict['current_ticket'])
-            for subdict in self.players.values():
-                subdict['ticket_played'] = "No"
-            fileIO("data/lottery/players.json", "save", self.players)
-            f = list(filter(None, results))
-            names = randchoice(f)
-            a = self.discord_id(names, ctx)
-            b = self.discord_check(names, ctx)
-            winner = b[0]
-            winner_id = a[0]
-            funny = randchoice(self.funny)
-            await self.bot.say("The winner is...")
-            await asyncio.sleep(2)
-            if self.system["funny"] == "On":
-                await self.bot.say(str(funny))
-                await asyncio.sleep(5)
-                await self.bot.say(winner + "!!!" +
-                                   "\n" + "Congratulations " + winner)
-                if self.system["Prize"]:
-                    prize = self.system["Prize Amount"]
-                    await self.bot.say("The prize of " + str(prize) + " credits has been deposited into your account.")
-                    mobj = server.get_member(winner_id)
-                    bank = self.bot.get_cog("Economy").bank
-                    bank.deposit_credits(mobj, prize)
-                    self.system["Prize"] = False
-                    self.system["Prize Amount"] = 0
-                    fileIO("data/lottery/system.json", "save", self.system)
-                lookup = self.which_dict_key(names, self.players)
-                extract = lookup[0]
-                self.players[extract]["lotteries_won"] = self.players[
-                                                                     extract
-                                                        ]["lotteries_won"] + 1
-                fileIO("data/lottery/players.json", "save", self.players)
-                for subdict in self.players.values():
-                    subdict['current_ticket'] = ""
-                    fileIO("data/lottery/players.json", "save", self.players)
-            else:
-                await self.bot.say(str(winner) + "!!!" +
-                                   "\n" + "Congratulations " + str(winner))
-                if self.system["Prize"]:
-                    prize = self.system["Prize Amount"]
-                    await self.bot.say("The prize of " + str(prize) + " credits has been deposited into your account.")
-                    userid = str(winner).replace("<", "").replace("@", "").replace(">", "")
-                    mobj = server.get_member(userid)
-                    bank = self.bot.get_cog("Economy").bank
-                    bank.deposit_credits(mobj, prize)
-                    self.system["Prize"] = False
-                    self.system["Prize Amount"] = 0
-                    fileIO("data/lottery/system.json", "save", self.system)
-                lookup = self.which_dict_key(names, self.players)
-                extract = lookup[0]
-                self.players[extract]["lotteries_won"] = self.players[
-                                                                      extract
-                                                          ]["lotteries_won"
-                                                            ] + 1
-                fileIO("data/lottery/players.json", "save", self.players)
-                for subdict in self.players.values():
-                    subdict['current_ticket'] = ""
-                    fileIO("data/lottery/players.json", "save", self.players)
-
+        settings = self.check_server_settings(server)
+        if amount > 0:
+            settings["Lottery Prize"] = True
+            settings["Prize Amount"] = amount
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("A prize for the next lottery has been set for {} credits".format(amount))
+        elif amount == 0:
+            settings["Lottery Prize"] = False
+            settings["Prize Amount"] = amount
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Prize for the next lottery drawing removed.")
         else:
-            await self.bot.say("You can't end a lottery that I have"
-                               " not started.")
+            await self.bot.say("You can't use negative values.")
 
-    @_lottery.command(pass_context=True, no_pm=True)
-    async def signup(self, ctx):
-        """This allows a user to sign-up to play lotteries"""
-        user = ctx.message.author
-        if user.id not in self.players:
-            self.players[user.id] = {"name": user.name,
-                                     "lotteries_played": 0,
-                                     "lotteries_won": 0,
-                                     "current_ticket": "",
-                                     "ticket_played": "No"}
-            fileIO("data/lottery/players.json", "save", self.players)
-            await self.bot.say("You have joined the lottery system " +
-                               user.mention + ". You can now participate in" +
-                               " all future lotteries")
+    @setlottery.command(name="autofreeze", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _autofreeze_setlottery(self, ctx):
+        """Turns on auto account freeze. Will freeze/unfreeze every 60 seconds."""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if settings["Membership Freeze"]:
+            settings["Membership Freeze"] = False
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Now turning off auto freeze. Please wait for the previous cycle to expire.")
         else:
-            await self.bot.say("You are already a lottery member")
+            settings["Membership Freeze"] = True
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Now turning on auto freeze. This will cycle through server accounts and freeze/unfreeze accounts that require the signup role.")
+            self.bot.loop.create_task(self.auto_freeze(ctx, settings))
 
-    @_lottery.command(pass_context=True, no_pm=True)
-    async def play(self, ctx):
-        """This let's a user play in an on-going lottery"""
+    @setlottery.command(name="fun", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _fun_setlottery(self, ctx):
+        """Toggles fun text on and off"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if settings["Fun Text"]:
+            settings["Fun Text"] = False
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Fun Text is now disabled.")
+        else:
+            settings["Fun Text"] = True
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Fun Text is now enabled.")
+
+    @setlottery.command(name="role", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _role_setlottery(self, ctx, role: str):
+        """Set the required role for membership sign-up. Default: None"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        settings["Signup Role"] = role
+        dataIO.save_json(self.file_path, self.system)
+        await self.bot.say("Setting the required role to sign-up to **{}**.\nUnless set to **None**, users must be assigned this role to signup!".format(role))
+
+    @commands.group(name="lottery", pass_context=True)
+    async def lottery(self, ctx):
+        """Lottery Group Command"""
+
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
+
+    @lottery.command(name="version", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _version_lottery(self):
+        """Shows the version of lottery cog you are running."""
+        version = self.system["Version"]
+        await self.bot.say("```Python\nYou are running Lottery Cog version {}.```".format(version))
+
+    @lottery.command(name="start", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _start_lottery(self, ctx, restriction=False, timer=0):
+        """Starts a lottery. Can optionally restrict particpation and set a timer."""
         user = ctx.message.author
-        userid = user.id
-        if self.system["lottery_start"] == "Active":
-            if user.id in self.players:
-                if self.players[userid]["ticket_played"] == "No":
-                    self.players[userid]["ticket_played"] = "Yes"
-                    self.players[userid]["current_ticket"] = user.name
-                    self.players[userid]["lotteries_played"] = self.players[userid][
-                        "lotteries_played"
-                        ] + 1
-                    fileIO("data/lottery/players.json", "save", self.players)
-                    await self.bot.say(user.mention + " has been entered into the" +
-                                       " lottery")
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if not settings["Lottery Active"]:
+            settings["Lottery Count"] += 1
+            if restriction:
+                if not settings["Signup Role"]:  # Checks if admin set a role to mention, otherwise default to lottery members
+                    lottery_role = "lottery members"
                 else:
-                    await self.bot.say("You have already been entered into " +
-                                       "this lottery.")
+                    lottery_role = "@" + settings["Signup Role"]
+                settings["Lottery Member Requirement"] = True
             else:
-                await self.bot.say("You need to sign-up to play in an " +
-                                   "ongoing lottery")
+                lottery_role = "everyone on the server"
+            settings["Lottery Active"] = True
+            dataIO.save_json(self.file_path, self.system)
+            if timer:
+                await self.bot.say("A lottery has been started by {}, for {}. It will begin in {} seconds.".format(user.name, lottery_role, timer))  # TODO Change timer to time formatter function
+                await self.run_timer(timer, ctx.prefix, server, settings)
+            else:
+                await self.bot.say("A lottery has been started by {}, for {}.".format(user.name, lottery_role))
         else:
-            await self.bot.say("There is currently no on-going lottery")
+            await self.bot.say("I cannot start a new lottery until the current one has ended.")
 
-    @_lottery.command(pass_context=True, no_pm=True)
-    async def stats(self, ctx):
-        """Retrieves a user's lottery stats"""
+    @lottery.command(name="end", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _end_lottery(self, ctx):
+        """Manually ends an on-going lottery"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if settings["Lottery Active"]:
+            if server.id in self.system["Lottery Players"]:
+                players = list(self.system["Lottery Players"][server.id].keys())
+                winner = randchoice(players)
+                mention = self.system["Lottery Players"][server.id][winner]["Mention"]
+                await self.display_lottery_winner(winner, mention, server, settings)
+                self.update_win_stats(winner, server.id)
+                self.lottery_clear(settings)
+            else:
+                await self.bot.say("There are no players playing in the lottery. Resetting lottery settings.")
+                self.lottery_clear(settings)
+        else:
+            await self.bot.say("There is no lottery for me to end.")
+
+    @lottery.command(name="play", pass_context=True)
+    async def _play_lottery(self, ctx):
+        """Enters a user into an on-going lottery."""
+        server = ctx.message.server
         user = ctx.message.author
-        userid = user.id
-        if user.id in self.players:
-            total = self.system["lotteries_played"]
-            played = self.players[userid]["lotteries_played"]
-            wins = self.players[userid]["lotteries_won"]
-            await self.bot.say("\n" + "```" + "Lotteries Ran: " + str(total) +
-                               "\n" + "Lotteries Played: " + str(played) +
-                               "\n" + "Lotteries Won: " + str(wins) + "```")
+        settings = self.check_server_settings(server)
+        if settings["Lottery Active"]:
+            if await self.requirement_check(ctx, settings):
+                if server.id not in self.system["Lottery Players"]:
+                    self.system["Lottery Players"][server.id] = {}
+                if user.id not in self.system["Lottery Players"][server.id]:
+                    self.system["Lottery Players"][server.id][user.id] = {"Mention": user.mention}
+                    dataIO.save_json(self.file_path, self.system)
+                    self.update_play_stats(user.id, server.id)
+                    await self.bot.say("{} you have been added to the lottery. Good luck.".format(user.mention))
+                else:
+                    await self.bot.say("You have already entered into the lottery.")
         else:
-            await self.bot.say("You need to sign-up for lotteries first.")
+            await self.bot.say("There is no on-going lottery.")
 
-    def discord_check(self, names, ctx):
-        return [m.mention for m in ctx.message.server.members if m.name in names]
+    @lottery.command(name="signup", pass_context=True)
+    async def _signup_lottery(self, ctx):
+        """Allows a user to sign-up to participate in lotteries"""
+        user = ctx.message.author
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        role = settings["Signup Role"]
+        if role:
+            if self.role_check(ctx, role, user.id):
+                await self.member_creation(user, server.id, ctx.prefix)
+            else:
+                await self.bot.say("You do not have the {} role required to become a member".format(role))
+        else:
+            await self.member_creation(user, server.id, ctx.prefix)
 
-    def discord_id(self, names, ctx):
-        return [m.id for m in ctx.message.server.members if m.name in names]
+    @lottery.command(name="info", pass_context=True)
+    async def _info_lottery(self, ctx):
+        """General information about this plugin"""
+        msg = """```
+    General Information about Lottery Plugin\n
+    =========================================\n
+    • When starting a lottery you can optionally set a timer and/or restrict to members only.\n
+    • By defualt all users can sign up for lottery membership. To retrict sign-ups to a role type {}setlottery role.\n
+    • {}lottery stats will show your stats if you are signed-up.\n
+    • You can freeze accounts that no longer have the sign-up role periodically by turning on {}setlottery freeze.\n
+    • Autofreeze feature will need to be enabled again if you shutdown your bot.\n
+    • Members who have a frozen account will no longer gain stats or particpate in member only lotteries.\n
+    • If a member gets their role back after their account was frozen, they need to type {}lottery activate to unfreeze the account.\n
+    • If you choose to have a timer for a lottery, you must first set the default timer with {}setlottery timer.\n
+    • Lotteries can be hosted on different servers with the same bot without conflicts.\n
+    • Powerballs have not yet been implemented, but the framework is complete. Ignore powerball stats.\n
+    • Anyone can join a lottery without restrictions.```""".format(ctx.prefix, ctx.prefix, ctx.prefix, ctx.prefix, ctx.prefix)
+        await self.bot.say(msg)
 
-    def which_dict_key(self, value, dicts):
-        '''
-        Return a list of keys for a dictionary where the value dictionary
-        for that key includes the value provided.
-        '''
-        return [key for key in dicts if value in dicts[key].values()]
+    @lottery.command(name="stats", pass_context=True)
+    async def _stats_lottery(self, ctx):
+        """Shows your membership stats"""
+        user = ctx.message.author
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        role = settings["Signup Role"]
+        if server.id in self.system["Lottery Members"]:
+            if user.id in self.system["Lottery Members"][server.id]:
+                if not self.system["Lottery Members"][server.id][user.id]["Account Frozen"]:
+                    member = self.system["Lottery Members"][server.id][user.id]
+                    lotteries_played = member["Lotteries Played"]
+                    lotteries_won = member["Lotteries Won"]
+                    account_status = member["Account Frozen"]
+                    msg = "```"
+                    msg += "\n{}'s Lottery Stats on {}".format(user.name, server.name)
+                    msg += "\n================================================="
+                    msg += "\nLotteries Played:                   {}".format(lotteries_played)
+                    msg += "\nLotteries Won:                      {}".format(lotteries_won)
+                    if account_status:
+                        msg += "\nAccount Status:                     Frozen"
+                    else:
+                        msg += "\nAccount Status:                     Active"
+                    msg += "```"
+                    await self.bot.say(msg)
+                else:
+                    await self.bot.say("Your account is frozen. You require the {} role on this server to track stats.\n".format(role) +
+                                       "If you are given back this role, type {}lottery activate to restore your account.".format(ctx.prefix))
+            else:
+                await self.bot.say("You are not a lottery member. Only members can view/track stats.")
+        else:
+            await self.bot.say("There are no Lottery Members on this server.")
+
+    def add_credits(self, userid, amount, server):
+        bank = self.bot.get_cog('Economy').bank
+        mobj = server.get_member(userid)
+        bank.deposit_credits(mobj, amount)
+        msg = "```{} credits have ben deposited into your account.```".format(amount)
+        return msg
+
+    def update_play_stats(self, userid, serverid):
+        if serverid in self.system["Lottery Members"]:
+            if userid in self.system["Lottery Members"][serverid]:
+                self.system["Lottery Members"][serverid][userid]["Lotteries Played"] += 1
+                dataIO.save_json(self.file_path, self.system)
+
+    def update_win_stats(self, winner, server):
+        if server in self.system["Lottery Members"]:
+            if winner in self.system["Lottery Members"][server]:
+                self.system["Lottery Members"][server][winner]["Lotteries Won"] += 1
+                dataIO.save_json(self.file_path, self.system)
+
+    def lottery_clear(self, settings):
+        self.system["Lottery Players"] = {}
+        settings["Lottery Prize"] = 0
+        settings["Lottery Member Requirement"] = False
+        settings["Lottery Active"] = False
+        dataIO.save_json(self.file_path, self.system)
+
+    def role_check(self, ctx, role, userid):
+        if userid in [m.id for m in ctx.message.server.members if role.lower() in [str(r).lower() for r in m.roles]]:
+            return True
+        else:
+            return False
+
+    def check_server_settings(self, server):
+        if server.id not in self.system["Config"]:
+            self.system["Config"][server.id] = {server.name: {"Lottery Count": 0,
+                                                              "Lottery Active": False,
+                                                              "Fun Text": False,
+                                                              "Lottery Winners": 1,
+                                                              "Prize Amount": 0,
+                                                              "Powerball Active": False,
+                                                              "Powerball Reoccuring": True,
+                                                              "Powerball Jackpot": 3000,
+                                                              "Powerball Ticket Limit": 0,
+                                                              "Powerball Ticket Cost": 0,
+                                                              "Powerball Winning Ticket": None,
+                                                              "Powerball Grace Period": 1,
+                                                              "Powerball Day": "Sunday",
+                                                              "Powerball Time": "1700",
+                                                              "Powerball Combo Payouts": [2.0, 3.0, 10],
+                                                              "Powerball Jackpot Type": "Preset",
+                                                              "Powerball Jackpot Percentage": 0.31,
+                                                              "Powerball Jackpot Multiplier": 2.0,
+                                                              "Powerball Jackpot Preset": 500,
+                                                              "Signup Role": None,
+                                                              "Lottery Member Requirement": False,
+                                                              "Membership Freeze": False,
+                                                              }
+                                                }
+            dataIO.save_json(self.file_path, self.system)
+            print("Creating default lottery settings for Server: {}".format(server.name))
+            path = self.system["Config"][server.id][server.name]
+            return path
+        else:
+            path = self.system["Config"][server.id][server.name]
+            return path
+
+    async def member_check(self, userid, serverid):
+        if serverid in self.system["Lottery Members"]:
+            if userid in self.system["Lottery Members"][serverid]:
+                return True
+            else:
+                await self.bot.say("This requires a lottery membership.")
+                return False
+        else:
+            await self.bot.say("This requires a lottery membership, but there are no members on this server.")
+            return False
+
+    async def requirement_check(self, ctx, settings):
+        server = ctx.message.server
+        user = ctx.message.author
+        if settings["Lottery Member Requirement"]:
+            if server.id in self.system["Lottery Members"]:
+                if user.id in self.system["Lottery Members"][server.id]:
+                    if self.system["Lottery Members"][server.id][user.id]["Account Frozen"]:
+                        await self.bot.say("Your account is frozen. If you meet the role requirement use {}lottery activate to restore your account.".format(ctx.prefix))
+                        return False
+                    else:
+                        return True
+                else:
+                    await self.bot.say("You do not meet the role requirment to participate in this lottery.")
+                    return False
+            else:
+                return False
+        else:
+            return True
+
+    async def run_timer(self, timer, prefix, server, settings):
+        half_time = timer / 2
+        quarter_time = half_time / 2
+        await asyncio.sleep(half_time)
+        if settings["Lottery Active"] is True:
+            await self.bot.say("{} seconds remaining for the lottery. Type {}lottery play to join.".format(half_time, prefix))
+            await asyncio.sleep(quarter_time)
+            if settings["Lottery Active"] is True:
+                await self.bot.say("{} seconds remaining for the lottery. Type {}lottery play to join.".format(quarter_time, prefix))
+                await asyncio.sleep(quarter_time)
+                if settings["Lottery Active"] is True:
+                    await self.bot.say("The lottery is now ending...")
+                    await asyncio.sleep(1)
+                    await self.end_lottery_timer(server, settings)
+
+    async def end_lottery_timer(self, server, settings):
+        if settings["Lottery Active"]:
+            if server.id in self.system["Lottery Players"]:
+                players = self.system["Lottery Players"][server.id].keys()
+                winner = randchoice(list(players))
+                mention = "<@" + winner + ">"
+                self.update_win_stats(winner, server.id)
+                await self.display_lottery_winner(winner, mention, server, settings)
+                self.lottery_clear(settings)
+            else:
+                await self.bot.say("There are no players in the lottery.")
+                self.lottery_clear(settings)
+        else:
+            pass
+
+    async def display_lottery_winner(self, winner, mention, server, settings):
+        await self.bot.say("The winner is...")
+        await asyncio.sleep(2)
+        if settings["Fun Text"]:
+            fun_text = randchoice(self.funny)
+            await self.bot.say(fun_text)
+            await asyncio.sleep(2)
+        await self.bot.say("Congratulations {}. You won the lottery!".format(mention))
+        if settings["Prize Amount"] > 0:
+            prize = settings["Prize Amount"]
+            await self.deposit_prize(winner, prize, server)
+            settings["Prize Amount"] = 0
+            dataIO.save_json(self.file_path, self.system)
+
+    async def deposit_prize(self, winner, prize, server):
+        bank = self.bot.get_cog('Economy').bank
+        member_object = server.get_member(winner)
+        bank.deposit_credits(member_object, prize)
+        await self.bot.say("{} credits have been deposited into your account.".format(prize))
+
+    async def member_creation(self, user, serverid, prefix):
+        if serverid not in self.system["Lottery Members"]:
+            self.system["Lottery Members"][serverid] = {}
+            dataIO.save_json(self.file_path, self.system)
+        if user.id not in self.system["Lottery Members"][serverid]:
+            self.system["Lottery Members"][serverid][user.id] = {"Name": user.name,
+                                                                 "ID": user.id,
+                                                                 "Lotteries Played": 0,
+                                                                 "Lotteries Won": 0,
+                                                                 "Powerballs Played": 0,
+                                                                 "Powerballs Won": 0,
+                                                                 "Powerball Tickets": [],
+                                                                 "Powerball Count": 0,
+                                                                 "Account Frozen": False}
+            dataIO.save_json(self.file_path, self.system)
+            await self.bot.say("Lottery Account created for {}. You may now particpate in on-going lotteries.\nCheck your stats with {}lottery stats".format(user.name, prefix))
+        else:
+            await self.bot.say("You are already member.")
+
+    async def auto_freeze(self, ctx, settings):
+        server = ctx.message.server
+        while settings["Membership Freeze"]:
+            role = settings["Signup Role"]
+            print("Loop started for {}".format(server.name))
+            if server.id in self.system["Lottery Members"]:
+                users = list(self.system["Lottery Members"][server.id].keys())
+                for user in users:
+                    if self.role_check(ctx, role, user):
+                        if self.system["Lottery Members"][server.id][user]["Account Frozen"]:
+                            self.system["Lottery Members"][server.id][user]["Account Frozen"] = False
+                        else:
+                            pass
+                    else:
+                        if self.system["Lottery Members"][server.id][user]["Account Frozen"]:
+                            pass
+                        else:
+                            self.system["Lottery Members"][server.id][user]["Account Frozen"] = True
+            dataIO.save_json(self.file_path, self.system)
+            await asyncio.sleep(5)
 
 
 def check_folders():
-    if not os.path.exists("data/lottery"):
-        print("Creating data/lottery folder...")
-        os.makedirs("data/lottery")
+    if not os.path.exists("data/JumperCogs"):   # Checks for parent directory for all Jumper cogs
+        print("Creating JumperCogs default directory")
+        os.makedirs("data/JumperCogs")
+
+    if not os.path.exists("data/JumperCogs/lottery"):
+        print("Creating JumperCogs lottery folder")
+        os.makedirs("data/JumperCogs/lottery")
 
 
 def check_files():
-    system = {"lotteries_played": 0, "lottery_start": "Inactive",
-              "funny": "Off", "Prize": False, "Prize Amount": 0}
+    default = {"Config": {},
+               "Lottery Members": {},
+               "Lottery Players": {},
+               "Version": 2.0
+               }
 
-    f = "data/lottery/players.json"
-    if not fileIO(f, "check"):
-        print("Adding lottery player.json...")
-        fileIO(f, "save", {})
+    f = "data/JumperCogs/lottery/system.json"
 
-    f = "data/lottery/system.json"
-    if not fileIO(f, "check"):
-        print("Creating default lottery system.json...")
-        fileIO(f, "save", system)
-    else:  # consistency check
-        current = fileIO(f, "load")
-        if current.keys() != system.keys():
-            for key in system.keys():
-                if key not in current.keys():
-                    current[key] = system[key]
-                    print("Adding " + str(key) +
-                          " field to lottery system.json")
-            fileIO(f, "save", current)
+    if not dataIO.is_valid_json(f):
+        print("Adding system.json to data/JumperCogs/lottery/")
+        dataIO.save_json(f, default)
+    else:
+        current = dataIO.load_json(f)
+        if current["Version"] != default["Version"]:
+            print("Updating Lottery Cog from version {} to version {}".format(current["Version"], default["Version"]))
+            current["Version"] = default["Version"]
+            dataIO.save_json(f, current)
 
 
 def setup(bot):
     check_folders()
     check_files()
-    bot.add_cog(Lottery(bot))
+    n = Lottery(bot)
+    bot.add_cog(n)
