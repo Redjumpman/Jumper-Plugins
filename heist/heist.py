@@ -111,7 +111,7 @@ class Heist:
                                 wait_time = int(wait / 2)
                                 half_time = int(wait_time / 2)
                                 split_time = int(half_time / 2)
-                                await self.bot.say("A heist as been started by " + user.name +
+                                await self.bot.say("A heist has been started by " + user.name +
                                                    "\n" + str(wait) + " seconds until the heist begins")
                                 await asyncio.sleep(wait_time)
                                 await self.bot.say(str(wait_time) + " seconds until the heist begins")
