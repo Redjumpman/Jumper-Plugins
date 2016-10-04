@@ -137,9 +137,9 @@ class Casino:
         user = ctx.message.author
         casino_name = self.system["System Config"]["Casino Name"]
         if user.id in self.system["Players"]:
-            column1 = list(sorted(self.system["Games"].keys(), key=itemgetter(0)))
-            column2 = [x[1] for x in list(sorted(self.system["Players"][user.id]["Played"].items(), key=lambda tup: tup[0]))]
-            column3 = [x[1] for x in list(sorted(self.system["Players"][user.id]["Won"].items(), key=lambda tup: tup[0]))]
+            column1 = list(sorted(self.system["Games"].keys()))
+            column2 = [x[1] for x in sorted(self.system["Players"][user.id]["Played"].items(), key=lambda tup: tup[0])]
+            column3 = [x[1] for x in sorted(self.system["Players"][user.id]["Won"].items(), key=lambda tup: tup[0])]
             m = list(zip(column1, column2, column3))
             t = tabulate(m, headers=["Game", "Played", "Won"])
             await self.bot.say("```Python\n" + t + "```")
