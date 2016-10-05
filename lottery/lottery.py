@@ -131,7 +131,7 @@ class Lottery:
             settings["Lottery Active"] = True
             dataIO.save_json(self.file_path, self.system)
             if timer:
-                await self.bot.say("A lottery has been started by {}, for {}. It will begin in {} seconds.".format(user.name, lottery_role, timer))  # TODO Change timer to time formatter function
+                await self.bot.say("A lottery has been started by {}, for {}. It will end in {} seconds.".format(user.name, lottery_role, timer))  # TODO Change timer to time formatter function
                 await self.run_timer(timer, ctx.prefix, server, settings)
             else:
                 await self.bot.say("A lottery has been started by {}, for {}.".format(user.name, lottery_role))
@@ -206,7 +206,6 @@ class Lottery:
     • Autofreeze feature will need to be enabled again if you shutdown your bot.\n
     • Members who have a frozen account will no longer gain stats or particpate in member only lotteries.\n
     • If a member gets their role back after their account was frozen, they need to type {}lottery activate to unfreeze the account.\n
-    • If you choose to have a timer for a lottery, you must first set the default timer with {}setlottery timer.\n
     • Lotteries can be hosted on different servers with the same bot without conflicts.\n
     • Powerballs have not yet been implemented, but the framework is complete. Ignore powerball stats.\n
     • Anyone can join a lottery without restrictions.```""".format(ctx.prefix, ctx.prefix, ctx.prefix, ctx.prefix, ctx.prefix)
@@ -446,7 +445,7 @@ def check_files():
     default = {"Config": {},
                "Lottery Members": {},
                "Lottery Players": {},
-               "Version": 2.0
+               "Version": 2.001
                }
 
     f = "data/JumperCogs/lottery/system.json"
