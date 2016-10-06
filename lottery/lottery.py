@@ -170,9 +170,11 @@ class Lottery:
                     self.system["Lottery Players"][server.id] = {}
                 if user.id not in self.system["Lottery Players"][server.id]:
                     self.system["Lottery Players"][server.id][user.id] = {"Mention": user.mention}
+                    players = len(self.system["Lottery Players"][server.id].keys())
                     dataIO.save_json(self.file_path, self.system)
                     self.update_play_stats(user.id, server.id)
                     await self.bot.say("{} you have been added to the lottery. Good luck.".format(user.mention))
+                    await self.bot.say("There are now {} users participating in the lottery.".format(players))
                 else:
                     await self.bot.say("You have already entered into the lottery.")
         else:
