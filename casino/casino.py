@@ -610,7 +610,7 @@ class Casino:
                 elif choice.content.title() == "Stay":
                     break
                 else:
-                    await self.bot.say("You must choose hit or stay.")
+                    await self.bot.say("You must choose hit, stay, or double.")
                     continue
             return ph, dh, amount
 
