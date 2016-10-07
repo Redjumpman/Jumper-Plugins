@@ -41,48 +41,28 @@ class Heist:
                      ["{} counter sniped a sniper +100 points", 100],
                      ["{} distracted the guard +25 points", 25],
                      ["{} brought a Go-Bag for the team +25 points", 25],
-                     ["{} found a secret stash in the deposit box room +50 points", 25],
+                     ["{} found a secret stash in the deposit box room +50 points", 50],
                      ["{} found a box of jewelry on a civilian, +25 points", 25]]
-        self.bad = ["A shoot out with local authorities began and {} was hit." + "\n" +
-                    "```{} dropped out.```",
-                    "The cops dusted for finger prints and arrested {}" + "\n" +
-                    "```{} dropped out.```",
-                    "{} thought they could double cross the crew and paid for it." + "\n" +
-                    "```{} dropped out.```",
-                    "{} blew a tire in the getaway car" + "\n" +
-                    "```{} dropped out.```",
-                    "{}'s gun jammed while trying to fight with local security and was shot" + "\n" +
-                    "```{} dropped out.```",
-                    "{} held off the police while the crew was making their getaway" + "\n" +
-                    "```{} dropped out.```",
-                    "A hostage situation went south, and {} was captured" + "\n" +
-                    "```{} dropped out.```",
-                    "{} showed up to the heist high as kite, and was subsequently apprehended." + "\n" +
-                    "```{} dropped out.```",
-                    "{}'s bag of money contained exploding blue ink and was later caught" + "\n" +
-                    "```{} dropped out.```",
-                    "{} was sniped by a swat sniper" + "\n" +
-                    "```{} dropped out.```",
-                    "The crew decided to shaft {}" + "\n" +
-                    "```{} dropped out.```",
-                    "{} was hit by friendly fire" + "\n" +
-                    "```{} dropped out.```",
-                    "Security system's redundancies caused {} to be caught" + "\n" +
-                    "```{} dropped out.```",
-                    "{} accidentally revealed their identity." + "\n" +
-                    "```{} dropped out.```",
-                    "The swat team released sleeping gas, {} is sleeping like a baby" + "\n" +
-                    "```{} dropped out.```",
-                    "'FLASH BANG OUT!', was the last thing {} heard" + "\n" +
-                    "```{} dropped out.```",
-                    "'GRENADE OUT!', {} is now sleeping with the fishes" + "\n" +
-                    "```{} dropped out.```",
-                    "{} tripped a laser wire and was caught" + "\n" +
-                    "```{} dropped out.```",
-                    "Before the crew could intervene a security guard tazed {} and is now incapacitated." + "\n" +
-                    "```{} dropped out.```",
-                    "Swat came through the vents, and neutralized {}." + "\n" +
-                    "```{} dropped out.```"]
+        self.bad = ["A shoot out with local authorities began and {} was hit.\n```{} dropped out.```",
+                    "The cops dusted for finger prints and arrested {}\n```{} dropped out.```",
+                    "{} thought they could double cross the crew and paid for it.\n```{} dropped out.```",
+                    "{} blew a tire in the getaway car\n```{} dropped out.```",
+                    "{}'s gun jammed while trying to fight with local security and was shot\n```{} dropped out.```",
+                    "{} held off the police while the crew was making their getaway\n```{} dropped out.```",
+                    "A hostage situation went south, and {} was captured\n```{} dropped out.```",
+                    "{} showed up to the heist high as kite, and was subsequently apprehended.\n```{} dropped out.```",
+                    "{}'s bag of money contained exploding blue ink and was later caught\n```{} dropped out.```",
+                    "{} was sniped by a swat sniper\n```{} dropped out.```",
+                    "The crew decided to shaft {}\n```{} dropped out.```",
+                    "{} was hit by friendly fire\n```{} dropped out.```",
+                    "Security system's redundancies caused {} to be caught\n```{} dropped out.```",
+                    "{} accidentally revealed their identity.\n```{} dropped out.```",
+                    "The swat team released sleeping gas, {} is sleeping like a baby\n```{} dropped out.```",
+                    "'FLASH BANG OUT!', was the last thing {} heard\n```{} dropped out.```",
+                    "'GRENADE OUT!', {} is now sleeping with the fishes\n```{} dropped out.```",
+                    "{} tripped a laser wire and was caught\n```{} dropped out.```",
+                    "Before the crew could intervene a security guard tazed {} and is now incapacitated.\n```{} dropped out.```",
+                    "Swat came through the vents, and neutralized {}.\n```{} dropped out.```"]
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
