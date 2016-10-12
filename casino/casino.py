@@ -107,7 +107,7 @@ class Casino:
                 if amount > 0 and amount % credit_multiple == 0:
                     if amount <= self.system["Players"][user.id]["Chips"]:
                         await self.subtract_chips(user.id, amount, ctx)
-                        credits = amount * credit_rate
+                        credits = int(amount * credit_rate)
                         bank.deposit_credits(user, credits)
                         await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank you for playing at {} Casino.".format(amount, chips, str(int(credits)), casino_name))
                     else:
@@ -118,7 +118,7 @@ class Casino:
                 if amount > 0 and amount % chip_multiple == 0:
                     if bank.can_spend(user, amount):
                         bank.withdraw_credits(user, amount)
-                        chip_amount = amount * chip_rate
+                        chip_amount = int(amount * chip_rate)
                         self.system["Players"][user.id]["Chips"] += chip_amount
                         dataIO.save_json(self.file_path, self.system)
                         await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(amount, chip_amount, chips, casino_name))
@@ -610,7 +610,7 @@ class Casino:
                 elif choice.content.title() == "Stay":
                     break
                 else:
-                    await self.bot.say("You must choose hit, stay, or double.")
+                    await self.bot.say("You must choose hit or stay.")
                     continue
             return ph, dh, amount
 
