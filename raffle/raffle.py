@@ -7,7 +7,7 @@ import random
 import asyncio
 from .utils import checks
 from discord.ext import commands
-from .utils.dataIO import fileIO
+from .utils.dataIO import dataIO
 from __main__ import send_cmd_help
 
 
@@ -16,7 +16,8 @@ class Raffle:
 
     def __init__(self, bot):
         self.bot = bot
-        self.raffle = fileIO("data/raffle/raffle.json", "load")
+        self.file_path = "data/raffle/raffle.json"
+        self.system = dataIO.load_json(self.file_path)
 
     @commands.group(name="raffle", pass_context=True)
     async def _raffle(self, ctx):
@@ -31,7 +32,7 @@ class Raffle:
         user = ctx.message.author
         if not self.raffle["Config"]["Active"]:
             self.raffle["Config"]["Active"] = True
-            fileIO("data/raffle/raffle.json", "save", self.raffle)
+            dataIO.save_json(self.file_path, self.system)
             await self.bot.say("@everyone a raffle has been started by " + user.name +
                                ".\n" + "Use the command 'raffle buy' to purchase tickets.")
         else:
@@ -55,7 +56,7 @@ class Raffle:
             await self.bot.say(mention + "! Congratulations, you have won!")
             self.raffle["Config"]["Tickets"] = []
             self.raffle["Players"] = {}
-            fileIO("data/raffle/raffle.json", "save", self.raffle)
+            dataIO.save_json(self.file_path, self.system)
         else:
             await self.bot.say("You need to start a raffle for me to end one!")
 
@@ -74,7 +75,6 @@ class Raffle:
                         bank.withdraw_credits(user, points)
                         self.raffle["Players"][user.id]["Tickets"] += [code] * number
                         self.raffle["Config"]["Tickets"] += [code] * number
-                        fileIO("data/raffle/raffle.json", "save", self.raffle)
                         await self.bot.say(user.mention + " has purchased " + str(number) +
                                            " raffle tickets for " + str(points))
                     else:
@@ -83,9 +83,10 @@ class Raffle:
                         self.raffle["Players"][user.id] = {"Tickets": []}
                         self.raffle["Players"][user.id]["Tickets"] += [code] * number
                         self.raffle["Config"]["Tickets"] += [code] * number
-                        fileIO("data/raffle/raffle.json", "save", self.raffle)
                         await self.bot.say(user.mention + " has purchased " + str(number) +
                                            " raffle tickets for " + str(points))
+                    dataIO.save_json(self.file_path, self.system)
+
                 else:
                     await self.bot.say("You do not have enough points to purchase that many raffle tickets" + "\n" +
                                        "Raffle tickets cost " + str(ticket_cost) + " points each.")
@@ -110,7 +111,7 @@ class Raffle:
     async def cost(self, ctx, price: int):
         """Sets the cost of raffle tickets"""
         self.raffle["Config"]["Cost"] = price
-        fileIO("data/raffle/raffle.json", "save", self.raffle)
+        dataIO.save_json(self.file_path, self.system)
         await self.bot.say("```" + "The price for 1 raffle ticket is now set to " + str(price) + "```")
 
 
@@ -126,9 +127,9 @@ def check_files():
                          "Cost": 50,
                          "Active": False}}
     f = "data/raffle/raffle.json"
-    if not fileIO(f, "check"):
+    if not dataIO.is_valid_json(f):
         print("Creating default raffle/raffle.json...")
-        fileIO(f, "save", system)
+        dataIO.save_json(f, system)
 
 
 def setup(bot):
