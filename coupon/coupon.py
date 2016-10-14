@@ -12,7 +12,7 @@ class Coupon:
     def __init__(self, bot):
         self.bot = bot
         self.file_path = "data/coupon/coupons.json"
-        self.system = dataIO.load_json(self.file_path)
+        self.coupons = dataIO.load_json(self.file_path)
 
     @commands.group(name="coupon", pass_context=True)
     async def _coupon(self, ctx):
@@ -39,7 +39,7 @@ class Coupon:
                 bank = self.bot.get_cog('Economy').bank
                 bank.deposit_credits(user, points)
                 del self.coupons[coupon]
-                dataIO.save_json(self.file_path, self.system)
+                dataIO.save_json(self.file_path, self.coupons)
                 await self.bot.say("I have added " + str(points) + " to your account")
             else:
                 await self.bot.say("This coupon either does not exist or has already been redeemed.")
@@ -48,12 +48,12 @@ class Coupon:
 
     def coupon_add(self, coupon, points):
         self.coupons[coupon] = {"Points": points}
-        dataIO.save_json(self.file_path, self.system)
+        dataIO.save_json(self.file_path, self.coupons)
 
     def coupon_redeem(self, coupon):
         if coupon in self.coupons:
             del self.coupons[coupon]
-            dataIO.save_json(self.file_path, self.system)
+            dataIO.save_json(self.file_path, self.coupons)
         else:
             return False
 
