@@ -1,7 +1,7 @@
 import uuid
 import os
 from discord.ext import commands
-from .utils.dataIO import fileIO
+from .utils.dataIO import dataIO
 from __main__ import send_cmd_help
 from .utils import checks
 
@@ -11,7 +11,8 @@ class Coupon:
 
     def __init__(self, bot):
         self.bot = bot
-        self.coupons = fileIO("data/coupon/coupons.json", "load")
+        self.file_path = "data/coupon/coupons.json"
+        self.system = dataIO.load_json(self.file_path)
 
     @commands.group(name="coupon", pass_context=True)
     async def _coupon(self, ctx):
@@ -38,7 +39,7 @@ class Coupon:
                 bank = self.bot.get_cog('Economy').bank
                 bank.deposit_credits(user, points)
                 del self.coupons[coupon]
-                fileIO("data/coupon/coupons.json", "save", self.coupons)
+                dataIO.save_json(self.file_path, self.system)
                 await self.bot.say("I have added " + str(points) + " to your account")
             else:
                 await self.bot.say("This coupon either does not exist or has already been redeemed.")
@@ -47,12 +48,12 @@ class Coupon:
 
     def coupon_add(self, coupon, points):
         self.coupons[coupon] = {"Points": points}
-        fileIO("data/coupon/coupons.json", "save", self.coupons)
+        dataIO.save_json(self.file_path, self.system)
 
     def coupon_redeem(self, coupon):
         if coupon in self.coupons:
             del self.coupons[coupon]
-            fileIO("data/coupon/coupons.json", "save", self.coupons)
+            dataIO.save_json(self.file_path, self.system)
         else:
             return False
 
@@ -65,9 +66,9 @@ def check_folders():
 
 def check_files():
     f = "data/coupon/coupons.json"
-    if not fileIO(f, "check"):
+    if not dataIO.is_valid_json(f):
         print("Creating default coupon/coupons.json...")
-        fileIO(f, "save", {})
+        dataIO.save_json(f, {})
 
 
 def setup(bot):
