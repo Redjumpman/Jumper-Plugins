@@ -4,7 +4,7 @@
 import os
 import random
 import asyncio
-from .utils.dataIO import fileIO
+from .utils.dataIO import dataIO
 from discord.ext import commands
 from .utils import checks
 
@@ -14,7 +14,8 @@ class Russianroulette:
 
     def __init__(self, bot):
         self.bot = bot
-        self.rrgame = fileIO("data/roulette/rrgame.json", "load")
+        self.file_path = "data/roulette/rrgame.json"
+        self.rrgame = dataIO.load_json(self.file_path)
 
     @commands.command(pass_context=True, no_pm=True)
     async def russian(self, ctx, bet: int):
@@ -36,7 +37,7 @@ class Russianroulette:
                                                                     "Mention": user.mention,
                                                                     "Bet": bet}
                             self.rrgame["System"]["Roulette Initial"] = True
-                            fileIO("data/roulette/rrgame.json", "save", self.rrgame)
+                            dataIO.save_json(self.file_path, self.rrgame)
                             await self.bot.say(user.name + " has started a game of roulette, with a starting bet of " +
                                                str(bet) + ".\n" "The game will start in 30 seconds or until I get 5 more players")
                             await asyncio.sleep(30)
@@ -66,7 +67,7 @@ class Russianroulette:
                                                                         "ID": user.id,
                                                                         "Mention": user.mention,
                                                                         "Bet": bet}
-                                fileIO("data/roulette/rrgame.json", "save", self.rrgame)
+                                dataIO.save_json(self.file_path, self.rrgame)
                                 players = self.rrgame["System"]["Player Count"]
                                 needed_players = 6 - players
                                 if self.rrgame["System"]["Player Count"] > 5:
@@ -111,7 +112,7 @@ class Russianroulette:
         """Set the initial starting bet to play the game"""
         if bet > 0:
             self.rrgame["Config"]["Min Bet"] = bet
-            fileIO("data/roulette/rrgame.json", "save", self.rrgame)
+            dataIO.save_json(self.file_path, self.rrgame)
             await self.bot.say("The initial bet to play is now set to " + str(bet))
         else:
             await self.bot.say("I need a number higher than 0.")
@@ -190,7 +191,7 @@ class Russianroulette:
                 await asyncio.sleep(2)
                 await self.bot.say("Done.")
                 del self.rrgame["Players"][name_mention]
-                fileIO("data/roulette/rrgame.json", "save", self.rrgame)
+                dataIO.save_json(self.file_path, self.rrgame)
                 break
 
     def account_check(self, uid):
@@ -218,8 +219,7 @@ class Russianroulette:
         self.rrgame["System"]["Start Bet"] = 0
         del self.rrgame["Players"]
         self.rrgame["Players"] = {}
-        fileIO("data/roulette/rrgame.json", "save", self.rrgame)
-        fileIO("data/roulette/rrgame.json", "save", self.rrgame)
+        dataIO.save_json(self.file_path, self.rrgame)
 
 
 def check_folders():
@@ -238,18 +238,18 @@ def check_files():
               "Config": {"Min Bet": 50}}
 
     f = "data/roulette/rrgame.json"
-    if not fileIO(f, "check"):
+    if not dataIO.is_valid_json(f):
         print("Creating default rrgame.json...")
-        fileIO(f, "save", system)
+        dataIO.save_json(f, system)
     else:  # consistency check
-        current = fileIO(f, "load")
+        current = dataIO.load_json(f)
         if current.keys() != system.keys():
             for key in system.keys():
                 if key not in current.keys():
                     current[key] = system[key]
                     print("Adding " + str(key) +
                           " field to russian roulette rrgame.json")
-            fileIO(f, "save", current)
+            dataIO.save_json(f, current)
 
 
 def setup(bot):
