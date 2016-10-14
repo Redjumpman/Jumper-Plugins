@@ -17,7 +17,7 @@ class Raffle:
     def __init__(self, bot):
         self.bot = bot
         self.file_path = "data/raffle/raffle.json"
-        self.system = dataIO.load_json(self.file_path)
+        self.raffle = dataIO.load_json(self.file_path)
 
     @commands.group(name="raffle", pass_context=True)
     async def _raffle(self, ctx):
@@ -32,7 +32,7 @@ class Raffle:
         user = ctx.message.author
         if not self.raffle["Config"]["Active"]:
             self.raffle["Config"]["Active"] = True
-            dataIO.save_json(self.file_path, self.system)
+            dataIO.save_json(self.file_path, self.raffle)
             await self.bot.say("@everyone a raffle has been started by " + user.name +
                                ".\n" + "Use the command 'raffle buy' to purchase tickets.")
         else:
@@ -56,7 +56,7 @@ class Raffle:
             await self.bot.say(mention + "! Congratulations, you have won!")
             self.raffle["Config"]["Tickets"] = []
             self.raffle["Players"] = {}
-            dataIO.save_json(self.file_path, self.system)
+            dataIO.save_json(self.file_path, self.raffle)
         else:
             await self.bot.say("You need to start a raffle for me to end one!")
 
@@ -85,7 +85,7 @@ class Raffle:
                         self.raffle["Config"]["Tickets"] += [code] * number
                         await self.bot.say(user.mention + " has purchased " + str(number) +
                                            " raffle tickets for " + str(points))
-                    dataIO.save_json(self.file_path, self.system)
+                    dataIO.save_json(self.file_path, self.raffle)
 
                 else:
                     await self.bot.say("You do not have enough points to purchase that many raffle tickets" + "\n" +
@@ -111,7 +111,7 @@ class Raffle:
     async def cost(self, ctx, price: int):
         """Sets the cost of raffle tickets"""
         self.raffle["Config"]["Cost"] = price
-        dataIO.save_json(self.file_path, self.system)
+        dataIO.save_json(self.file_path, self.raffle)
         await self.bot.say("```" + "The price for 1 raffle ticket is now set to " + str(price) + "```")
 
 
