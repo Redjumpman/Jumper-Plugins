@@ -504,7 +504,7 @@ class Heist:
             settings["Config"]["Bank Target"] = "Lvl 4 Bank"
             dataIO.save_json(self.file_path, self.system)
             return settings["Banks"]["Lvl 4 Bank"]["Name"]
-        elif settings["Config"]["Players"] > settings["Banks"]["Lvl 5 Bank"]["Crew"]:
+        elif settings["Config"]["Players"] > settings["Banks"]["Lvl 4 Bank"]["Crew"]:
             settings["Config"]["Bank Target"] = "Lvl 5 Bank"
             dataIO.save_json(self.file_path, self.system)
             return settings["Banks"]["Lvl 5 Bank"]["Name"]
