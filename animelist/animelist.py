@@ -1,6 +1,6 @@
 # Developed by Redjumpman for Redbot by Twentysix26
-# Ported from mee6bot to work for Red
-# Original credit and design goes to mee6
+# Ported from mee6bot to work for Red.
+# Original credit and design goes to mee6.
 import aiohttp
 import html
 import os
