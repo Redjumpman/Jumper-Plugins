@@ -145,7 +145,7 @@ class Casino:
         credit_rate = settings["System Config"]["Credit Rate"]
         chip_multiple = Fraction(chip_rate).limit_denominator().denominator
         credit_multiple = Fraction(credit_rate).limit_denominator().denominator
-        chips = settings["System Config"]["Chip Name"]
+        chip_name = settings["System Config"]["Chip Name"]
         casino_name = settings["System Config"]["Casino Name"]
         if user.id in settings["Players"]:
             if currency == "Chips":
@@ -154,7 +154,7 @@ class Casino:
                         await self.subtract_chips(user.id, amount, ctx, settings)
                         credits = int(amount * credit_rate)
                         bank.deposit_credits(user, credits)
-                        await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank you for playing at {} Casino.".format(amount, chips, str(int(credits)), casino_name))
+                        await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank you for playing at {} Casino.".format(amount, chip_name, str(int(credits)), casino_name))
                     else:
                         await self.bot.say("You don't have that many chips to exchange.")
                 else:
