@@ -37,7 +37,7 @@ class Casino:
         self.deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
         self.card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                             '10': 10, 'Jack': 10, 'Queen': 10, 'King': 10}
-        self.version = "1.1"
+        self.version = "1.101"
 
     @commands.group(pass_context=True, no_pm=True)
     async def casino(self, ctx):
