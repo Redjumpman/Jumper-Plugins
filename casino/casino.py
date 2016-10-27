@@ -1,7 +1,7 @@
 # Developed by Redjumpman for Redbot.
 # Inspired by Spriter's work on a modded economy.
 # Blackjack inspired by http://codereview.stackexchange.com/questions/57849/blackjack-game-with-classes-instead-of-functions .
-# Creates 1 json file and requires tabulate.
+# Creates 1 json file and requires tabulate
 import os
 import discord
 import random
