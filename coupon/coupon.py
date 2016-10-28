@@ -11,7 +11,7 @@ class Coupon:
 
     def __init__(self, bot):
         self.bot = bot
-        self.file_path = "data/coupon/coupons.json"
+        self.file_path = "data/JumperCogs/coupon/coupons.json"
         self.system = dataIO.load_json(self.file_path)
 
     @commands.group(pass_context=True)
