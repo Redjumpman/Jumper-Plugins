@@ -37,7 +37,7 @@ class Casino:
         self.deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
         self.card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                             '10': 10, 'Jack': 10, 'Queen': 10, 'King': 10}
-        self.version = "1.101"
+        self.version = "1.102"
 
     @commands.group(pass_context=True, no_pm=True)
     async def casino(self, ctx):
@@ -166,7 +166,7 @@ class Casino:
                         chip_amount = int(amount * chip_rate)
                         settings["Players"][user.id]["Chips"] += chip_amount
                         dataIO.save_json(self.file_path, self.system)
-                        await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(amount, chip_amount, chips, casino_name))
+                        await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time at {} Casino!".format(amount, chip_amount, chip_name, casino_name))
                     else:
                         await self.bot.say("You don't have that many credits to exchange.")
                 else:
