@@ -225,6 +225,7 @@ class Shop:
     @shop.command(name="list", pass_context=True)
     async def _list_shop(self, ctx):
         """Shows a list of all the shop items."""
+        user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
         shop_name = settings["Config"]["Shop Name"]
@@ -236,8 +237,9 @@ class Shop:
         if not column1:
             await self.bot.say("There are no items for sale in the shop.")
         else:
-            shop_listing, header = self.table_builder(settings, column1, column2, column3, column4, shop_name)
-            await self.shop_list_output(settings, shop_listing, header)
+            data, header = self.table_builder(settings, column1, column2, column3, column4, shop_name)
+            msg = await self.shop_table_split(user, data)
+            await self.shop_list_output(settings, msg, header)
 
     @commands.group(pass_context=True, no_pm=True)
     async def setshop(self, ctx):
@@ -623,6 +625,34 @@ class Shop:
         except AttributeError:
             await self.bot.say("You did not provide a valid user id.")
 
+    async def shop_table_split(self, user, data):
+        groups = [data[i:i+20] for i in range(0, len(data), 20)]
+        pages = len(groups)
+        await self.bot.say("There are {} pages of shop items. Which page would you like to display?".format(pages))
+        response = await self.bot.wait_for_message(timeout=15, author=user)
+        if response is None:
+            page = 0
+        else:
+            try:
+                page = int(response.content) - 1
+                table = tabulate(groups[page], headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
+                msg = "```{}``````Python\nYou are viewing page {} of {}. There are {} items available.```".format(table, page + 1, pages, len(data))
+                return msg
+            except ValueError:
+                await self.bot.say("Sorry your response was not a correct number. Defaulting to page 1")
+                page = 0
+                table = tabulate(groups[page], headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
+                msg = "```{}``````Python\nYou are viewing page 1 of {}. There are {} items available.```".format(table, pages, len(data))
+                return msg
+
+    async def shop_list_output(self, settings, message, header):
+        if settings["Config"]["Store Output Method"] == "Whisper":
+            await self.bot.whisper("{}\n{}".format(header, message))
+        elif settings["Config"]["Store Output Method"] == "Chat":
+            await self.bot.say("{}\n{}".format(header, message))
+        else:
+            await self.bot.whisper("{}\n{}".format(header, message))
+
     async def table_split(self, user, data):
         groups = [data[i:i+12] for i in range(0, len(data), 12)]
         pages = len(groups)
@@ -729,14 +759,6 @@ class Shop:
         else:
             await self.bot.say("This item is not in your inventory.")
 
-    async def shop_list_output(self, settings, table, header):
-        if settings["Config"]["Store Output Method"] == "Whisper":
-            await self.bot.whisper(header + "```\n" + table + "```")
-        elif settings["Config"]["Store Output Method"] == "Chat":
-            await self.bot.say(header + "```\n" + table + "```")
-        else:
-            await self.bot.whisper(header + "```\n" + table + "```")
-
     async def shop_check(self, user, settings, itemname):
         if itemname in settings["Shop List"]:
             cost = self.discount_calc(settings, itemname)
@@ -833,16 +855,13 @@ class Shop:
         m = list(zip(column1, column2, column3, column4))
         if settings["Config"]["Sort Method"] == "Alphabet":
             m = sorted(m)
-            t = tabulate(m, headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
-            return t, header
+            return m, header
         elif settings["Config"]["Sort Method"] == "Highest":
             m = sorted(m, key=itemgetter(2), reverse=True)
-            t = tabulate(m, headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
-            return t, header
+            return m, header
         elif settings["Config"]["Sort Method"] == "Lowest":
             m = sorted(m, key=itemgetter(2))
-            t = tabulate(m, headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
-            return t, header
+            return m, header
 
     def shop_item_add(self, settings, itemname, cost, quantity):
         if quantity == 0:
@@ -917,7 +936,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.0"
+               "Version": "2.1"
                }
 
     f = "data/JumperCogs/shop/system.json"
