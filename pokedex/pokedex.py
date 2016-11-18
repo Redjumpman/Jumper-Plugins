@@ -47,7 +47,7 @@ class Pokedex:
                 async with aiohttp.get(url) as response:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     # This scrapes the pokemon image
-                    img = soup.find("img")["src"]
+                    img = "https://img.pokemondb.net/artwork/{}.jpg".format(soup.find('h1').get_text().lower())
                     # This list holds all the data from the left column
                     poke = []
                     # This list holds all data from the right column
