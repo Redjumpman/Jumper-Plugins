@@ -463,7 +463,7 @@ class Shop:
                 await self.bot.say(msg2)
             else:
                 table = tabulate(data, headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                await self.bot.say("```{}\n\n\nYou are viewing page 1 of 1. {} pending items```".format(table, len(data)))
+                await self.bot.say("```{}\n\n\nYou are viewing page 1 of 1. {} item(s) pending```".format(table, len(data)))
         else:
             await self.bot.say("There are no pending items to show.")
 
@@ -551,7 +551,8 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         if len(status) <= 10:
-            userid = [subdict for subdict in settings["Pending"] if code in settings["Pending"][subdict]]
+            userli = [subdict for subdict in settings["Pending"] if code in settings["Pending"][subdict]]
+            userid = userli[0]
             if userid:
                 settings["Pending"][userid][code]["Status"] = status
                 await self.bot.say("The status for {}, has been changed to {}".format(code, status))
