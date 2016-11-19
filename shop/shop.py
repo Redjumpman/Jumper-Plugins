@@ -112,7 +112,7 @@ class Shop:
             await self.bot.say("There is no item with that name in the {} shop. Please check your spelling.".format(shop_name))
 
     @shop.command(name="buy", pass_context=True, no_pm=True)
-    async def _buy_shop(self, ctx, *, itemname):
+    async def _buy_shop(self, ctx, quantity: int, *, itemname):
         """Purchase a shop item with credits."""
         server = ctx.message.server
         user = ctx.message.author
@@ -120,13 +120,15 @@ class Shop:
         self.user_check(settings, user)
         shop_name = settings["Config"]["Shop Name"]
         itemname = itemname.title()
-        if settings["Config"]["Shop Open"]:
-            if await self.shop_check(user, settings, itemname):
+        if quantity < 1:
+            await self.bot.say("You can't buy 0...")
+        elif settings["Config"]["Shop Open"]:
+            if await self.shop_check(user, settings, quantity, itemname):
                 if settings["Config"]["Pending Type"] == "Manual":
-                    self.user_add_item(settings, user, itemname)
+                    self.user_add_item(settings, user, quantity, itemname)
                     cost = self.discount_calc(settings, itemname)
-                    self.shop_item_remove(settings, itemname)
-                    await self.bot.say("```You have purchased {} for {} credits.\n{} has been added to your inventory.```".format(itemname, cost, itemname))
+                    self.shop_item_remove(settings, quantity, itemname)
+                    await self.bot.say("```You have purchased {} {}(s) for {} credits.\n{} has been added to your inventory.```".format(quantity, itemname, cost, itemname))
                 else:
                     msgs = settings["Shop List"][itemname]["Buy Msg"]
                     if not msgs:
@@ -136,8 +138,8 @@ class Shop:
                         msg = random.choice(msgs)
                         msgs.remove(msg)
                         cost = self.discount_calc(settings, itemname)
-                        self.shop_item_remove(settings, itemname)
-                        await self.bot.whisper("You purchased {} for {} credits. Details for this item are:\n```{}```".format(itemname, cost, msg))
+                        self.shop_item_remove(settings, quantity, itemname)
+                        await self.bot.whisper("You purchased {} {}(s) for {} credits. Details for this item are:\n```{}```".format(quantity, itemname, cost, msg))
         else:
             await self.bot.say("The {} shop is currently closed.".format(shop_name))
 
@@ -151,7 +153,8 @@ class Shop:
         itemname = itemname.title()
         self.user_check(settings, user)
         if itemname in settings["Shop List"]:
-            self.user_add_item(settings, user, itemname)
+            quantity = 1
+            self.user_add_item(settings, user, quantity, itemname)
             await self.bot.say("{} was given {} by {}".format(user.mention, itemname, author.mention))
         else:
             await self.bot.say("No such item in the shop.")
@@ -745,28 +748,34 @@ class Shop:
         if reply.content.title() == "No" or reply.content.title() == "Cancel":
             await self.bot.say("Trade Rejected. Cancelling trade.")
         elif reply.content.title() == "Yes" or reply.content.title() == "Accept":
-            self.user_add_item(settings, author, tradeoffer)
-            self.user_add_item(settings, user, itemname)
-            self.user_remove_item(settings, author, itemname)
-            self.user_remove_item(settings, author, tradeoffer)
+            quantity = 1
+            self.user_add_item(settings, author, quantity, tradeoffer)
+            self.user_add_item(settings, user, quantity, itemname)
+            self.user_remove_item(settings, author, quantity, itemname)
+            self.user_remove_item(settings, author, quantity, tradeoffer)
             await self.bot.say("Trading items... {} recieved {}, and {} recieved {}.".format(author.mention, tradeoffer, user.mention, tradeoffer))
             await self.bot.say("Trade complete.")
 
     async def user_gifting(self, settings, user, author, itemname):
         if itemname in settings["Users"][author.id]["Inventory"]:
-            self.user_add_item(settings, user, itemname)
+            quantity = 1
+            self.user_add_item(settings, user, quantity, itemname)
             self.user_remove_item(settings, author, itemname)
             await self.bot.say("{} just sent a gift({}) to {}.".format(author.mention, itemname, user.mention))
         else:
             await self.bot.say("This item is not in your inventory.")
 
-    async def shop_check(self, user, settings, itemname):
+    async def shop_check(self, user, settings, quantity, itemname):
         if itemname in settings["Shop List"]:
-            cost = self.discount_calc(settings, itemname)
-            if await self.subtract_credits(user, cost):
-                return True
+            if settings["Shop List"][itemname]["Quantity"] >= quantity:
+                cost = self.discount_calc(settings, itemname)
+                total_cost = cost * quantity
+                if await self.subtract_credits(user, total_cost):
+                    return True
+                else:
+                    return False
             else:
-                return False
+                await self.bot.say("There are not enough left in the shop to buy {}.".format(quantity))
         else:
             await self.bot.say("This item is not in the shop.")
             return False
@@ -875,21 +884,23 @@ class Shop:
                                                "Members Only": "No", "Buy Msg": []}
         dataIO.save_json(self.file_path, self.system)
 
-    def shop_item_remove(self, settings, itemname):
+    def shop_item_remove(self, settings, quantity, itemname):
         if settings["Shop List"][itemname]["Quantity"] == "∞":
             pass
         elif settings["Shop List"][itemname]["Quantity"] > 1:
-            settings["Shop List"][itemname]["Quantity"] -= 1
+            settings["Shop List"][itemname]["Quantity"] -= quantity
+            if settings["Shop List"][itemname]["Quantity"] < 1:
+                settings["Shop List"].pop(itemname, None)
             dataIO.save_json(self.file_path, self.system)
         else:
             settings["Shop List"].pop(itemname, None)
             dataIO.save_json(self.file_path, self.system)
 
-    def user_add_item(self, settings, user, itemname):
+    def user_add_item(self, settings, user, quantity, itemname):
         if itemname in settings["Users"][user.id]["Inventory"]:
-            settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] += 1
+            settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] += quantity
         else:
-            settings["Users"][user.id]["Inventory"][itemname] = {"Item Name": itemname, "Item Quantity": 1}
+            settings["Users"][user.id]["Inventory"][itemname] = {"Item Name": itemname, "Item Quantity": quantity}
         dataIO.save_json(self.file_path, self.system)
 
     def user_remove_item(self, settings, user, itemname):
