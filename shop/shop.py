@@ -602,6 +602,7 @@ class Shop:
     async def search_code(self, settings, code):
         userid = [subdict for subdict in settings["Pending"] if code in settings["Pending"][subdict]]
         if userid:
+            userid = userid[0]
             col1 = settings["Pending"][userid][code]["Name"]
             col2 = settings["Pending"][userid][code]["Time Stamp"]
             col3 = settings["Pending"][userid][code]["Item"]
