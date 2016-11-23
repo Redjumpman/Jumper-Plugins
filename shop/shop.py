@@ -36,18 +36,26 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         self.user_check(settings, user)
+        header = "```{}```".format(
+                self.bordered("{}'s\nI N V E N T O R Y".format(user.name))
+                )
         if settings["Users"][user.id]["Inventory"]:
-            column1 = [subdict["Item Name"] for subdict in settings["Users"][user.id]["Inventory"].values()]
-            column2 = [subdict["Item Quantity"] for subdict in settings["Users"][user.id]["Inventory"].values()]
+            column1 = ["[{}]".format(subdict["Item Name"].title())
+                       if "Role" in subdict else subdict["Item Name"].title()
+                       for subdict in settings["Users"][user.id]["Inventory"].values()
+                       ]
+            column2 = [subdict["Item Quantity"]
+                       for subdict in settings["Users"][user.id]["Inventory"].values()
+                       ]
             m = sorted(list(zip(column1, column2)))
             t = tabulate(m, headers=["Item Name", "Item Quantity"])
-            header = "```{}```".format(self.bordered("{}'s\nI N V E N T O R Y".format(user.name)))
             if settings["Config"]["Inventory Output Method"] == "Whisper":
-                await self.bot.whisper("{}```\n{}```".format(header, t))
+                msg = "{}```\n{}```".format(header, t)
             else:
-                await self.bot.say("{}```\n{}```".format(header, t))
+                msg = "{}```\n{}```".format(header, t)
         else:
-            await self.bot.say("Your inventory is empty.")
+            msg = "Your inventory is empty."
+        await self.bot.say(msg)
 
     @commands.group(pass_context=True, no_pm=True)
     async def shop(self, ctx):
@@ -70,15 +78,14 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         itemname = itemname.title()
-        if itemname in settings["Users"][user.id]["Inventory"]:
-            confirmation_number = str(uuid.uuid4())
-            if self.redeem_handler(settings, user, itemname, confirmation_number):
-                self.user_remove_item(settings, user, itemname)
-                await self.notify_handler(settings, ctx, itemname, user, confirmation_number)
-            else:
-                await self.bot.say("You have too many items pending! You can only have 12 items pending at one time.")
-        else:
+        confirmation_number = str(uuid.uuid4())
+        if itemname not in settings["Users"][user.id]["Inventory"]:
             await self.bot.say("You do not have that item to redeem")
+        elif await self.redeem_handler(settings, ctx, server, user, itemname, confirmation_number):
+            await self.notify_handler(settings, ctx, itemname, user, confirmation_number)
+        else:
+            await self.bot.say("You have too many items pending! You may only have 12 items "
+                               "pending at one time.")
 
     @shop.command(name="add", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -89,12 +96,27 @@ class Shop:
         shop_name = settings["Config"]["Shop Name"]
         item_count = len(settings["Shop List"].keys())
         itemname = itemname.title()
-        if item_count < 100:
-            self.shop_item_add(settings, itemname, cost, quantity)
-            item_count = len(settings["Shop List"].keys())
-            await self.bot.say("```{} has been added to {} shop.\n{} items available for purchase in the store.```".format(itemname, shop_name, item_count))
+        self.shop_item_add(settings, itemname, cost, quantity)
+        item_count = len(settings["Shop List"].keys())
+        await self.bot.say("```{} {} have been added to {} shop.\n{} items available for purchase "
+                           "in the store.```".format(quantity, itemname, shop_name, item_count))
+
+    @shop.command(name="addrole", pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _addrole_shop(self, ctx, quantity: int, cost: int, role: discord.Role):
+        """Add a role token to shop list. Requires buyrole from refactored cogs"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        shop_name = settings["Config"]["Shop Name"]
+        if 'Buyrole' not in self.bot.cogs:
+            msg = ("This feature requires the buyrole cog from the Refactored Cogs repo.\n"
+                   "Load buyrole to use this function.")
         else:
-            await self.bot.say("You can only have 100 items for sale in the store.\nPlease remove an item with {}shop remove to add more.".format(ctx.prefix))
+            self.shop_item_add(settings, role, cost, quantity, role=True)
+            item_count = len(settings["Shop List"].keys())
+            msg = ("```{} {} have been added to {} shop.\n{} item(s) available for purchase in the "
+                   "store.```".format(quantity, role.name, shop_name, item_count))
+        await self.bot.say(msg)
 
     @shop.command(name="remove", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -107,9 +129,34 @@ class Shop:
         if itemname in settings["Shop List"]:
             del settings["Shop List"][itemname]
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("```{} has been removed from {} shop.```".format(itemname, shop_name))
+            msg = "```{} has been removed from {} shop.```".format(itemname, shop_name)
         else:
-            await self.bot.say("There is no item with that name in the {} shop. Please check your spelling.".format(shop_name))
+            msg = ("There is no item with that name in the {} shop. "
+                   "Please check your spelling.".format(shop_name))
+        await self.bot.say(msg)
+
+    @shop.command(name="clear", pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _clear_shop(self, ctx):
+        """Wipes the entire shop list"""
+        user = ctx.message.author
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        shop_name = settings["Config"]["Shop Name"]
+        await self.bot.say("Do you want to wipe the entire shop list? "
+                           "You cannot undue this action.")
+        choice = await self.bot.wait_for_message(timeout=15, author=user)
+        if choice is None:
+            msg = "Cancelling shop wipe."
+        elif choice.content.title() == "No":
+            msg = "Cancelling shop wipe."
+        elif choice.content.title() == "Yes":
+            settings["Shop List"] = {}
+            dataIO.save_json(self.file_path, self.system)
+            msg = "The shop list has been cleared from the {} Shop".format(shop_name)
+        else:
+            msg = "Improper response. Cancelling shop wipe."
+        await self.bot.say(msg)
 
     @shop.command(name="buy", pass_context=True, no_pm=True)
     async def _buy_shop(self, ctx, quantity: int, *, itemname):
@@ -128,18 +175,23 @@ class Shop:
                     self.user_add_item(settings, user, quantity, itemname)
                     cost = self.discount_calc(settings, itemname)
                     self.shop_item_remove(settings, quantity, itemname)
-                    await self.bot.say("```You have purchased {} {}(s) for {} credits.\n{} has been added to your inventory.```".format(quantity, itemname, cost, itemname))
+                    await self.bot.say("```You have purchased {} {}(s) for {} credits.\n"
+                                       " {} has been added to your "
+                                       "inventory.```".format(quantity, itemname, cost, itemname))
                 else:
                     msgs = settings["Shop List"][itemname]["Buy Msg"]
                     if not msgs:
-                        msg = "Oops! The admin forgot to set enough msgs for this item. Please contact them immediately."
+                        msg = ("Oops! The admin forgot to set enough msgs for this item. "
+                               "Please contact them immediately.")
                         await self.bot.say(msg)
                     else:
                         msg = random.choice(msgs)
                         msgs.remove(msg)
                         cost = self.discount_calc(settings, itemname)
                         self.shop_item_remove(settings, quantity, itemname)
-                        await self.bot.whisper("You purchased {} {}(s) for {} credits. Details for this item are:\n```{}```".format(quantity, itemname, cost, msg))
+                        await self.bot.whisper("You purchased {} {}(s) for {} credits. "
+                                               "Details for this item are:\n"
+                                               "```{}```".format(quantity, itemname, cost, msg))
         else:
             await self.bot.say("The {} shop is currently closed.".format(shop_name))
 
@@ -154,10 +206,11 @@ class Shop:
         self.user_check(settings, user)
         if itemname in settings["Shop List"]:
             quantity = 1
-            self.user_add_item(settings, user, quantity, itemname)
-            await self.bot.say("{} was given {} by {}".format(user.mention, itemname, author.mention))
+            self.user_gt_item(settings, author, user, quantity, itemname)
+            msg = "{} was given {} by {}".format(user.mention, itemname, author.mention)
         else:
-            await self.bot.say("No such item in the shop.")
+            msg = "No such item in the shop."
+        await self.bot.say(msg)
 
     @shop.command(name="trash", pass_context=True, no_pm=True)
     async def _trash_shop(self, ctx, *, itemname):
@@ -168,17 +221,20 @@ class Shop:
         self.user_check(settings, user)
         itemname = itemname.title()
         if itemname in settings["Users"][user.id]["Inventory"]:
-            await self.bot.say("Are you sure you wish to trash {}? Please think carefully as all instances of this item will be gone forever.".format(itemname))
+            await self.bot.say("Are you sure you wish to trash {}?\nPlease think carefully as all "
+                               "instances of this item will be gone forever.".format(itemname))
             choice = await self.bot.wait_for_message(timeout=15, author=user)
             if choice is None:
-                await self.bot.say("No response. Cancelling the destruction of {}.".format(itemname))
+                msg = "No response. Cancelling the destruction of {}.".format(itemname)
             elif choice.content.title() == "Yes":
-                self.user_remove_item(settings, user, itemname)
-                await self.bot.say("Removed all {}s from your inventory".format(itemname))
+                self.user_remove_all(settings, user, itemname)
+                msg = "Removed all {}s from your inventory".format(itemname)
             elif choice.content.title() == "No":
-                await self.bot.say("Cancelling the destruction of {}.".format(itemname))
+                msg = "Cancelling the destruction of {}.".format(itemname)
             else:
-                await self.bot.say("Improper response. Must choose Yes or No. Cancelling the destruction of {}.".format(itemname))
+                msg = ("Improper response. Must choose Yes or No.\n"
+                       "Cancelling the destruction of {}.".format(itemname))
+            await self.bot.say(msg)
         else:
             await self.bot.say("You do not own this item.")
 
@@ -219,20 +275,23 @@ class Shop:
         self.user_check(settings, user)
         if settings["Users"][user.id]["Block Trades"] is False:
             settings["Users"][user.id]["Block Trades"] = True
-            await self.bot.say("You can no longer recieve trade requests.")
+            msg = "You can no longer recieve trade requests."
         else:
             settings["Users"][user.id]["Block Trades"] = False
-            await self.bot.say("You can now accept trade requests.")
+            msg = "You can now accept trade requests."
+        await self.bot.say(msg)
         dataIO.save_json(self.file_path, self.system)
 
     @shop.command(name="list", pass_context=True)
     async def _list_shop(self, ctx):
-        """Shows a list of all the shop items."""
+        """Shows a list of all the shop items. Roles are blue."""
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
         shop_name = settings["Config"]["Shop Name"]
-        column1 = [subdict["Item Name"] for subdict in settings["Shop List"].values()]
+        column1 = ["[{}]".format(subdict["Item Name"].title())
+                   if "Role" in subdict else subdict["Item Name"].title()
+                   for subdict in settings["Shop List"].values()]
         column2 = [subdict["Quantity"] for subdict in settings["Shop List"].values()]
         column3 = [subdict["Item Cost"] for subdict in settings["Shop List"].values()]
         column4_raw = [subdict["Discount"] for subdict in settings["Shop List"].values()]
@@ -240,7 +299,8 @@ class Shop:
         if not column1:
             await self.bot.say("There are no items for sale in the shop.")
         else:
-            data, header = self.table_builder(settings, column1, column2, column3, column4, shop_name)
+            data, header = self.table_builder(settings, column1, column2,
+                                              column3, column4, shop_name)
             msg = await self.shop_table_split(user, data)
             await self.shop_list_output(settings, msg, header)
 
@@ -259,14 +319,19 @@ class Shop:
         settings = self.check_server_settings(server)
         current_method = settings["Config"]["Pending Type"]
         if current_method == "Manual":
-            await self.bot.say("Your current pending method is manual. Changing this to automatic requires you to set a msg for each item in the shop.\nI am not responsible for any lost information as a result of using this method.\n If you would still like to change your pending method, type 'I Agree'.")
+            await self.bot.say("Your current pending method is manual. Changing this to automatic "
+                               "requires you to set a msg for each item in the shop.\nI am not "
+                               "responsible for any lost information as a result of using this "
+                               "method.\nIf you would still like to change your pending method, "
+                               "type 'I Agree'.")
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
                 await self.bot.say("No response. Pending type will remain manual.")
             elif response.content.title() == "I Agree":
                 settings["Config"]["Pending Type"] = "Automatic"
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Pending type is now automatic. Please set a buy msg with your items with {}setshop buymsg.".format(ctx.prefix))
+                await self.bot.say("Pending type is now automatic. Please set a buy msg for your "
+                                   "items with {}setshop buymsg.".format(ctx.prefix))
             else:
                 await self.bot.say("Incorrect response. Pending type will stay manual.")
         elif current_method == "Automatic":
@@ -278,26 +343,32 @@ class Shop:
 
     @setshop.command(name="buymsg", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _buymsg_setshop(self, ctx, *, itemname):
+    async def _buymsg_setshop(self, ctx, *, item):
         """Set a msg for item redemption. """
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
-        itemname = itemname.title()
-        if itemname in settings["Shop List"]:
-            if len(settings["Shop List"][itemname]["Buy Msg"]) < settings["Shop List"][itemname]["Quantity"]:
-                await self.bot.whisper("What msg do you want users to recieve when purchasing, {}?".format(itemname))
-                response = await self.bot.wait_for_message(timeout=25, author=user)
-                if response is None:
-                    await self.bot.whisper("No response. No msg will be set.")
-                else:
-                    settings["Shop List"][itemname]["Buy Msg"].append(response.content)
-                    dataIO.save_json(self.file_path, self.system)
-                    await self.bot.whisper("Setting {}'s, buy msg to:\n{}".format(itemname, response.content))
+        item = item.title()
+        if item not in settings["Shop List"]:
+            msg = "That item is not in the shop."
+        elif len(settings["Shop List"][item]["Buy Msg"]) < settings["Shop List"][item]["Quantity"]:
+            await self.bot.whisper("What msg do you want users to recieve when purchasing, "
+                                   "{}?".format(item))
+            response = await self.bot.wait_for_message(timeout=25, author=user)
+            if response is None:
+                msg = "No response. No msg will be set."
+                await self.bot.whisper(msg)
             else:
-                await self.bot.say("You can't set anymore buymsgs to {}, because there are only {} left".format(itemname, settings["Shop List"][itemname]["Quantity"]))
+                msg = "{} set a buy msg".format(user.name)
+                settings["Shop List"][item]["Buy Msg"].append(response.content)
+                dataIO.save_json(self.file_path, self.system)
+                await self.bot.whisper("Setting {}'s, buy msg to:\n"
+                                       "{}".format(item, response.content))
         else:
-            await self.bot.say("That item is not in the shop.")
+            quantity = settings["Shop List"][item]["Quantity"]
+            msg = ("You can't set anymore buymsgs to {}, because there are only "
+                   "{} left".format(item, quantity))
+        await self.bot.say(msg)
 
     @setshop.command(name="notify", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -307,10 +378,11 @@ class Shop:
         settings = self.check_server_settings(server)
         if settings["Config"]["Shop Notify"]:
             settings["Config"]["Shop Notify"] = False
-            await self.bot.say("Shop notifications are now OFF!")
+            msg = "Shop notifications are now OFF!"
         else:
             settings["Config"]["Shop Notify"] = True
-            await self.bot.say("Shop notifcations are now ON!")
+            msg = "Shop notifcations are now ON!"
+        await self.bot.say(msg)
         dataIO.save_json(self.file_path, self.system)
 
     @setshop.command(name="role", pass_context=True, no_pm=True)
@@ -323,10 +395,13 @@ class Shop:
         if rolename in server_roles:
             settings["Config"]["Shop Role"] = rolename
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("Notify role set to {}. Server users assigned this role will be notifed when a item is redeemed.".format(rolename))
+            msg = ("Notify role set to {}. Server users assigned this role will be notifed when "
+                   "an item is redeemed.".format(rolename))
         else:
             role_output = ", ".join(server_roles).replace("@everyone,", "")
-            await self.bot.say("{} is not a role on your server. The current roles on your server are:\n```{}```".format(rolename, role_output))
+            msg = ("{} is not a role on your server. The current roles on your server are:\n"
+                   "```{}```".format(rolename, role_output))
+        await self.bot.say(msg)
 
     @setshop.command(name="discount", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -339,15 +414,16 @@ class Shop:
             if discount == 0:
                 settings["Shop List"][itemname]["Discount"] = ""
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Remove discount from {}".format(itemname))
+                msg = "Remove discount from {}".format(itemname)
             elif discount > 0 and discount <= 99:
                 settings["Shop List"][itemname]["Discount"] = discount
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Adding {}% discount to item {}".format(discount, itemname))
+                msg = "Adding {}% discount to item {}".format(discount, itemname)
             else:
-                await self.bot.say("Discount must be 0 to 99.")
+                msg = "Discount must be 0 to 99."
         else:
-            await self.bot.say("That item is not in the shop listing.")
+            msg = "That item is not in the shop listing."
+        await self.bot.say(msg)
 
     @setshop.command(name="output", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -361,26 +437,27 @@ class Shop:
             if output == "Chat":
                 settings["Config"]["Store Output Method"] = "Chat"
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Store listings will now display in chat.")
+                msg = "Store listings will now display in chat."
             elif output == "Whisper" or output == "Pm" or output == "Dm":
                 settings["Config"]["Store Output Method"] = "Whisper"
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Store listings will now display in whisper.")
+                msg = "Store listings will now display in whisper."
             else:
-                await self.bot.say("Output must be Chat or Whisper/DM/PM.")
+                msg = "Output must be Chat or Whisper/DM/PM."
         elif listing == "Inventory":
             if output == "Chat":
                 settings["Config"]["Inventory Output Method"] = "Chat"
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Inventory will now display in chat.")
+                msg = "Inventory will now display in chat."
             elif output == "Whisper" or output == "Pm" or output == "Dm":
                 settings["Config"]["Inventory Output Method"] = "Whisper"
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Inventory will now display in whisper.")
+                msg = "Inventory will now display in whisper."
             else:
-                await self.bot.say("Output must be Chat or Whisper/DM/PM.")
+                msg = "Output must be Chat or Whisper/DM/PM."
         else:
-            await self.bot.say("Must be Shop or Inventory.")
+            msg = "Must be Shop or Inventory."
+        await self.bot.say(msg)
 
     @setshop.command(name="tradecd", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -401,10 +478,11 @@ class Shop:
         shop_name = settings["Config"]["Shop Name"]
         if settings["Config"]["Shop Open"]:
             settings["Config"]["Shop Open"] = False
-            await self.bot.say("The {} shop is now closed.".format(shop_name))
+            msg = "The {} shop is now closed.".format(shop_name)
         else:
             settings["Config"]["Shop Open"] = True
-            await self.bot.say("{} shop is now open for business!".format(shop_name))
+            msg = "{} shop is now open for business!".format(shop_name)
+        await self.bot.say(msg)
         dataIO.save_json(self.file_path, self.system)
 
     @setshop.command(name="sorting", pass_context=True, no_pm=True)
@@ -417,17 +495,18 @@ class Shop:
         if choice == "Alphabetical":
             settings["Config"]["Sort Method"] = "Alphabet"
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("Changing sorting method to Alphabetical.")
+            msg = "Changing sorting method to Alphabetical."
         elif choice == "Lowest":
             settings["Config"]["Sort Method"] = "Lowest"
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("Setting sorting method to Lowest.")
+            msg = "Setting sorting method to Lowest."
         elif choice == "Highest":
             settings["Config"]["Sort Method"] = "Highest"
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("Setting sorting method to Highest.")
+            msg = "Setting sorting method to Highest."
         else:
-            await self.bot.say("Please choose Alphabet, Lowest, or Highest.")
+            msg = "Please choose Alphabet, Lowest, or Highest."
+        await self.bot.say(msg)
 
     @setshop.command(name="name", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -454,19 +533,26 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         if settings["Pending"]:
-            column1 = [subdict["Name"] for users in settings["Pending"] for subdict in settings["Pending"][users].values()]
-            column2 = [subdict["Time Stamp"] for users in settings["Pending"] for subdict in settings["Pending"][users].values()]
-            column3 = [subdict["Item"] for users in settings["Pending"] for subdict in settings["Pending"][users].values()]
-            column4 = [subdict["Confirmation Number"] for users in settings["Pending"] for subdict in settings["Pending"][users].values()]
-            column5 = [subdict["Status"] for users in settings["Pending"] for subdict in settings["Pending"][users].values()]
+            column1 = [subdict["Name"] for users in settings["Pending"]
+                       for subdict in settings["Pending"][users].values()]
+            column2 = [subdict["Time Stamp"] for users in settings["Pending"]
+                       for subdict in settings["Pending"][users].values()]
+            column3 = [subdict["Item"] for users in settings["Pending"]
+                       for subdict in settings["Pending"][users].values()]
+            column4 = [subdict["Confirmation Number"] for users in settings["Pending"]
+                       for subdict in settings["Pending"][users].values()]
+            column5 = [subdict["Status"] for users in settings["Pending"]
+                       for subdict in settings["Pending"][users].values()]
             data = list(zip(column2, column1, column3, column4, column5))
             if len(data) > 12:
                 msg, msg2 = await self.table_split(user, data)
                 await self.bot.say(msg)
                 await self.bot.say(msg2)
             else:
-                table = tabulate(data, headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                await self.bot.say("```{}\n\n\nYou are viewing page 1 of 1. {} item(s) pending```".format(table, len(data)))
+                table = tabulate(data, headers=["Time Stamp", "Name", "Item",
+                                                "Confirmation#", "Status"], numalign="left")
+                await self.bot.say("```{}\n\n\nYou are viewing page 1 of 1. "
+                                   "{} item(s) pending```".format(table, len(data)))
         else:
             await self.bot.say("There are no pending items to show.")
 
@@ -498,6 +584,7 @@ class Shop:
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
+        headers = ["Time Stamp", "Name", "Item", "Confirmation#", "Status"]
         if user.id in settings["Pending"]:
             if code in settings["Pending"][user.id]:
                 col1 = settings["Pending"][user.id][code]["Name"]
@@ -506,12 +593,13 @@ class Shop:
                 col4 = settings["Pending"][user.id][code]["Confirmation Number"]
                 col5 = settings["Pending"][user.id][code]["Status"]
                 data = [(col2, col1, col3, col4, col5)]
-                table = tabulate(data, headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                await self.bot.say("```{}```".format(table))
+                table = tabulate(data, headers=headers, numalign="left")
+                msg = "```{}```".format(table)
             else:
-                await self.bot.say("Could not find that code in your pending items.")
+                msg = "Could not find that code in your pending items."
         else:
-            await self.bot.say("You have no pending items.")
+            msg = "You have no pending items."
+        await self.bot.say(msg)
 
     @pending.command(name="clearall", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -520,18 +608,20 @@ class Shop:
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
-        await self.bot.say("This commmand will clear the **entire** pending list. If you understand this, type Yes to continue or No to abort.")
+        await self.bot.say("This commmand will clear the **entire** pending list. If you "
+                           "understand this, type Yes to continue or No to abort.")
         response = await self.bot.wait_for_message(timeout=15, author=user)
         if response is None:
-            await self.bot.say("No response. Aborting pending purge.")
+            msg = "No response. Aborting pending purge."
         elif response.content.title() == "No":
-            await self.bot.say("Aborting pending purge.")
+            msg = "Aborting pending purge."
         elif response.content.title() == "Yes":
             settings["Pending"] = {}
             dataIO.save_json(self.file_path, self.system)
-            await self.bot.say("Pending list deleted")
+            msg = "Pending list deleted"
         else:
-            await self.bot.say("unrecognized response. Aborting pending purge.")
+            msg = "Unrecognized response. Aborting pending purge."
+        await self.bot.say(msg)
 
     @pending.command(name="clear", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -554,33 +644,37 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         if len(status) <= 10:
-            userli = [subdict for subdict in settings["Pending"] if code in settings["Pending"][subdict]]
+            userli = [subdict for subdict in settings["Pending"]
+                      if code in settings["Pending"][subdict]]
             userid = userli[0]
             if userid:
                 settings["Pending"][userid][code]["Status"] = status
-                await self.bot.say("The status for {}, has been changed to {}".format(code, status))
+                msg = "The status for {}, has been changed to {}".format(code, status)
             else:
-                await self.bot.say("The confirmation code you provided cannot be found.")
+                msg = "The confirmation code you provided cannot be found."
         else:
-            await self.bot.say("Status must be 10 characters or less.")
+            msg = "Status must be 10 characters or less."
+        await self.bot.say(msg)
 
     async def code_clear(self, settings, server, user, number):
-        userid = [subdict for subdict in settings["Pending"] if number in settings["Pending"][subdict]]
+        userid = [subdict for subdict in settings["Pending"]
+                  if number in settings["Pending"][subdict]]
         if userid:
             mobj = server.get_member(userid)
             await self.bot.say("Do you want to clear this pending item for {}?".format(mobj.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
-                await self.bot.say("Timeout response, cancelling clear command.")
+                msg = "Timeout response, cancelling clear command."
             elif response.content.title() == "No":
-                await self.bot.say("Cancelling clear command.")
+                msg = "Cancelling clear command."
             elif response.content.title() == "Yes":
                 settings["Pending"][mobj.id].pop(number, None)
-                await self.bot.say("Pending item {}, cleared for user {}".format(number, mobj.name))
+                msg = "Pending item {}, cleared for user {}".format(number, mobj.name)
             else:
-                await self.bot.say("Incorrect response, cancelling clear command.")
+                msg = "Incorrect response, cancelling clear command."
         else:
-            await self.bot.say("The confirmation code provided could not be found.")
+            msg = "The confirmation code provided could not be found."
+        await self.bot.say(msg)
 
     async def user_clear(self, settings, server, user, number):
         if number in settings["Pending"]:
@@ -588,19 +682,21 @@ class Shop:
             await self.bot.say("Do you want to clear all pending items for {}".format(mobj.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
-                await self.bot.say("Timeout response, cancelling clear command.")
+                msg = "Timeout response, cancelling clear command."
             elif response.content.title() == "No":
-                await self.bot.say("Cancelling clear command.")
+                msg = "Cancelling clear command."
             elif response.content.title() == "Yes":
                 settings["Pending"].pop(number)
-                await self.bot.say("Pending list cleared for user {}".format(mobj.name))
+                msg = "Pending list cleared for user {}".format(mobj.name)
             else:
-                await self.bot.say("Incorrect response, cancelling clear command.")
+                msg = "Incorrect response, cancelling clear command."
         else:
-            await self.bot.say("Unable to find that userid in the pendingl list.")
+            msg = "Unable to find that userid in the pendingl list."
+        await self.bot.say(msg)
 
     async def search_code(self, settings, code):
-        userid = [subdict for subdict in settings["Pending"] if code in settings["Pending"][subdict]]
+        userid = [subdict for subdict in settings["Pending"]
+                  if code in settings["Pending"][subdict]]
         if userid:
             userid = userid[0]
             col1 = settings["Pending"][userid][code]["Name"]
@@ -609,45 +705,66 @@ class Shop:
             col4 = settings["Pending"][userid][code]["Confirmation Number"]
             col5 = settings["Pending"][userid][code]["Status"]
             data = [(col1, col2, col3, col4, col5)]
-            table = tabulate(data, headers=["Name", "Time Stamp", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-            await self.bot.say("```{}```".format(table))
+            table = tabulate(data, headers=["Name", "Time Stamp", "Item",
+                                            "Confirmation#", "Status"], numalign="left")
+            msg = "```{}```".format(table)
         else:
-            await self.bot.say("Could not find that confirmation number in the pending list.")
+            msg = "Could not find that confirmation number in the pending list."
+        await self.bot.say(msg)
 
     async def check_user_pending(self, settings, user):
         try:
             if user.id in settings["Pending"]:
                 column1 = [subdict["Name"] for subdict in settings["Pending"][user.id].values()]
-                column2 = [subdict["Time Stamp"] for subdict in settings["Pending"][user.id].values()]
+                column2 = [subdict["Time Stamp"] for subdict
+                           in settings["Pending"][user.id].values()]
                 column3 = [subdict["Item"] for subdict in settings["Pending"][user.id].values()]
-                column4 = [subdict["Confirmation Number"] for subdict in settings["Pending"][user.id].values()]
+                column4 = [subdict["Confirmation Number"] for subdict
+                           in settings["Pending"][user.id].values()]
                 column5 = [subdict["Status"] for subdict in settings["Pending"][user.id].values()]
                 data = list(zip(column2, column1, column3, column4, column5))
-                table = tabulate(data, headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                await self.bot.say("```{}```".format(table))
+                table = tabulate(data, headers=["Time Stamp", "Name", "Item",
+                                                "Confirmation#", "Status"], numalign="left")
+                msg = "```{}```".format(table)
             else:
-                await self.bot.say("There are no pending items for this user.")
+                msg = "There are no pending items for this user."
         except AttributeError:
-            await self.bot.say("You did not provide a valid user id.")
+            msg = "You did not provide a valid user id."
+        await self.bot.say(msg)
 
     async def shop_table_split(self, user, data):
+        headers = ["Item Name", "Item Quantity", "Item Cost", "Discount"]
         groups = [data[i:i+20] for i in range(0, len(data), 20)]
         pages = len(groups)
-        await self.bot.say("There are {} pages of shop items. Which page would you like to display?".format(pages))
-        response = await self.bot.wait_for_message(timeout=15, author=user)
-        if response is None:
+        if pages == 1:
             page = 0
+            table = tabulate(groups[page], headers=headers, stralign="center", numalign="center")
+            msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
+                   "There are {} items available.```".format(table, pages, len(data)))
+            return msg
         else:
-            try:
+            await self.bot.say("There are {} pages of shop items. "
+                               "Which page would you like to display?".format(pages))
+            response = await self.bot.wait_for_message(timeout=15, author=user)
+            if response is None:
+                page = 0
+            elif response.content.isdigit():
                 page = int(response.content) - 1
-                table = tabulate(groups[page], headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
-                msg = "```{}``````Python\nYou are viewing page {} of {}. There are {} items available.```".format(table, page + 1, pages, len(data))
+            else:
+                page = 0
+            try:
+                table = tabulate(groups[page], headers=headers, stralign="center",
+                                 numalign="center")
+                msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                       "There are {} items available.```".format(table, page + 1, pages, len(data)))
                 return msg
             except ValueError:
-                await self.bot.say("Sorry your response was not a correct number. Defaulting to page 1")
-                page = 0
-                table = tabulate(groups[page], headers=["Item Name", "Item Quantity", "Item Cost", "Discount"], stralign="center", numalign="center")
-                msg = "```{}``````Python\nYou are viewing page 1 of {}. There are {} items available.```".format(table, pages, len(data))
+                await self.bot.say("Sorry your response was not a correct number. "
+                                   "Defaulting to page 1")
+                table = tabulate(groups[page], headers=headers, stralign="center",
+                                 numalign="center")
+                msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
+                       "There are {} items available.```".format(table, pages, len(data)))
                 return msg
 
     async def shop_list_output(self, settings, message, header):
@@ -659,27 +776,32 @@ class Shop:
             await self.bot.whisper("{}\n{}".format(header, message))
 
     async def table_split(self, user, data):
+        headers = ["Time Stamp", "Name", "Item", "Confirmation#", "Status"]
         groups = [data[i:i+12] for i in range(0, len(data), 12)]
         pages = len(groups)
-        await self.bot.say("There are {} pages of pending items. Which page would you like to display?".format(pages))
+        await self.bot.say("There are {} pages of pending items. "
+                           "Which page would you like to display?".format(pages))
         response = await self.bot.wait_for_message(timeout=15, author=user)
         if response is None:
             page = 0
         else:
             try:
                 page = int(response.content) - 1
-                table = tabulate(groups[page], headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                msg = "```{}``````Python\nYou are viewing page {} of {}. {} pending items```".format(table, page + 1, pages, len(data))
+                table = tabulate(groups[page], headers=headers, numalign="left",  tablefmt="simple")
+                msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                       "{} pending items```".format(table, page + 1, pages, len(data)))
                 return msg
             except ValueError:
                 await self.bot.say("Sorry your response was not a number. Defaulting to page 1")
                 page = 0
-                table = tabulate(groups[page], headers=["Time Stamp", "Name", "Item", "Confirmation#", "Status"], numalign="left",  tablefmt="simple")
-                msg = "```{}``````Python\nYou are viewing page 1 of {}. {} pending items```".format(table, pages, len(data))
+                table = tabulate(groups[page], headers=headers, numalign="left",  tablefmt="simple")
+                msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
+                       "{} pending items```".format(table, pages, len(data)))
                 return msg
 
     async def check_cooldowns(self, settings, userid):
-        if abs(settings["Users"][userid]["Trade Cooldown"] - int(time.perf_counter())) >= settings["Config"]["Trade Cooldown"]:
+        if abs(settings["Users"][userid]["Trade Cooldown"] - int(time.perf_counter())
+               ) >= settings["Config"]["Trade Cooldown"]:
             settings["Users"][userid]["Trade Cooldown"] = int(time.perf_counter())
             dataIO.save_json(self.file_path, self.system)
             return True
@@ -690,44 +812,51 @@ class Shop:
         else:
             s = abs(settings["Users"][userid]["Trade Cooldown"] - int(time.perf_counter()))
             seconds = abs(s - settings["Config"]["Trade Cooldown"])
-            await self.bot.say("You must wait before trading again. You still have: {}".format(self.time_format(seconds)))
+            await self.bot.say("You must wait before trading again. "
+                               "You still have: {}".format(self.time_format(seconds)))
             return False
 
-    async def notify_handler(self, settings, ctx, itemname, user, confirmation_number):
-        if settings["Config"]["Shop Notify"]:
-            role = settings["Config"]["Shop Role"]
-            names = self.role_check(role, ctx)
-            destinations = [m for m in ctx.message.server.members if m.name in names]
-            for destination in destinations:
-                await self.bot.send_message(destination, "{} was added to the pending list by {}.\nConfirmation#: {}.\nUser ID: {} ".format(itemname, user.name, confirmation_number, user.id))
-            await self.bot.say("""```{} has been added to pending list. Your confirmation number is {}.
-                               \nYou can check the status of your pending items, use the command {}pending check```""".format(itemname, confirmation_number, ctx.prefix))
+    async def notify_handler(self, settings, ctx, itemname, user, confirmation):
+        if "Role" not in settings["Users"][user.id]["Inventory"][itemname]:
+            if settings["Config"]["Shop Notify"]:
+                msg = ("{} was added to the pending list by {}.\nConfirmation#: {}.\nUser ID: "
+                       "{}".format(itemname, user.name, confirmation, user.id))
+                role = settings["Config"]["Shop Role"]
+                names = self.role_check(role, ctx)
+                destinations = [m for m in ctx.message.server.members if m.name in names]
+                for destination in destinations:
+                    await self.bot.send_message(destination, msg)
+            await self.bot.say("```{} has been added to pending list. Your confirmation number is "
+                               "{}.\nTo check the status of your pending items, use the command "
+                               "{}pending check```".format(itemname, confirmation, ctx.prefix))
         else:
-            await self.bot.say("""```{} has been added to pending list. Your confirmation number is {}.
-                               \nYou can check the status of your pending items, use the command {}pending check```""".format(itemname, confirmation_number, ctx.prefix))
+            await self.bot.say("{} just recieved the {} role!".format(user.name, itemname))
+        self.user_remove_item(settings, user, itemname)
 
     async def user_trading(self, settings, user, author, itemname):
-        if not settings["Users"][user.id]["Block Trades"]:
-            if itemname in settings["Users"][author.id]["Inventory"]:
-                if await self.check_cooldowns(settings, author.id):
-                    await self.bot.say("{} requests a trade with {}. Do you wish to trade for {}?".format(author.mention, user.mention, itemname))
-                    answer = await self.bot.wait_for_message(timeout=15, author=user)
-                    if answer:
-                        user_response = await self.user_trade_reply(settings, user, author, answer)
-                        if user_response:
-                            author_response, offer = await self.author_trade_reply(settings, user, author, user_response)
-                            if author_response:
-                                await self.trade_conclusion(settings, user, author, offer, itemname, author_response)
-                            else:
-                                await self.bot.say("No response. Cancelling trade with {}.".format(user.name))
-                        else:
-                            await self.bot.say("No response. Cancelling trade with {}.".format(user.name))
-                    else:
-                        await self.bot.say("No response. Cancelling trade with {}.".format(user.name))
-            else:
-                await self.bot.say("This item is not in your inventory.")
-        else:
+        cancel_msg = "No response. Cancelling trade with {}.".format(user.name)
+        if settings["Users"][user.id]["Block Trades"]:
             await self.bot.say("This user is currently blocking trade requests.")
+        elif itemname not in settings["Users"][author.id]["Inventory"]:
+            await self.bot.say("This item is not in your inventory.")
+        elif await self.check_cooldowns(settings, author.id):
+            await self.bot.say("{} requests a trade with {}. Do you wish to trade for "
+                               "{}?".format(author.mention, user.mention, itemname))
+            answer = await self.bot.wait_for_message(timeout=15, author=user)
+            if answer:
+                user_response = await self.user_trade_reply(settings, user, author, answer)
+                if user_response:
+                    author_response, offer = await self.author_trade_reply(settings, user,
+                                                                           author, user_response)
+                    if author_response:
+                        await self.trade_conclusion(settings, user, author,
+                                                    offer, itemname, author_response)
+                    else:
+                        await self.bot.say(cancel_msg)
+                else:
+                    await self.bot.say(cancel_msg)
+            else:
+                await self.bot.say(cancel_msg)
 
     async def user_trade_reply(self, settings, user, author, answer):
         if answer.content.title() == "No":
@@ -741,7 +870,8 @@ class Shop:
         if not response:
             await self.bot.say("No response. Cancelling trade with {}.".format(user.name))
         elif response.content.title() in settings["Users"][user.id]["Inventory"]:
-            await self.bot.say("{} has offered {}, do you wish to accept this trade, {}?".format(user.mention, response.content, author.mention))
+            await self.bot.say("{} has offered {}, do you wish to accept this trade, "
+                               "{}?".format(user.mention, response.content, author.mention))
             reply = await self.bot.wait_for_message(timeout=15, author=author)
             return reply, response.content
 
@@ -750,19 +880,21 @@ class Shop:
             await self.bot.say("Trade Rejected. Cancelling trade.")
         elif reply.content.title() == "Yes" or reply.content.title() == "Accept":
             quantity = 1
-            self.user_add_item(settings, author, quantity, tradeoffer)
-            self.user_add_item(settings, user, quantity, itemname)
+            self.user_gt_item(self, settings, author, user, quantity, itemname)
+            self.user_gt_item(self, settings, user, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, tradeoffer)
-            await self.bot.say("Trading items... {} recieved {}, and {} recieved {}.".format(author.mention, tradeoffer, user.mention, tradeoffer))
+            await self.bot.say("Trading items... {} recieved {}, and {} recieved "
+                               "{}.".format(author.mention, tradeoffer, user.mention, tradeoffer))
             await self.bot.say("Trade complete.")
 
     async def user_gifting(self, settings, user, author, itemname):
         if itemname in settings["Users"][author.id]["Inventory"]:
             quantity = 1
-            self.user_add_item(settings, user, quantity, itemname)
+            self.user_gt_item(settings, author, user, quantity, itemname)
             self.user_remove_item(settings, author, itemname)
-            await self.bot.say("{} just sent a gift({}) to {}.".format(author.mention, itemname, user.mention))
+            await self.bot.say("{} just sent a gift({}) "
+                               "to {}.".format(author.mention, itemname, user.mention))
         else:
             await self.bot.say("This item is not in your inventory.")
 
@@ -776,7 +908,8 @@ class Shop:
                 else:
                     return False
             else:
-                await self.bot.say("There are not enough left in the shop to buy {}.".format(quantity))
+                await self.bot.say("There are not enough left in the shop to "
+                                   "buy {}.".format(quantity))
         else:
             await self.bot.say("This item is not in the shop.")
             return False
@@ -795,7 +928,8 @@ class Shop:
             return False
 
     def role_check(self, role, ctx):
-        return [m.name for m in ctx.message.server.members if role.lower() in [str(r).lower() for r in m.roles] and str(m.status) != "offline"]
+        return [m.name for m in ctx.message.server.members if role.lower() in [str(r).lower()
+                for r in m.roles] and str(m.status) != "offline"]
 
     def bordered(self, text):
         lines = text.splitlines()
@@ -819,26 +953,30 @@ class Shop:
             msg = "No cooldown"
         return msg
 
-    def redeem_handler(self, settings, user, itemname, confirmation_number):
+    async def redeem_handler(self, settings, ctx, server, user, itemname, confirmation):
         time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if user.id in settings["Pending"]:
-            if len(settings["Pending"][user.id].keys()) <= 12:
-                settings["Pending"][user.id][confirmation_number] = {"Name": user.name,
-                                                                     "Confirmation Number": confirmation_number,
-                                                                     "Time Stamp": time_now,
-                                                                     "Item": itemname,
-                                                                     "Status": "Pending"}
-                dataIO.save_json(self.file_path, self.system)
+        item_dict = {"Name": user.name, "Confirmation Number": confirmation, "Status": "Pending",
+                     "Time Stamp": time_now, "Item": itemname}
+        if "Role" in settings["Users"][user.id]["Inventory"][itemname].keys():
+            if "Buyrole" in self.bot.cogs:
+                roleid = settings["Users"][user.id]["Inventory"][itemname]["Role"]
+                role = [role for role in ctx.message.server.roles
+                        if roleid in [role.id for role in ctx.message.server.roles] and
+                        roleid == role.id][0]
+                await self.bot.add_roles(user, role)
                 return True
             else:
-                return False
+                raise RuntimeError('I need the buyrole cog to process this request.')
+        elif user.id in settings["Pending"]:
+                if len(settings["Pending"][user.id].keys()) <= 12:
+                    settings["Pending"][user.id][confirmation] = item_dict
+                    dataIO.save_json(self.file_path, self.system)
+                    return True
+                else:
+                    return False
         else:
             settings["Pending"][user.id] = {}
-            settings["Pending"][user.id][confirmation_number] = {"Name": user.name,
-                                                                 "Confirmation Number": confirmation_number,
-                                                                 "Time Stamp": time_now,
-                                                                 "Item": itemname,
-                                                                 "Status": "Pending"}
+            settings["Pending"][user.id][confirmation] = item_dict
             dataIO.save_json(self.file_path, self.system)
             return True
 
@@ -846,7 +984,8 @@ class Shop:
         if user.id in settings["Users"]:
             pass
         else:
-            settings["Users"][user.id] = {"Inventory": {}, "Block Trades": False, "Trade Cooldown": 0, "Member": False}
+            settings["Users"][user.id] = {"Inventory": {}, "Block Trades": False,
+                                          "Trade Cooldown": 0, "Member": False}
             dataIO.save_json(self.file_path, self.system)
 
     def discount_calc(self, settings, itemname):
@@ -874,15 +1013,20 @@ class Shop:
             m = sorted(m, key=itemgetter(2))
             return m, header
 
-    def shop_item_add(self, settings, itemname, cost, quantity):
-        if quantity == 0:
-            settings["Shop List"][itemname] = {"Item Name": itemname, "Item Cost": cost,
-                                               "Quantity": "∞", "Discount": 0,
-                                               "Members Only": "No", "Buy Msg": []}
+    def shop_item_add(self, settings, itemname, cost, quantity, role=False):
+        key = itemname.title()
+        if role is False:
+            settings["Shop List"][key] = {"Item Name": itemname, "Item Cost": cost,
+                                          "Discount": 0, "Members Only": "No",
+                                          "Buy Msg": []}
         else:
-            settings["Shop List"][itemname] = {"Item Name": itemname, "Item Cost": cost,
-                                               "Quantity": quantity, "Discount": 0,
-                                               "Members Only": "No", "Buy Msg": []}
+            settings["Shop List"][key] = {"Item Name": itemname.name, "Item Cost": cost,
+                                          "Discount": 0, "Members Only": "No",
+                                          "Role": itemname.id, "Buy Msg": []}
+        if quantity == 0:
+            settings["Shop List"][key]["Quantity"] = "∞"
+        else:
+            settings["Shop List"][key]["Quantity"] = quantity
         dataIO.save_json(self.file_path, self.system)
 
     def shop_item_remove(self, settings, quantity, itemname):
@@ -897,20 +1041,35 @@ class Shop:
             settings["Shop List"].pop(itemname, None)
             dataIO.save_json(self.file_path, self.system)
 
-    def user_add_item(self, settings, user, quantity, itemname):
+    def user_gt_item(self, settings, author, user, quantity, itemname):
         if itemname in settings["Users"][user.id]["Inventory"]:
             settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] += quantity
         else:
-            settings["Users"][user.id]["Inventory"][itemname] = {"Item Name": itemname, "Item Quantity": quantity}
+            item_copy = settings["Users"][author.id]["Inventory"][itemname].copy()
+            item_copy["Item Quantity"] = 1
+            settings["Users"][user.id]["Inventory"][itemname] = item_copy
+        dataIO.save_json(self.file_path, self.system)
+
+    def user_add_item(self, settings, user, quantity, itemname):
+        user_path = settings["Users"][user.id]["Inventory"][itemname]
+        if itemname in settings["Users"][user.id]["Inventory"]:
+            user_path[itemname]["Item Quantity"] += quantity
+        else:
+            user_path[itemname] = {"Item Name": itemname, "Item Quantity": quantity}
+            if "Role" in settings["Shop List"][itemname].keys():
+                user_path["Role"] = settings["Shop List"][itemname]["Role"]
+        dataIO.save_json(self.file_path, self.system)
+
+    def user_remove_all(self, settings, user, itemname):
+        settings["Users"][user.id]["Inventory"].pop(itemname, None)
         dataIO.save_json(self.file_path, self.system)
 
     def user_remove_item(self, settings, user, itemname):
-        if itemname in settings["Users"][user.id]["Inventory"]:
-            if settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] > 1:
-                settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] -= 1
-            else:
-                settings["Users"][user.id]["Inventory"].pop(itemname, None)
-            dataIO.save_json(self.file_path, self.system)
+        if settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] > 1:
+            settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] -= 1
+        else:
+            settings["Users"][user.id]["Inventory"].pop(itemname, None)
+        dataIO.save_json(self.file_path, self.system)
 
     def check_server_settings(self, server):
         if server.id not in self.system["Servers"]:
@@ -949,7 +1108,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.1"
+               "Version": "2.2"
                }
 
     f = "data/JumperCogs/shop/system.json"
@@ -959,7 +1118,8 @@ def check_files():
     else:
         current = dataIO.load_json(f)
         if current["Version"] != default["Version"]:
-            print("Updating Shop Cog from version {} to version {}".format(current["Version"], default["Version"]))
+            print("Updating Shop Cog from version {} to version {}".format(current["Version"],
+                                                                           default["Version"]))
             current["Version"] = default["Version"]
             dataIO.save_json(f, current)
 
