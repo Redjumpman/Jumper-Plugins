@@ -1051,7 +1051,7 @@ class Shop:
         dataIO.save_json(self.file_path, self.system)
 
     def user_add_item(self, settings, user, quantity, itemname):
-        user_path = settings["Users"][user.id]["Inventory"][itemname]
+        user_path = settings["Users"][user.id]["Inventory"]
         if itemname in settings["Users"][user.id]["Inventory"]:
             user_path[itemname]["Item Quantity"] += quantity
         else:
@@ -1108,7 +1108,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2"
+               "Version": "2.2.1"
                }
 
     f = "data/JumperCogs/shop/system.json"
