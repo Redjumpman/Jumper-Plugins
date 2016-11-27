@@ -17,7 +17,7 @@ from datetime import datetime
 try:   # Check if Tabulate is installed
     from tabulate import tabulate
     tabulateAvailable = True
-except:
+except ImportError:
     tabulateAvailable = False
 
 
@@ -900,7 +900,8 @@ class Shop:
 
     async def shop_check(self, user, settings, quantity, itemname):
         if itemname in settings["Shop List"]:
-            if settings["Shop List"][itemname]["Quantity"] >= quantity:
+            item_quantity = settings["Shop List"][itemname]["Quantity"]
+            if item_quantity == "∞" or item_quantity >= quantity:
                 cost = self.discount_calc(settings, itemname)
                 total_cost = cost * quantity
                 if await self.subtract_credits(user, total_cost):
@@ -1108,7 +1109,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.1"
+               "Version": "2.2.2"
                }
 
     f = "data/JumperCogs/shop/system.json"
