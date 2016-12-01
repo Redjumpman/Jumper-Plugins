@@ -33,10 +33,11 @@ class Raffle:
         if not self.raffle["Config"]["Active"]:
             self.raffle["Config"]["Active"] = True
             dataIO.save_json(self.file_path, self.raffle)
-            await self.bot.say("@everyone a raffle has been started by " + user.name +
-                               ".\n" + "Use the command 'raffle buy' to purchase tickets.")
+            msg = ("@everyone a raffle has been started by {}\nUse the command {}raffle buy to "
+                   "purchase tickets".format(user.name, ctx.prefix))
         else:
-            await self.bot.say("A raffle is currently active. End the current one to start a new one.")
+            msg = "A raffle is currently active. End the current one to start a new one."
+        await self.bot.say(msg)
 
     @_raffle.command(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -66,34 +67,44 @@ class Raffle:
         user = ctx.message.author
         bank = self.bot.get_cog('Economy').bank
         code = str(uuid.uuid4())
-        if number > 0:
-            if self.raffle["Config"]["Active"]:
-                ticket_cost = self.raffle["Config"]["Cost"]
-                points = ticket_cost * number
-                if bank.can_spend(user, points):
-                    if user.id in self.raffle["Players"]:
-                        bank.withdraw_credits(user, points)
-                        self.raffle["Players"][user.id]["Tickets"] += [code] * number
-                        self.raffle["Config"]["Tickets"] += [code] * number
-                        await self.bot.say(user.mention + " has purchased " + str(number) +
-                                           " raffle tickets for " + str(points))
-                    else:
-                        bank.withdraw_credits(user, points)
-                        self.raffle["Players"][user.id] = {}
-                        self.raffle["Players"][user.id] = {"Tickets": []}
-                        self.raffle["Players"][user.id]["Tickets"] += [code] * number
-                        self.raffle["Config"]["Tickets"] += [code] * number
-                        await self.bot.say(user.mention + " has purchased " + str(number) +
-                                           " raffle tickets for " + str(points))
-                    dataIO.save_json(self.file_path, self.raffle)
-
-                else:
-                    await self.bot.say("You do not have enough points to purchase that many raffle tickets" + "\n" +
-                                       "Raffle tickets cost " + str(ticket_cost) + " points each.")
+        ticket_cost = self.raffle["Config"]["Cost"]
+        max_tickets = self.raffle["Config"]["Max Tickets"]
+        credits = ticket_cost * number
+        if number < 0:
+            msg = "You need to pick a number higher than 0"
+        elif not self.raffle["Config"]["Active"]:
+            msg = "There is not a raffle currently active"
+        elif not bank.can_spend(user, credits):
+            msg = ("You do not have enough points to purchase that many raffle tickets\nRaffle "
+                   "tickets cost {} points each.".format(ticket_cost))
+        elif number > max_tickets and max_tickets != 0:
+            msg = ("You can't purchase that many tickets. A maximum of {} tickets per "
+                   "user.".format(max_tickets))
+        elif user.id in self.raffle["Players"]:
+            user_tickets = len(self.raffle["Players"][user.id]["Tickets"])
+            if user_tickets + number > max_tickets:
+                msg = ("You can't purchase that many tickets. A maximum of {} tickets per user.\n "
+                       "You currently have {} tickets.".format(max_tickets, user_tickets))
             else:
-                await self.bot.say("There is not a raffle currently active")
+                bank.withdraw_credits(user, credits)
+                self.raffle["Players"][user.id]["Tickets"] += [code] * number
+                self.raffle["Config"]["Tickets"] += [code] * number
+                user_tickets = len(self.raffle["Players"][user.id]["Tickets"])
+                self.raffle["Players"][user.id]["Total Tickets"] = user_tickets
+                msg = ("{} has purchased {} raffle tickets for "
+                       "{}".format(user.mention, number, credits))
+                dataIO.save_json(self.file_path, self.raffle)
         else:
-            await self.bot.say("You need to pick a number higher than 0")
+            bank.withdraw_credits(user, credits)
+            self.raffle["Players"][user.id] = {}
+            self.raffle["Players"][user.id] = {"Tickets": []}
+            self.raffle["Players"][user.id]["Tickets"] += [code] * number
+            tickets_num = len(self.raffle["Players"][user.id]["Tickets"])
+            self.raffle["Players"][user.id]["Total Tickets"] = tickets_num
+            self.raffle["Config"]["Tickets"] += [code] * number
+            msg = "{} has purchased {} raffle tickets for {}".format(user.mention, number, credits)
+            dataIO.save_json(self.file_path, self.raffle)
+        await self.bot.say(msg)
 
     @_raffle.command(pass_context=True, no_pm=True)
     async def check(self, ctx):
@@ -112,7 +123,16 @@ class Raffle:
         """Sets the cost of raffle tickets"""
         self.raffle["Config"]["Cost"] = price
         dataIO.save_json(self.file_path, self.raffle)
-        await self.bot.say("```" + "The price for 1 raffle ticket is now set to " + str(price) + "```")
+        msg = "```Python\nThe price for 1 raffle ticket is now set to {}```".format(price)
+        await self.bot.say(msg)
+
+    @_raffle.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def tmax(self, ctx, number: int):
+        """Number of tickets each person can buy. 0 for infinite"""
+        self.raffle["Config"]["Max Tickets"] = number
+        dataIO.save_json(self.file_path, self.raffle)
+        await self.bot.say("The max tickets each user can buy is now {}".format(number))
 
 
 def check_folders():
@@ -125,11 +145,21 @@ def check_files():
     system = {"Players": {},
               "Config": {"Tickets": [],
                          "Cost": 50,
-                         "Active": False}}
+                         "Active": False,
+                         "Max Tickets": 0}}
     f = "data/raffle/raffle.json"
     if not dataIO.is_valid_json(f):
         print("Creating default raffle/raffle.json...")
         dataIO.save_json(f, system)
+    else:  # consistency check
+        current = dataIO.load_json(f)
+        if current["Config"].keys() != system["Config"].keys():
+            for key in system["Config"].keys():
+                if key not in current["Config"].keys():
+                    current["Config"][key] = system["Config"][key]
+                    print("Adding " + str(key) +
+                          " field to raffle raffle.json")
+            dataIO.save_json(f, current)
 
 
 def setup(bot):
