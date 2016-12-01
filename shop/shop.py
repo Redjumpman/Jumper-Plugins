@@ -50,9 +50,9 @@ class Shop:
             m = sorted(list(zip(column1, column2)))
             t = tabulate(m, headers=["Item Name", "Item Quantity"])
             if settings["Config"]["Inventory Output Method"] == "Whisper":
-                msg = "{}```\n{}```".format(header, t)
+                msg = "{}```ini\n{}```".format(header, t)
             else:
-                msg = "{}```\n{}```".format(header, t)
+                msg = "{}```ini\n{}```".format(header, t)
         else:
             msg = "Your inventory is empty."
         await self.bot.say(msg)
@@ -1015,19 +1015,20 @@ class Shop:
             return m, header
 
     def shop_item_add(self, settings, itemname, cost, quantity, role=False):
-        key = itemname.title()
         if role is False:
-            settings["Shop List"][key] = {"Item Name": itemname, "Item Cost": cost,
-                                          "Discount": 0, "Members Only": "No",
-                                          "Buy Msg": []}
+            item = itemname.title()
+            settings["Shop List"][item] = {"Item Name": itemname, "Item Cost": cost,
+                                           "Discount": 0, "Members Only": "No",
+                                           "Buy Msg": []}
         else:
-            settings["Shop List"][key] = {"Item Name": itemname.name, "Item Cost": cost,
+            item = str(itemname.name).title()
+            settings["Shop List"][item] = {"Item Name": item, "Item Cost": cost,
                                           "Discount": 0, "Members Only": "No",
                                           "Role": itemname.id, "Buy Msg": []}
         if quantity == 0:
-            settings["Shop List"][key]["Quantity"] = "∞"
+            settings["Shop List"][item]["Quantity"] = "∞"
         else:
-            settings["Shop List"][key]["Quantity"] = quantity
+            settings["Shop List"][item]["Quantity"] = quantity
         dataIO.save_json(self.file_path, self.system)
 
     def shop_item_remove(self, settings, quantity, itemname):
@@ -1058,7 +1059,7 @@ class Shop:
         else:
             user_path[itemname] = {"Item Name": itemname, "Item Quantity": quantity}
             if "Role" in settings["Shop List"][itemname].keys():
-                user_path["Role"] = settings["Shop List"][itemname]["Role"]
+                user_path[itemname]["Role"] = settings["Shop List"][itemname]["Role"]
         dataIO.save_json(self.file_path, self.system)
 
     def user_remove_all(self, settings, user, itemname):
@@ -1109,7 +1110,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.2"
+               "Version": "2.2.3"
                }
 
     f = "data/JumperCogs/shop/system.json"
