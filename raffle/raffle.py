@@ -44,19 +44,23 @@ class Raffle:
     async def end(self, ctx):
         """Ends a raffle"""
         if self.raffle["Config"]["Active"]:
-            self.raffle["Config"]["Active"] = False
-            tickets = self.raffle["Config"]["Tickets"]
-            winning_ticket = random.choice(tickets)
-            winner = []
-            for subdict in self.raffle["Players"]:
-                if winning_ticket in self.raffle["Players"][subdict]["Tickets"]:
-                    winner.append(subdict)
-            mention = "<@" + winner[0] + ">"
-            await self.bot.say("The winner of the raffle is...")
-            await asyncio.sleep(3)
-            await self.bot.say(mention + "! Congratulations, you have won!")
-            self.raffle["Config"]["Tickets"] = []
-            self.raffle["Players"] = {}
+            if len(self.raffle["Players"]) > 0:
+                self.raffle["Config"]["Active"] = False
+                tickets = self.raffle["Config"]["Tickets"]
+                winning_ticket = random.choice(tickets)
+                winner = []
+                for subdict in self.raffle["Players"]:
+                    if winning_ticket in self.raffle["Players"][subdict]["Tickets"]:
+                        winner.append(subdict)
+                mention = "<@" + winner[0] + ">"
+                await self.bot.say("The winner of the raffle is...")
+                await asyncio.sleep(3)
+                await self.bot.say(mention + "! Congratulations, you have won!")
+                self.raffle["Config"]["Tickets"] = []
+                self.raffle["Players"] = {}
+            else:
+                self.raffle["Config"]["Active"] = False
+                await self.bot.say("Oh no! No one joined the raffle. Cancelling the raffle.")
             dataIO.save_json(self.file_path, self.raffle)
         else:
             await self.bot.say("You need to start a raffle for me to end one!")
