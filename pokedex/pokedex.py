@@ -6,12 +6,12 @@ from __main__ import send_cmd_help
 try:   # check if BeautifulSoup4 is installed
     from bs4 import BeautifulSoup
     soupAvailable = True
-except:
+except ImportError:
     soupAvailable = False
 try:   # Check if Tabulate is installed
     from tabulate import tabulate
     tabulateAvailable = True
-except:
+except ImportError:
     tabulateAvailable = False
 
 
@@ -21,8 +21,6 @@ class Pokedex:
     def __init__(self, bot):
         self.bot = bot
 
-    # Because there is multiple commands with the parameter 'pokedex' we need
-    # to create a group.
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
         """This is the list of pokemon queries you can perform."""
@@ -30,32 +28,23 @@ class Pokedex:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    # When using group commands you need to put the name of the sub command
-    # within the argument
     @pokedex.command(name="pokemon", pass_context=False)
-    # when defining the sub group you need to have _ before and after the new
-    # command
     async def _pokemon_pokedex(self, pokemon):
         """Get a pokemon's pokedex info.
         Example !pokedex pokemon gengar"""
-        # We need to check if the length of the input is greater than 0.
-        # This is just a catch for when there is no input
         if len(pokemon) > 0:
-            # All data is pulled from pokemondb.net
-            url = "http://pokemondb.net/pokedex/" + str(pokemon)
+            url = "http://pokemondb.net/pokedex/{}".format(pokemon)
             try:
                 async with aiohttp.get(url) as response:
                     soup = BeautifulSoup(await response.text(), "html.parser")
-                    # This scrapes the pokemon image
-                    img = "https://img.pokemondb.net/artwork/{}.jpg".format(soup.find('h1').get_text().lower())
-                    # This list holds all the data from the left column
+                    # FIXME This scrapes the pokemon image
+                    img_par = soup.find('div', attrs={'class': "col desk-span-4 lap-span-6 figure"})
+                    img = img_par.find("img")["src"]
+                    print(img)
                     poke = []
-                    # This list holds all data from the right column
                     pokeh = []
-                    # This is the parent table from which the data is scraped
                     table = soup.find('table', attrs={'class': 'vitals-table'})
                     table_body = table.find('tbody')
-                    # This will start the scrape for the left column of data
                     headers = table_body.find_all('tr')
                 # -------------------Pokedex-Info----------------------------
                     dex_table = soup.find_all('table', attrs={'class': 'vitals-table'})
@@ -65,15 +54,13 @@ class Pokedex:
                     dex_text1 = dex_info1.get_text().replace("RedBlue", "")
                     dex_text2 = dex_info2.get_text().replace("Yellow", "")
                 # -------------------Pokedex-Info-End---------------------------
-                # Iterates through the rows to grab the data held in headers
-                # This will also says that if there is no text, don't strip
                     for head in headers:
                         hols = head.find_all('th')
                         hols = [ele.text.strip() for ele in hols]
                         pokeh.append([ele for ele in hols if ele])
-                # This will start the scrape for the right column of data
-                        rows = table_body.find_all('tr')
-                # Same thing with headers, except we are looking for td tags
+
+                    rows = table_body.find_all('tr')
+
                     for row in rows:
                         cols = row.find_all('td')
                         cols = [ele.text.strip() for ele in cols]
@@ -82,13 +69,10 @@ class Pokedex:
                     poke2 = [x for xs in poke for x in xs]
                     pokeh2 = [x for xs in pokeh for x in xs]
                     m = list(zip(pokeh2, poke2))
-                # using the import from tabulate format the combined lists into
-                # a nice looking table
+
                     t = tabulate(m, headers=["Pokedex", "Data"])
-                # We add that data. Img is a image, but t is all text so we
-                # have to say so with str. \n creates a new line and the ```
-                # puts the output into the pretty code block
-                    await self.bot.say("\n" + "```" + str(t) + "```")
+
+                    await self.bot.say("\n```{}```".format(t))
                     await self.bot.say("```" + dex_text1 + "\n" + dex_text2 + "```")
                     await self.bot.say(img)
             except:
@@ -96,20 +80,19 @@ class Pokedex:
                                        " Please try a different name"
                                        )
         else:
-            await self.bot.say("Oh no! You didn't input a name. Type a" +
-                               " pokemon name to search")
+            await self.bot.say("Oh no! You didn't input a name. Type a pokemon name to search")
 
     @pokedex.command(name="stats", pass_context=False)
     async def _stats_pokedex(self, pokemon):
         """Get a pokemon's base stats.
         Example: !pokedex stats squirtle"""
         if len(pokemon) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(pokemon)
+            url = "http://pokemondb.net/pokedex/{}".format(pokemon)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     stats = []
-                    # This data is always the same, so no need to strip it!
+
                     base = [["HP"], ["Def"], ["ATK"], ["Sp.Atk"], ["Sp.Def"],
                             ["Speed"]
                             ]
@@ -122,15 +105,12 @@ class Pokedex:
                         cols = row.find_all('td')
                         cols = [ele.text.strip() for ele in cols]
                         stats.append([ele for ele in cols if ele])
-                    # Because the two lists, base and stats, are different
-                    # dimensions and stats is undefined, we have to peform
-                    # zip to make an iterator aggregate through the elements
+
                     statbase = [from_a2 + from_a1
                                 for from_a2, from_a1 in zip(base, stats)]
-                # Because part of the data is a graph it adds it to stats as
-                # a none value, [], we use filter to get rid of it.
+
                     k = filter(None, statbase)
-                # We use tabulate to create the table and create headers
+
                     t = tabulate(k, headers=["Stat", "Base", "Min", "Max"])
                     await self.bot.say("```" + t + "```")
                 except:
@@ -150,7 +130,7 @@ class Pokedex:
         if len(pokemon) > 0:
             if generation == "6" or generation == "VI":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
+                    url = "http://pokemondb.net/pokedex/{}/moves/6".format(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser"
@@ -171,17 +151,14 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
 
             elif generation == "5" or generation == "V":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
-                    # Added a continuation for url, instead of all on one line
-                    # to make PEP8 compliant
-                    url += "/moves/5"
+                    url = "http://pokemondb.net/pokedex/{}/moves/5".format(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser")
@@ -200,15 +177,14 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
 
             elif generation == "4" or generation == "IV":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
-                    url += "/moves/4"
+                    url = "http://pokemondb.net/pokedex/{}/moves/4".format(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser")
@@ -228,15 +204,14 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
 
             elif generation == "3" or generation == "III":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
-                    url += "/moves/3"
+                    url = "http://pokemondb.net/pokedex/{}/moves/3".format(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser")
@@ -255,15 +230,14 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
 
             elif generation == "2" or generation == "II":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
-                    url += "/moves/2"
+                    url = "http://pokemondb.net/pokedex/{}/moves/2".format(pokemon)
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
                                              "html.parser")
@@ -282,14 +256,14 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
 
             elif generation == "1" or generation == "I":
                 try:
-                    url = "http://pokemondb.net/pokedex/" + str(pokemon)
+                    url = "http://pokemondb.net/pokedex/{}/moves/1".format(pokemon)
                     url += "/moves/1"
                     async with aiohttp.get(url) as response:
                         soup = BeautifulSoup(await response.text(),
@@ -309,7 +283,7 @@ class Pokedex:
                         t = tabulate(moves, headers=["Level", "Moves", "Type",
                                                      "Category", "Power",
                                                      "Accuracy"])
-                        await self.bot.say("```" + str(t) + "```")
+                        await self.bot.say("```{}```".format(t))
                 except:
                     await self.bot.say("Could not locate a pokemon with that" +
                                        " name. Try a different name.")
@@ -318,9 +292,8 @@ class Pokedex:
                                    "**" + " or **" + "I-VI**.")
 
         else:
-            await self.bot.say("You need to input a pokemon name to search." +
-                               "Input a name and try again."
-                               )
+            await self.bot.say("You need to input a pokemon name to search. "
+                               "Input a name and try again.")
 
     @pokedex.command(name="item", pass_context=False)
     async def _item_pokedex(self, *, item):
@@ -329,16 +302,14 @@ class Pokedex:
         """
         if len(item) > 0:
             item = item.replace(" ", "-").lower()
-            url = "http://pokemondb.net/item/" + str(item)
+            url = "http://pokemondb.net/item/{}".format(item)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     divs = soup.find('p')
                     info = divs.get_text()
 
-                    await self.bot.say("**" + str(item.title()) + ":**" +
-                                       "\n" + "```" + str(info) + "```"
-                                       )
+                    await self.bot.say("**{}:**\n```{}```".format(item.title(), info))
                 except:
                     await self.bot.say("Cannot find an item with this name")
         else:
@@ -350,7 +321,7 @@ class Pokedex:
         Example !pokedex location voltorb
         """
         if len(pokemon) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(pokemon)
+            url = "http://pokemondb.net/pokedex/{}".format(pokemon)
             async with aiohttp.get(url) as response:
                 soup = BeautifulSoup(await response.text(), "html.parser")
                 loc = []
@@ -376,7 +347,7 @@ class Pokedex:
                 m = list(zip(extract_version, extract_loc))
                 t = tabulate(m, headers=["Game Version", "Location"])
 
-                await self.bot.say("```" + str(t) + "```")
+                await self.bot.say("```{}```".format(t))
         else:
             await self.bot.say("Unable to find any locations" +
                                "Check your spelling or try a different name."
@@ -387,27 +358,24 @@ class Pokedex:
         """Show a pokemon's evolution chain
         Example !pokedex evolution bulbasaur"""
         if len(pokemon) > 0:
-            url = "http://pokemondb.net/pokedex/" + str(pokemon)
+            url = "http://pokemondb.net/pokedex/{}".format(pokemon)
             async with aiohttp.get(url) as response:
                 try:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     div = soup.find('div', attrs={'class':
                                                   'infocard-evo-list'})
-                    evo = str(div.text.strip())
-                    await self.bot.say("```" + evo + "```")
+                    evo = div.text.strip()
+                    await self.bot.say("```{}```".format(evo))
                 except:
-                    await self.bot.say(str(pokemon) +
-                                       " does not have an evolution chain")
+                    await self.bot.say("{} does not have an evolution chain".format(pokemon))
         else:
             await self.bot.say("Please input a pokemon name.")
 
 
 def setup(bot):
-    if soupAvailable:
-        if tabulateAvailable:
-            n = Pokedex(bot)
-            bot.add_cog(n)
-        else:
-            raise RuntimeError("You need to run 'pip3 install tabulate'")
+    if not soupAvailable:
+        raise RuntimeError("You need to run \'pip3 install beautifulsoup4\' in command prompt.")
+    elif not tabulateAvailable:
+        raise RuntimeError("You need to run \'pip3 install tabulate\' in command prompt.")
     else:
-        raise RuntimeError("You need to run 'pip3 install beautifulsoup4'")
+        bot.add_cog(Pokedex(bot))
