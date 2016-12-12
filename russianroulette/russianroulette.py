@@ -1,12 +1,13 @@
 #  Roulette.py was created by Redjumpman for Redbot
 #  This will create a rrgame.JSON file and a data folder
-#  This will modify values your bank.json from economy.py
 import os
 import random
 import asyncio
-from .utils.dataIO import dataIO
+from time import gmtime, strftime
 from discord.ext import commands
+from .utils.dataIO import dataIO
 from .utils import checks
+from __main__ import send_cmd_help
 
 
 class Russianroulette:
@@ -14,246 +15,260 @@ class Russianroulette:
 
     def __init__(self, bot):
         self.bot = bot
-        self.file_path = "data/roulette/rrgame.json"
-        self.rrgame = dataIO.load_json(self.file_path)
+        self.file_path = "data/JumperCogs/roulette/russian.json"
+        self.system = dataIO.load_json(self.file_path)
+        self.kill_message = ["I was really pulling for {0} too. Oh well!",
+                             "I guess {0} really wasn't a pea-brain!",
+                             "Ahhh now that {0} is gone we can quit playing! No? Ok fine!",
+                             ("All things considered, I think we can all agree that {0} was a "
+                              "straight shooter."),
+                             "Noooooooo. Not {0}!", "I call dibs on {0}\'s stuff. Too soon?",
+                             "Well I guess {0} and I won't be doing that thing anymore...",
+                             "Here lies {0}. A loser.", "RIP {0}.", "I kinda hated {0} anyway.",
+                             "Hey {0}! I'm back with your snacks! Oh...",
+                             "{0}, you\'re like modern art now!", "Called it!",
+                             "Really guys? {0}\'s dead? Well this server officially blows now.",
+                             "Does this mean I don't have to return the book {0} lent me?",
+                             "Oh come on! Now {0}\'s blood is all over my server!",
+                             "I\'ll always remember {0}...", "Well at least {0} stopped crying.",
+                             "Don\'t look at me. You guys are cleaning up {0}.",
+                             "What I'm not crying. *sniff*", "I TOLD YOU, YOU COULD DO IT!",
+                             "Well I'm sure someone will miss you, {0}.", "Never forget. {0}."
+                             "Yeah. Real smart guys. Just kill off all the fun people.",
+                             "I think I got some splatter on me. Gross",
+                             "I told you it would blow your mind!", "Well this is fun...",
+                             "I go to get popcorn and you all start without me. Rude.",
+                             "Oh God. Just before {0} pulled the trigger they shit their pants.",
+                             "I guess I\'ll dig this hole a little bigger...",
+                             "10/10 would watch {0} blow their brains out again.",
+                             "Well I hope {0} has life insurance...",
+                             "See you in the next life, {0}", "AND THEIR OFF! Oh... wrong game."
+                             "I don't know how, but I think {1} cheated.",
+                             "{0} always said they wanted to go out with a bang.",
+                             "So don\'t sing *another one bites the dust* ?",
+                             "I can\'t tell if the smile on {1}\'s face is relief or insanity.",
+                             "Oh stop crying {1}. {0} knew what they were getting into.",
+                             "So that\'s what a human looks like on the inside!",
+                             "My condolences {1}. I know you were *so* close to {0}.",
+                             "GOD NO. PLEASE NO. PLEASE GOD NO. NOOOOOOOOOOOOOOOOOOOOOOO!",
+                             "Time of death {3}. Cause: Stupidty.", "BOOM HEADSHOT! Sorry..."
+                             "Don\'t act like you didn\'t enjoy that, {1}!",
+                             "Is it weird that I wish {1} was dead instead?",
+                             "Oh real great. {0} dies and I\'m still stuck with {1}. Real. Great.",
+                             "Are you eating cheetos? Have some respect {1}! {0} just died!"]
+
+    @commands.group(pass_context=True, no_pm=True)
+    async def setrussian(self, ctx):
+        """Russian Roulette Settings"""
+
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
+
+    @setrussian.command(name="minbet", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _minbet_setrussian(self, ctx, bet: int):
+        """Set the minimum starting bet for Russian Roulette games"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if bet > 0:
+            settings["System"]["Min Bet"] = bet
+            dataIO.save_json(self.file_path, self.system)
+            msg = "The initial bet to play russian roulette is set to {}".format(bet)
+        else:
+            msg = "I need a number higher than 0."
+        await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def resetrr(self, ctx):
+        """Reset command if game is stuck."""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        self.reset_game(settings)
+        await self.bot.say("Russian Roulette system has been reset.")
+
+    @commands.command(pass_context=True, no_pm=True, aliases=["rr"])
     async def russian(self, ctx, bet: int):
-        """Russian Roulette, requires 2 players, up to 6 max"""
         user = ctx.message.author
         server = ctx.message.server
-        if not self.rrgame["System"]["Active"]:
-            if bet >= self.rrgame["Config"]["Min Bet"]:
-                if self.rrgame["System"]["Player Count"] < 6:
-                    if self.enough_points(user, bet):
-                        if not self.rrgame["System"]["Roulette Initial"]:
-                            bank = self.bot.get_cog('Economy').bank
-                            bank.withdraw_credits(user, bet)
-                            self.rrgame["System"]["Player Count"] += 1
-                            self.rrgame["System"]["Pot"] += bet
-                            self.rrgame["System"]["Start Bet"] += bet
-                            self.rrgame["Players"][user.mention] = {"Name": user.name,
-                                                                    "ID": user.id,
-                                                                    "Mention": user.mention,
-                                                                    "Bet": bet}
-                            self.rrgame["System"]["Roulette Initial"] = True
-                            dataIO.save_json(self.file_path, self.rrgame)
-                            await self.bot.say(user.name + " has started a game of roulette, with a starting bet of " +
-                                               str(bet) + ".\n" "The game will start in 30 seconds or until I get 5 more players")
-                            await asyncio.sleep(30)
-                            if self.rrgame["System"]["Player Count"] > 1 and self.rrgame["System"]["Player Count"] < 6:
-                                self.rrgame["System"]["Active"] = True
-                                await self.bot.say("I'm going to load some shells into the cylinder of this 6 shot revolver.")
-                                await asyncio.sleep(4)
-                                await self.bot.say("Then I'll give it a good spin, and pass it off, until one of you blows your head off.")
-                                await asyncio.sleep(5)
-                                await self.bot.say("The winner is the last one alive!")
-                                await asyncio.sleep(3)
-                                await self.bot.say("Good Luck!")
-                                await asyncio.sleep(1)
-                                await self.roulette_game(server)
-                            elif self.rrgame["System"]["Player Count"] < 2:
-                                bank.deposit_credits(user, bet)
-                                await self.bot.say("Sorry I can't let you play by yourself, that's just suicide." + "\n" +
-                                                   "Try again later when you find some 'friends'.")
-                                self.system_reset()
-                        elif user.mention not in self.rrgame["Players"]:
-                            if bet >= self.rrgame["System"]["Start Bet"]:
-                                bank = self.bot.get_cog('Economy').bank
-                                bank.withdraw_credits(user, bet)
-                                self.rrgame["System"]["Pot"] += bet
-                                self.rrgame["System"]["Player Count"] += 1
-                                self.rrgame["Players"][user.mention] = {"Name": user.name,
-                                                                        "ID": user.id,
-                                                                        "Mention": user.mention,
-                                                                        "Bet": bet}
-                                dataIO.save_json(self.file_path, self.rrgame)
-                                players = self.rrgame["System"]["Player Count"]
-                                needed_players = 6 - players
-                                if self.rrgame["System"]["Player Count"] > 5:
-                                    self.rrgame["System"]["Active"] = True
-                                    await self.bot.say("I'm going to load exactly **one** shell into the cylinder of this 6 shot revolver.")
-                                    await asyncio.sleep(4)
-                                    await self.bot.say("Then I'll give it a good spin, and pass it of until one of you blows your head off.")
-                                    await asyncio.sleep(5)
-                                    await self.bot.say("The winner is the last one alive!")
-                                    await asyncio.sleep(3)
-                                    await self.bot.say("Good Luck!")
-                                    await asyncio.sleep(1)
-                                    await self.roulette_game(server)
-                                else:
-                                    await self.bot.say(user.name + " has joined the roulette circle. I need " +
-                                                       str(needed_players) + " to start the game immediately.")
-                            else:
-                                await self.bot.say("Your bet needs to match the initial bet or be higher.")
-                        else:
-                            await self.bot.say("You are already in the roulette circle.")
-                    else:
-                        await self.bot.say("You do not have enough points")
+        settings = self.check_server_settings(server)
+        if await self.logic_checks(settings, user, bet):
+            if settings["System"]["Roulette Initial"]:
+                if user.id in settings["Players"]:
+                    msg = "You are already in the circle. Don\'t be so eager to die."
+                elif len(settings["Players"].keys()) >= 6:
+                    msg = "Sorry. The max amount of players is 6."
                 else:
-                    await self.bot.say("There are too many players playing at the moment")
+                    if bet == settings["System"]["Start Bet"]:
+                        self.player_add(settings, user, bet)
+                        self.subtract_credits(settings, user, bet)
+                        msg = "{} has joined the roulette circle".format(user.name)
+                    else:
+                        start_bet = settings["System"]["Start Bet"]
+                        msg = "Your bet must be  equal to {}.".format(start_bet)
+                await self.bot.say(msg)
             else:
-                min_bet = self.rrgame["Config"]["Min Bet"]
-                await self.bot.say("Your bet needs to be greater than or equal to the min bet of " + str(min_bet))
+                self.initial_set(settings, bet)
+                self.player_add(settings, user, bet)
+                self.subtract_credits(settings, user, bet)
+                await self.bot.say("{} has started a game of roulette with a starting bet of "
+                                   "{}\nThe game will start in 30 seconds or when 5 more "
+                                   "players join.".format(user.name, bet))
+                await asyncio.sleep(30)
+                if len(settings["Players"].keys()) == 1:
+                    self.subtract_credits(settings, user, bet)
+                    await self.bot.say("Sorry I can't let you play by yourself, that's just "
+                                       "suicide.\nTry again when you find some 'friends'.")
+                    self.reset_game(settings)
+                else:
+                    await self.bot.say("Gather around! The game of russian roulette is starting.\n"
+                                       "I'm going to load a round into this six shot revovler, "
+                                       "give it a good spin, and pass it off to someone at random."
+                                       "If everyone is lucky enough to have a turn, I\'ll start "
+                                       "all over. Good luck!")
+                    await asyncio.sleep(5)
+                    await self.roulette_game(settings, server)
+                    self.reset_game(settings)
+
+    async def logic_checks(self, settings, user, bet):
+        if settings["System"]["Active"]:
+            await self.bot.say("A game of roulette is already active. Wait for it to end.")
+            return False
+        elif bet < settings["System"]["Min Bet"]:
+            min_bet = settings["System"]["Min Bet"]
+            await self.bot.say("Your bet must be greater than or equal to {}.".format(min_bet))
+            return False
+        elif len(settings["Players"].keys()) >= 6:
+            await self.bot.say("There are too many players playing at the moment")
+            return False
+        elif not self.enough_credits(user, bet):
+            await self.bot.say("You do not have enough credits or may need to register a bank "
+                               "account")
+            return False
         else:
-            await self.bot.say("There is an active game of roulette, wait until it's over to join in.")
+            return True
 
-    @commands.command(pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def rrclear(self):
-        """Clear command if the game sticks. ONLY use if the game hangs. if this
-        occurs please contact Redjumpman#2375 on Discord"""
-        self.system_reset()
-        await self.bot.say("Roulette system reset")
-
-    @commands.command(pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(manage_server=True)
-    async def russianset(self, ctx, bet: int):
-        """Set the initial starting bet to play the game"""
-        if bet > 0:
-            self.rrgame["Config"]["Min Bet"] = bet
-            dataIO.save_json(self.file_path, self.rrgame)
-            await self.bot.say("The initial bet to play is now set to " + str(bet))
-        else:
-            await self.bot.say("I need a number higher than 0.")
-
-    async def roulette_game(self, server):
-        i = self.rrgame["System"]["Player Count"]
-        players = [subdict for subdict in self.rrgame["Players"]]
-        count = len(players)
+    async def roulette_game(self, settings, server):
+        pot = settings["System"]["Pot"]
         turn = 0
-        high_noon = random.randint(1, 100)
-        if high_noon > 1:
-            while i > 0:
-                if i == 1:
-                    mention = [subdict["Mention"] for subdict in self.rrgame["Players"].values()]
-                    player_id = [subdict["ID"] for subdict in self.rrgame["Players"].values()]
-                    mobj = server.get_member(player_id[0])
-                    pot = self.rrgame["System"]["Pot"]
-                    await asyncio.sleep(2)
-                    await self.bot.say("Congratulations " + str(mention[0]) + ". You just won " + str(pot) + " points!")
-                    bank = self.bot.get_cog('Economy').bank
-                    bank.deposit_credits(mobj, pot)
-                    self.system_reset()
-                    await self.bot.say("Game Over")
-                    break
-                elif i > 1:
-                    i = i - 1
-                    turn = turn + 1
-                    names = [subdict for subdict in self.rrgame["Players"]]
-                    count = len(names)
-                    await self.roulette_round(count, names, turn)
-        elif high_noon == 12:
-            noon_names = []
-            for player in players:
-                name = self.rrgame["Players"][player]["Name"]
-                noon_names.append(name)
-            v = ", ".join(noon_names)
-            boom = " **BOOM!** " * i
-            await self.bot.say("A wild McCree appears!")
-            await asyncio.sleep(1)
-            await self.bot.say("It's high noon...")
-            await asyncio.sleep(3)
-            await self.bot.say(str(boom))
-            await asyncio.sleep(1)
-            await self.bot.say("```" + str(v) + " just bit the dust." + "```")
-            await asyncio.sleep(2)
-            await self.bot.say("Sorry partner, this pot of points is mine")
-            self.system_reset()
-            await asyncio.sleep(2)
-            await self.bot.say("Game Over")
-
-    async def roulette_round(self, count, player_names, turn):
-        list_names = player_names
-        furd = 0
-        await self.bot.say("Round " + str(turn))
-        await asyncio.sleep(2)
-        while furd == 0:
-            chance = random.randint(1, count)
-            name_mention = random.choice(list_names)
-            name = self.rrgame["Players"][name_mention]["Name"]
-            if chance > 1:
-                await self.bot.say(str(name) + " slowly squeezes the trigger...")
-                await asyncio.sleep(4)
-                await self.bot.say("**CLICK!**")
-                await asyncio.sleep(2)
-                await self.bot.say("```" + str(name) + " survived" + "```")
-                list_names.remove(name_mention)
-                count = count - 1
-            elif chance <= 1:
-                await self.bot.say(str(name) + " slowly squeezes the trigger...")
-                await asyncio.sleep(4)
-                await self.bot.say("**BOOM!**")
-                await asyncio.sleep(1)
-                await self.bot.say(str(name_mention) + " just blew their brains out")
-                await asyncio.sleep(2)
-                await self.bot.say("Let me just clean this up before we move on...")
-                await asyncio.sleep(2)
-                await self.bot.say("Done.")
-                del self.rrgame["Players"][name_mention]
-                dataIO.save_json(self.file_path, self.rrgame)
+        count = len(settings["Players"].keys())
+        while count > 0:
+            players = [server.get_member(x) for x in list(settings["Players"].keys())]
+            if count > 1:
+                count -= 1
+                turn += 1
+                await self.roulette_round(settings, server, players, turn)
+            else:
+                winner = players[0]
+                await self.bot.say("Congratulations {}, your the only person alive. Enjoy your "
+                                   "blood money...\n{} credits were deposited into {}\'s "
+                                   "account".format(winner.mention, pot, winner.name))
+                bank = self.bot.get_cog("Economy").bank
+                bank.deposit_credits(winner, pot)
                 break
 
-    def account_check(self, uid):
-        bank = self.bot.get_cog('Economy').bank
-        if bank.account_exists(uid):
-            return True
-        else:
-            return False
+    async def roulette_round(self, settings, server, players, turn):
+        roulette_circle = players[:]
+        chamber = 6
+        await self.bot.say("*{} put one round into the six shot revolver and gave it a good spin. "
+                           "With a flick of the wrist, it locks in place."
+                           "*".format(self.bot.user.name))
+        await asyncio.sleep(4)
+        await self.bot.say("Let's begin round {}.".format(turn))
+        while chamber >= 1:
+            if not roulette_circle:
+                roulette_circle = players[:]  # Restart the circle when list is exhausted
+            chance = random.randint(1, chamber)
+            player = random.choice(roulette_circle)
+            await self.bot.say("{} presses the revolver to their temple and slowly squeezes the "
+                               "trigger...".format(player.name))
+            if chance == 1:
+                await asyncio.sleep(4)
+                msg = "**BOOM**\n```{} died and was removed from the group.```".format(player.name)
+                await self.bot.say(msg)
+                msg2 = random.choice(self.kill_message)
+                settings["Players"].pop(player.id)
+                remaining = [server.get_member(x) for x in list(settings["Players"].keys())]
+                player2 = random.choice(remaining)
+                death_time = strftime("%H:%M:%S", gmtime())
+                await asyncio.sleep(5)
+                await self.bot.say(msg2.format(player.name, player2.name, death_time))
+                await asyncio.sleep(5)
+                break
+            else:
+                await asyncio.sleep(4)
+                await self.bot.say("**CLICK**\n```{} survived and passed the "
+                                   "revolver.```".format(player.name))
+                await asyncio.sleep(3)
+                roulette_circle.remove(player)
+                chamber -= 1
 
-    def enough_points(self, uid, amount):
+    def reset_game(self, settings):
+        settings["System"]["Pot"] = 0
+        settings["System"]["Active"] = False
+        settings["System"]["Start Bet"] = 0
+        settings["System"]["Roulette Initial"] = False
+        settings["Players"] = {}
+
+    def player_add(self, settings, user, bet):
+        settings["System"]["Pot"] += bet
+        settings["Players"][user.id] = {"Name": user.name,
+                                        "Mention": user.mention,
+                                        "Bet": bet}
+
+    def initial_set(self, settings, bet):
+        settings["System"]["Start Bet"] = bet
+        settings["System"]["Roulette Initial"] = True
+
+    def subtract_credits(self, settings, user, bet):
         bank = self.bot.get_cog('Economy').bank
-        if self.account_check(uid):
-            if bank.can_spend(uid, amount):
+        bank.withdraw_credits(user, bet)
+
+    def enough_credits(self, user, amount):
+        bank = self.bot.get_cog('Economy').bank
+        if bank.account_exists(user):
+            if bank.can_spend(user, amount):
                 return True
             else:
                 return False
         else:
             return False
 
-    def system_reset(self):
-        self.rrgame["System"]["Pot"] = 0
-        self.rrgame["System"]["Player Count"] = 0
-        self.rrgame["System"]["Active"] = False
-        self.rrgame["System"]["Roulette Initial"] = False
-        self.rrgame["System"]["Start Bet"] = 0
-        del self.rrgame["Players"]
-        self.rrgame["Players"] = {}
-        dataIO.save_json(self.file_path, self.rrgame)
+    def check_server_settings(self, server):
+        if server.id not in self.system["Servers"]:
+            default = {"System": {"Pot": 0,
+                                  "Active": False,
+                                  "Start Bet": 0,
+                                  "Roulette Initial": False,
+                                  "Min Bet": 50},
+                       "Players": {}
+                       }
+            self.system["Servers"][server.id] = default
+            dataIO.save_json(self.file_path, self.system)
+            print("Creating default russian roulette settings for Server: {}".format(server.name))
+            path = self.system["Servers"][server.id]
+            return path
+        else:
+            path = self.system["Servers"][server.id]
+            return path
 
 
 def check_folders():
-    if not os.path.exists("data/roulette"):
-        print("Creating data/roulette folder...")
-        os.makedirs("data/roulette")
+    if not os.path.exists("data/JumperCogs/roulette"):
+        print("Creating data/JumperCogs/roulette folder...")
+        os.makedirs("data/JumperCogs/roulette")
 
 
 def check_files():
-    system = {"System": {"Pot": 0,
-                         "Active": False,
-                         "Start Bet": 0,
-                         "Roulette Initial": False,
-                         "Player Count": 0},
-              "Players": {},
-              "Config": {"Min Bet": 50}}
+    system = {"Servers": {}}
 
-    f = "data/roulette/rrgame.json"
+    f = "data/JumperCogs/roulette/russian.json"
     if not dataIO.is_valid_json(f):
-        print("Creating default rrgame.json...")
+        print("Creating default russian.json...")
         dataIO.save_json(f, system)
-    else:  # consistency check
-        current = dataIO.load_json(f)
-        if current.keys() != system.keys():
-            for key in system.keys():
-                if key not in current.keys():
-                    current[key] = system[key]
-                    print("Adding " + str(key) +
-                          " field to russian roulette rrgame.json")
-            dataIO.save_json(f, current)
 
 
 def setup(bot):
     check_folders()
     check_files()
-    n = Russianroulette(bot)
-    bot.add_cog(n)
+    bot.add_cog(Russianroulette(bot))
