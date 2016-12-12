@@ -29,6 +29,7 @@ class Lottery:
                       "I'm going to ban that guy who keeps spamming me, 'please!'... ",
                       "Winner winner, chicken dinner...",
                       "Can someone slap the guy who keeps yelling 'Bingo!..."]
+        self.version = 2.5
 
     @commands.group(name="setlottery", pass_context=True)
     async def setlottery(self, ctx):
@@ -125,7 +126,7 @@ class Lottery:
     @checks.admin_or_permissions(manage_server=True)
     async def _version_lottery(self):
         """Shows the version of lottery cog you are running."""
-        version = self.system["Version"]
+        version = self.version
         await self.bot.say("```Python\nYou are running Lottery Cog version {}.```".format(version))
 
     @lottery.command(name="start", pass_context=True)
