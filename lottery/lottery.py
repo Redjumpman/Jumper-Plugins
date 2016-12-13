@@ -29,7 +29,7 @@ class Lottery:
                       "I'm going to ban that guy who keeps spamming me, 'please!'... ",
                       "Winner winner, chicken dinner...",
                       "Can someone slap the guy who keeps yelling 'Bingo!..."]
-        self.version = 2.5
+        self.version = "2.5.1"
 
     @commands.group(name="setlottery", pass_context=True)
     async def setlottery(self, ctx):
@@ -151,14 +151,14 @@ class Lottery:
             dataIO.save_json(self.file_path, self.system)
             if timer:
                 # TODO Change timer to time formatter function
-                msg = ("A lottery has been started by {}, for {}. It will end in "
-                       "{} seconds.".format(user.name, lottery_role, timer))
+                await self.bot.say("A lottery has been started by {}, for {}. It will end in "
+                                   "{} seconds.".format(user.name, lottery_role, timer))
                 await self.run_timer(timer, ctx.prefix, server, settings)
             else:
-                msg = "A lottery has been started by {}, for {}.".format(user.name, lottery_role)
+                await self.bot.say("A lottery has been started by {}, for "
+                                   "{}.".format(user.name, lottery_role))
         else:
-            msg = "I cannot start a new lottery until the current one has ended."
-        await self.bot.say(msg)
+            await self.bot.say("I cannot start a new lottery until the current one has ended.")
 
     @lottery.command(name="end", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -176,8 +176,7 @@ class Lottery:
                     print("Warning. More winners than players, so I am making everyone a winner!")
                     player_num = len(settings["Lottery Players"].keys())
                     winners = random.sample(players, player_num)
-                mentions = [settings["Lottery Players"][winner]["Mention"]
-                            for winner in winners]
+                mentions = [settings["Lottery Players"][winner]["Mention"] for winner in winners]
                 await self.display_lottery_winner(winners, mentions, server, settings)
                 self.update_win_stats(settings, winners)
                 self.lottery_clear(settings)
@@ -414,7 +413,8 @@ General Information about Lottery Plugin
                 await self.display_lottery_winner(winners, mentions, server, settings)
                 self.lottery_clear(settings)
             else:
-                await self.bot.say("There are no players in the lottery.")
+                await self.bot.say("There are no players in the lottery. The lottery has been "
+                                   "cancelled.")
                 self.lottery_clear(settings)
         else:
             pass
