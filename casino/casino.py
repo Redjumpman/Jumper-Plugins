@@ -36,7 +36,7 @@ class Casino:
         self.deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
         self.card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                             '10': 10, 'Jack': 10, 'Queen': 10, 'King': 10}
-        self.version = "1.2.1"
+        self.version = "1.2.2"
 
     @commands.group(pass_context=True, no_pm=True)
     async def casino(self, ctx):
@@ -474,7 +474,7 @@ class Casino:
         if user.id not in settings["Players"]:
             await self.bot.say("You need a {} Casino membership. To get one type "
                                "{}casino join .".format(casino_name, ctx.prefix))
-        elif settings["System Config"]["Casino Open"]:
+        elif not settings["System Config"]["Casino Open"]:
             await self.bot.say("The {} Casino is closed.".format(casino_name))
         elif await self.minmax_check(bet, game, settings):
             if await self.check_cooldowns(user.id, game, settings):
