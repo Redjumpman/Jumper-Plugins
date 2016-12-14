@@ -3,6 +3,7 @@
 import os
 import asyncio
 import random
+import discord
 from discord.ext import commands
 from .utils.dataIO import dataIO
 from .utils import checks
@@ -29,7 +30,7 @@ class Lottery:
                       "I'm going to ban that guy who keeps spamming me, 'please!'... ",
                       "Winner winner, chicken dinner...",
                       "Can someone slap the guy who keeps yelling 'Bingo!..."]
-        self.version = "2.5.1"
+        self.version = "2.5.2"
 
     @commands.group(name="setlottery", pass_context=True)
     async def setlottery(self, ctx):
@@ -106,11 +107,11 @@ class Lottery:
 
     @setlottery.command(name="role", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _role_setlottery(self, ctx, role: str):
+    async def _role_setlottery(self, ctx, role: discord.Role):
         """Set the required role for membership sign-up. Default: None"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
-        settings["Config"]["Signup Role"] = role
+        settings["Config"]["Signup Role"] = role.name
         dataIO.save_json(self.file_path, self.system)
         await self.bot.say("Setting the required role to sign-up to **{}**.\nUnless set to "
                            "**None**, users must be assigned this role to signup!".format(role))
@@ -132,7 +133,7 @@ class Lottery:
     @lottery.command(name="start", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _start_lottery(self, ctx, restriction=False, timer=0):
-        """Starts a lottery. Can optionally restrict particpation and set a timer."""
+        """Starts a lottery. Can optionally restrict participation and set a timer."""
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
@@ -252,7 +253,7 @@ General Information about Lottery Plugin
 • {0}lottery stats will show your stats if you are signed-up.
 • You can freeze accounts that without the sign-up role periodically using {0}setlottery freeze.
 • Autofreeze feature will need to be enabled again if you shutdown your bot.
-• Members who have a frozen account will cannot gain stats or particpate in member only lotteries.
+• Members who have a frozen account will cannot gain stats or participate in member only lotteries.
 • Accounts are automatically unfrozen with autofreeze, if they regain the required role again.
 • Lotteries can be hosted on different servers with the same bot without conflicts.
 • Powerballs have not yet been implemented, but the framework is complete. Ignore powerball stats.
@@ -452,7 +453,7 @@ General Information about Lottery Plugin
                                                     "Powerball Count": 0,
                                                     "Account Frozen": False}
             dataIO.save_json(self.file_path, self.system)
-            msg = ("Lottery Account created for {}. You may now particpate in on-going lotteries."
+            msg = ("Lottery Account created for {}. You may now participate in on-going lotteries."
                    "\nCheck your stats with {}lottery stats".format(user.name, prefix))
         else:
             msg = "You are already member."
