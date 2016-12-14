@@ -96,7 +96,7 @@ class Animelist:
 
                 entry = root[int(resp.content)-1]
 
-            link = 'http://myanimelist.net/{}/{}'.format("anime", entry.find('id').text)
+            link = 'http://myanimelist.net/{}/{}'.format(cmd, entry.find('id').text)
             embed = discord.Embed(colour=0x0066FF,
                                   description=("All the information you need about "
                                                "[{}]({})".format(entry.find('title').text, link)))
