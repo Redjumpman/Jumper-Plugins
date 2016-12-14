@@ -30,7 +30,7 @@ class Lottery:
                       "I'm going to ban that guy who keeps spamming me, 'please!'... ",
                       "Winner winner, chicken dinner...",
                       "Can someone slap the guy who keeps yelling 'Bingo!..."]
-        self.version = "2.5.2"
+        self.version = "2.5.3"
 
     @commands.group(name="setlottery", pass_context=True)
     async def setlottery(self, ctx):
@@ -203,9 +203,8 @@ class Lottery:
                 dataIO.save_json(self.file_path, self.system)
                 self.update_play_stats(settings, user.id)
                 await self.bot.say("{} you have been added to the lottery. "
-                                   "Good luck.".format(user.mention))
-                await self.bot.say("There are now {} users participating in the "
-                                   "lottery.".format(players))
+                                   "Good luck!\nThere are now {} user(s) participating in "
+                                   "the lottery".format(user.mention, players))
             else:
                 await self.bot.say("You have already entered into the lottery.")
 
@@ -278,16 +277,16 @@ General Information about Lottery Plugin
                 else:
                     lottery_active = "Inactive"
                 if user.id in settings["Lottery Players"]:
-                    participating = "Yes"
+                    participating = "[Yes]"
                 else:
                     participating = "No"
-                msg += "```\n{}'s Lottery Stats on {}".format(user.name, server.name)
-                msg += "\n================================================="
+                header = "{}'s Lottery Stats on {}".format(user.name, server.name)
+                msg = "```ini\n{}\n".format(header) + "=" * len(header)
                 msg += "\nLotteries Played:                   {}".format(lotteries_played)
                 msg += "\nLotteries Won:                      {}".format(lotteries_won)
-                msg += "\nAccount Status:                     Active```"
+                msg += "\nAccount Status:                     Active"
                 msg += "\nLottery Status:                     {}".format(lottery_active)
-                msg += "\nParticipating:                      {}".format(participating)
+                msg += "\nParticipating:                      {}```".format(participating)
             else:
                 msg = ("Your account is frozen. You require the {} role on this server to "
                        "track stats.\nIf you are given back this role, type {}lottery activate "
