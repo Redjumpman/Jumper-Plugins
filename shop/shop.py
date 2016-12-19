@@ -734,7 +734,7 @@ class Shop:
 
     async def shop_table_split(self, user, data):
         headers = ["Item Name", "Item Quantity", "Item Cost", "Discount"]
-        groups = [data[i:i+20] for i in range(0, len(data), 20)]
+        groups = [data[i:i+15] for i in range(0, len(data), 15)]
         pages = len(groups)
         if pages == 1:
             page = 0
@@ -1023,8 +1023,8 @@ class Shop:
         else:
             item = str(itemname.name).title()
             settings["Shop List"][item] = {"Item Name": item, "Item Cost": cost,
-                                          "Discount": 0, "Members Only": "No",
-                                          "Role": itemname.id, "Buy Msg": []}
+                                           "Discount": 0, "Members Only": "No",
+                                           "Role": itemname.id, "Buy Msg": []}
         if quantity == 0:
             settings["Shop List"][item]["Quantity"] = "∞"
         else:
@@ -1110,7 +1110,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.3"
+               "Version": "2.2.4"
                }
 
     f = "data/JumperCogs/shop/system.json"
