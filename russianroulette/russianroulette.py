@@ -43,7 +43,7 @@ class Russianroulette:
                              "10/10 would watch {0} blow their brains out again.",
                              "Well I hope {0} has life insurance...",
                              "See you in the next life, {0}", "AND THEIR OFF! Oh... wrong game."
-                             "I don't know how, but I think {1} cheated.",
+                             "I don\'t know how, but I think {1} cheated.",
                              "{0} always said they wanted to go out with a bang.",
                              "So don\'t sing *another one bites the dust* ?",
                              "I can\'t tell if the smile on {1}\'s face is relief or insanity.",
@@ -51,11 +51,12 @@ class Russianroulette:
                              "So that\'s what a human looks like on the inside!",
                              "My condolences {1}. I know you were *so* close to {0}.",
                              "GOD NO. PLEASE NO. PLEASE GOD NO. NOOOOOOOOOOOOOOOOOOOOOOO!",
-                             "Time of death {3}. Cause: Stupidty.", "BOOM HEADSHOT! Sorry..."
+                             "Time of death {2}. Cause: Stupidity.", "BOOM HEADSHOT! Sorry..."
                              "Don\'t act like you didn\'t enjoy that, {1}!",
                              "Is it weird that I wish {1} was dead instead?",
                              "Oh real great. {0} dies and I\'m still stuck with {1}. Real. Great.",
                              "Are you eating cheetos? Have some respect {1}! {0} just died!"]
+        self.version = "2.1"
 
     @commands.group(pass_context=True, no_pm=True)
     async def setrussian(self, ctx):
@@ -63,6 +64,13 @@ class Russianroulette:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @commands.command(name="rrversion", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _version_setrussian(self):
+        """Shows the version of Russian Roulette"""
+        await self.bot.say("You are currently running Russian Roulette version "
+                           "{}".format(self.version))
 
     @setrussian.command(name="minbet", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -116,7 +124,6 @@ class Russianroulette:
                                    "players join.".format(user.name, bet))
                 await asyncio.sleep(30)
                 if len(settings["Players"].keys()) == 1:
-                    self.subtract_credits(settings, user, bet)
                     await self.bot.say("Sorry I can't let you play by yourself, that's just "
                                        "suicide.\nTry again when you find some 'friends'.")
                     self.reset_game(settings)
@@ -160,7 +167,7 @@ class Russianroulette:
                 await self.roulette_round(settings, server, players, turn)
             else:
                 winner = players[0]
-                await self.bot.say("Congratulations {}, your the only person alive. Enjoy your "
+                await self.bot.say("Congratulations {}, you're the only person alive. Enjoy your "
                                    "blood money...\n{} credits were deposited into {}\'s "
                                    "account".format(winner.mention, pot, winner.name))
                 bank = self.bot.get_cog("Economy").bank
