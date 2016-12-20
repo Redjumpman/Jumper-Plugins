@@ -36,7 +36,7 @@ class Casino:
         self.deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace']
         self.card_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                             '10': 10, 'Jack': 10, 'Queen': 10, 'King': 10}
-        self.version = "1.2.2"
+        self.version = "1.3"
 
     @commands.group(pass_context=True, no_pm=True)
     async def casino(self, ctx):
@@ -891,6 +891,37 @@ class Casino:
             await self.add_chips(user.id, total, settings)
             settings["Players"][user.id]["Won"]["BJ Won"] += 1
             return True
+
+    # Casino Hooks TODO Turn this into a proper class
+    # =======================================
+
+    def chip_balance(self, user):
+        server = user.server
+        settings = self.check_server_settings(server)
+        if user.id in settings["Players"]:
+            balance = settings["Players"][user.id]["Chips"]
+            return balance
+        else:
+            return 0
+
+    def deposit_chips(self, user, amount):
+        server = user.server
+        settings = self.check_server_settings(server)
+        if user.id in settings["Players"]:
+            settings["Players"][user.id]["Chips"] += amount
+        else:
+            pass
+
+    def withdraw_chips(self, user, amount):
+        server = user.server
+        settings = self.check_server_settings(server)
+        if user.id in settings["Players"]:
+            settings["Players"][user.id]["Chips"] -= amount
+            dataIO.save_json(self.file_path, self.system)
+        else:
+            pass
+
+    # =======================================================
 
     def draw_two(self):
         card1 = random.choice(self.deck)
