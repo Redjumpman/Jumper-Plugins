@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.4"
+        self.version = "2.0.5"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -95,6 +95,15 @@ class Heist:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @heist.command(name="reset", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _reset_heist(self, ctx):
+        """Resets heist incase it hangs"""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        self.reset_heist(settings)
+        await self.bot.say("```Heist has been reset```")
 
     @heist.command(name="version", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
