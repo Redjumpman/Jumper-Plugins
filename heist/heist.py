@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.1"
+        self.version = "2.0.2"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -328,7 +328,7 @@ class Heist:
         probation = settings["Players"][author.id]["OOB"]
         total_deaths = settings["Players"][author.id]["Deaths"]
         total_jail = settings["Players"][author.id]["Total Jail"]
-        level = settings["Players"][author.id]["Criminal Lvl"]
+        level = settings["Players"][author.id]["Criminal Level"]
         rank = self.criminal_level(level)
 
         embed = discord.Embed(colour=0x0066FF, description=rank)
