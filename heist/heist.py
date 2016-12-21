@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.2"
+        self.version = "2.0.3"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -103,7 +103,6 @@ class Heist:
         await self.bot.say("You are running Heist version {}.".format(self.version))
 
     @heist.command(name="banks", pass_context=True)
-    @checks.admin_or_permissions(manage_server=True)
     async def _banks_heist(self, ctx):
         """Shows a list of banks"""
         server = ctx.message.server
@@ -113,7 +112,7 @@ class Heist:
                    "createbank .".format(ctx.prefix))
         else:
             bank_names = [x for x in settings["Banks"]]
-            crews = [subdict["Crew"] for subdict in settings["Banks"].values()]
+            crews = [subdict["Crew"] - 1 for subdict in settings["Banks"].values()]
             success = [str(subdict["Success"]) + "%" for subdict in settings["Banks"].values()]
             vaults = [subdict["Vault"] for subdict in settings["Banks"].values()]
             data = list(zip(bank_names, crews, vaults, success))
@@ -123,7 +122,6 @@ class Heist:
         await self.bot.say(msg)
 
     @heist.command(name="bailout", pass_context=True)
-    @checks.admin_or_permissions(manage_server=True)
     async def _bailout_heist(self, ctx, user: discord.Member=None):
         """Specify who you want to bailout. Defaults to you."""
         author = ctx.message.author
@@ -257,6 +255,62 @@ class Heist:
             dataIO.save_json(self.file_path, self.system)
             await self.bot.say(msg)
 
+    @heist.command(name="remove", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _remove_heist(self, ctx, *, bank: str):
+        """Remove a bank from the heist list"""
+        author = ctx.message.author
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if bank.title() in settings["Banks"].keys():
+            await self.bot.say("Are you sure you want to remove {} from the list of "
+                               "banks?".format(bank.title()))
+            response = await self.bot.wait_for_message(timeout=15, author=author)
+            if response is None:
+                msg = "Cancelling removal. You took too long."
+            elif response.content.title() == "Yes":
+                settings["Banks"].pop(bank.title())
+                dataIO.save_json(self.file_path, self.system)
+                msg = "{} was removed from the list of banks.".format(bank.title())
+            else:
+                msg = "Cancelling bank removal."
+        else:
+            msg = "That bank does not exist."
+        await self.bot.say(msg)
+
+    @heist.command(name="info", pass_context=True)
+    async def _info_heist(self, ctx):
+        """Shows the Heist settings for this server."""
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+
+        if settings["Config"]["Hardcore"]:
+            hardcore = "ON"
+        else:
+            hardcore = "OFF"
+        wait = settings["Config"]["Wait Time"]
+        heist_cost = settings["Config"]["Heist Cost"]
+        bail = settings["Config"]["Bail Base"]
+        police = settings["Config"]["Police Alert"]
+        sentence = settings["Config"]["Sentence Base"]
+        death = settings["Config"]["Death Timer"]
+        timers = list(map(self.time_format, [wait, police, sentence, death]))
+        description = "{} Heist Settings".format(server.name)
+        footer = "Heist was developed by Redjumpman for Red Bot."
+
+        embed = discord.Embed(colour=0x0066FF, description=description)
+        embed.title = "Heist Version {}".format(self.version)
+        embed.add_field(name="Heist Cost", value=heist_cost)
+        embed.add_field(name="Base Bail Cost", value=bail)
+        embed.add_field(name="Crew Gather Time", value=timers[0])
+        embed.add_field(name="Police Timer", value=timers[1])
+        embed.add_field(name="Base Jail Sentence", value=timers[2])
+        embed.add_field(name="Death Timer", value=timers[3])
+        embed.add_field(name="Hardcore Mode", value=hardcore)
+        embed.set_footer(text=footer)
+
+        await self.bot.say(embed=embed)
+
     @heist.command(name="release", pass_context=True)
     async def _release_heist(self, ctx):
         """Removes you from jail or clears bail status if sentence served."""
@@ -321,9 +375,13 @@ class Heist:
 
         status = settings["Players"][author.id]["Status"]
         sentence = settings["Players"][author.id]["Sentence"]
+        time_served = settings["Players"][author.id]["Time Served"]
+        jail_fmt = self.cooldown_calculator(settings, author, time_served, sentence)
         bail = settings["Players"][author.id]["Bail Cost"]
         jail_counter = settings["Players"][author.id]["Jail Counter"]
         death_timer = settings["Players"][author.id]["Death Timer"]
+        base_death_timer = settings["Config"]["Death Timer"]
+        death_fmt = self.cooldown_calculator(settings, author, death_timer, base_death_timer)
         spree = settings["Players"][author.id]["Spree"]
         probation = settings["Players"][author.id]["OOB"]
         total_deaths = settings["Players"][author.id]["Deaths"]
@@ -332,15 +390,15 @@ class Heist:
         rank = self.criminal_level(level)
 
         embed = discord.Embed(colour=0x0066FF, description=rank)
-        embed.set_thumbnail(url=avatar)
         embed.title = author.name
+        embed.set_thumbnail(url=avatar)
         embed.add_field(name="Status", value=status)
         embed.add_field(name="Spree", value=spree)
         embed.add_field(name="Cost of Bail", value=bail)
         embed.add_field(name="Out on Bail", value=probation)
-        embed.add_field(name="Jail Sentence", value=sentence)
+        embed.add_field(name="Jail Sentence", value=jail_fmt)
         embed.add_field(name="Apprehended", value=jail_counter)
-        embed.add_field(name="Death Timer", value=death_timer)
+        embed.add_field(name="Death Timer", value=death_fmt)
         embed.add_field(name="Total Deaths", value=total_deaths)
         embed.add_field(name="Lifetime Apprehensions", value=total_jail)
 
@@ -716,16 +774,21 @@ class Heist:
     def time_format(self, seconds):
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
+        data = PluralDict({'hour': h, 'minute': m, 'second': s})
         if h > 0:
-            data = PluralDict({'hour': h, 'minute': m, 'second': s})
-            fmt = "{hour} hour{hour(s)}, {minute} minute{minute(s)}, and {second} second{second(s)}"
+            fmt = "{hour} hour{hour(s)}"
+            if data["minute"] > 0 and data["second"] > 0:
+                fmt += ", {minute} minute{minute(s)}, and {second} second{second(s)}"
+            if data["second"] > 0 == data["minute"]:
+                fmt += ", and {second} second{second(s)}"
             msg = fmt.format_map(data)
         elif h == 0 and m > 0:
-            data = PluralDict({'minute': m, 'second': s})
-            fmt = "{minute} minute{minute(s)}, and {second} second{second(s)}"
+            if data["second"] == 0:
+                fmt = "{minute} minute{minute(s)}"
+            else:
+                fmt = "{minute} minute{minute(s)}, and {second} second{second(s)}"
             msg = fmt.format_map(data)
         elif m == 0 and h == 0 and s > 0:
-            data = PluralDict({'second': s})
             fmt = "{second} second{second(s)}"
             msg = fmt.format_map(data)
         elif m == 0 and h == 0 and s == 0:
