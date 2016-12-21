@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0"
+        self.version = "2.0.1"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -312,7 +312,7 @@ class Heist:
 
     @heist.command(name="stats", pass_context=True)
     async def _stats_heist(self, ctx):
-        """Show's your Heist stats"""
+        """Shows your Heist stats"""
         author = ctx.message.author
         server = ctx.message.server
         avatar = ctx.message.author.avatar_url
@@ -326,7 +326,7 @@ class Heist:
         death_timer = settings["Players"][author.id]["Death Timer"]
         spree = settings["Players"][author.id]["Spree"]
         probation = settings["Players"][author.id]["OOB"]
-        total_deaths = settings["Players"][author.id]["Total Deaths"]
+        total_deaths = settings["Players"][author.id]["Deaths"]
         total_jail = settings["Players"][author.id]["Total Jail"]
         level = settings["Players"][author.id]["Criminal Lvl"]
         rank = self.criminal_level(level)
@@ -348,7 +348,7 @@ class Heist:
 
     @heist.command(name="play", pass_context=True)
     async def _play_heist(self, ctx):
-        """This begin's a heist"""
+        """This begins a Heist"""
         author = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
