@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.3"
+        self.version = "2.0.4"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -117,7 +117,7 @@ class Heist:
             vaults = [subdict["Vault"] for subdict in settings["Banks"].values()]
             data = list(zip(bank_names, crews, vaults, success))
             table_data = sorted(data, key=itemgetter(1), reverse=True)
-            table = tabulate(table_data, headers=["Bank", "Crew", "Vault", "Success Rate"])
+            table = tabulate(table_data, headers=["Bank", "Max Crew", "Vault", "Success Rate"])
             msg = "```Python\n{}```".format(table)
         await self.bot.say(msg)
 
@@ -444,6 +444,7 @@ class Heist:
                 await asyncio.sleep(3)
                 await self.show_results(settings, server, results, target)
                 if settings["Crew"]:
+                    players = [server.get_member(x) for x in list(settings["Crew"])]
                     data = self.calculate_credits(settings, players, target)
                     headers = ["Criminals", "Credits Stolen", "Bonuses", "Total"]
                     t = tabulate(data, headers=headers)
@@ -677,9 +678,10 @@ class Heist:
                 self.hardcore_handler(settings, user)
 
     def heist_target(self, settings, crew):
-        crew_sizes = [subdict["Crew"] for subdict in settings["Banks"].values()]
+        groups = [(x, y["Crew"]) for x, y in settings["Banks"].items()]
+        crew_sizes = [x[1] for x in groups]
         breakpoints = [x for x in crew_sizes if x != max(crew_sizes)]
-        banks = [x for x in settings["Banks"]]
+        banks = [x[0] for x in groups]
         return banks[bisect(breakpoints, crew)]
 
     def reset_heist(self, settings):
