@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.5"
+        self.version = "2.0.6"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -617,7 +617,7 @@ class Heist:
         credits_stolen = int(vault * 0.75 / len(settings["Crew"].keys()))
         stolen_data = [credits_stolen] * len(settings["Crew"].keys())
         total_winnings = [x + y for x, y in zip(stolen_data, bonuses)]
-        settings["Banks"][target]["Vault"] - credits_stolen
+        settings["Banks"][target]["Vault"] -= credits_stolen
         credit_data = list(zip(names, stolen_data, bonuses, total_winnings))
         deposits = list(zip(players, total_winnings))
         self.award_credits(deposits)
@@ -687,7 +687,7 @@ class Heist:
                 self.hardcore_handler(settings, user)
 
     def heist_target(self, settings, crew):
-        groups = [(x, y["Crew"]) for x, y in settings["Banks"].items()]
+        groups = sorted([(x, y["Crew"]) for x, y in settings["Banks"].items()], key=itemgetter(1))
         crew_sizes = [x[1] for x in groups]
         breakpoints = [x for x in crew_sizes if x != max(crew_sizes)]
         banks = [x[0] for x in groups]
