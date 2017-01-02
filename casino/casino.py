@@ -241,7 +241,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo"]
-        self.version = "1.4.1"
+        self.version = "1.4.2"
 
     @commands.group(pass_context=True, no_pm=True)
     async def casino(self, ctx):
@@ -961,12 +961,13 @@ class Casino:
     async def blackjack_game(self, dh, user, amount, ctx, settings, deck):
         ph = self.draw_two(deck)
         count = self.count_hand(ph)
+        check = lambda m: m.content.title() in ["Hit", "Stay", "Double"]
         if count == 21:
             return ph, dh, amount
         msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
                "{}\nHit, stay, or double".format(user.mention, ", ".join(ph), count, dh[0]))
         await self.bot.say(msg)
-        choice = await self.bot.wait_for_message(timeout=15, author=user)
+        choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
         if choice is None or choice.content.title() == "Stay":
             return ph, dh, amount
         elif choice.content.title() == "Double":
@@ -982,13 +983,14 @@ class Casino:
             while count < 21:
                 ph = self.draw_card(ph, deck)
                 count = self.count_hand(ph)
+                check2 = lambda m: m.content.title() in ["Hit", "Stay"]
                 if count >= 21:
                     break
                 msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
                        "{}\nHit or stay?".format(user.mention, ", ".join(ph), count, dh[0]))
                 await self.bot.say(msg)
-                response = await self.bot.wait_for_message(timeout=15, author=user)
-                if response is None or response.content.title() != "Hit":
+                response = await self.bot.wait_for_message(timeout=15, author=user, check=check2)
+                if response is None or response.content.title() == "Stay":
                     break
                 else:
                     continue
