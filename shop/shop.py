@@ -206,7 +206,7 @@ class Shop:
         self.user_check(settings, user)
         if itemname in settings["Shop List"]:
             quantity = 1
-            self.user_gt_item(settings, author, user, quantity, itemname)
+            self.user_give_item(settings, user, quantity, itemname)
             msg = "{} was given {} by {}".format(user.mention, itemname, author.mention)
         else:
             msg = "No such item in the shop."
@@ -1043,6 +1043,14 @@ class Shop:
             settings["Shop List"].pop(itemname, None)
             dataIO.save_json(self.file_path, self.system)
 
+    def user_give_item(self, settings, user, quantity, itemname):
+        if itemname in settings["Users"][user.id]["Inventory"]:
+            settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] += quantity
+        else:
+            settings["Users"][user.id]["Inventory"][itemname] = {"Item Name": itemname,
+                                                                 "Item Quantity": quantity}
+        dataIO.save_json(self.file_path, self.system)
+
     def user_gt_item(self, settings, author, user, quantity, itemname):
         if itemname in settings["Users"][user.id]["Inventory"]:
             settings["Users"][user.id]["Inventory"][itemname]["Item Quantity"] += quantity
@@ -1110,7 +1118,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.4"
+               "Version": "2.2.5"
                }
 
     f = "data/JumperCogs/shop/system.json"
