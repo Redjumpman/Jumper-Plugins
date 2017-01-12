@@ -4,6 +4,6 @@
     "NAME" : "Casino",
     "DISABLED" : false,
     "SHORT" : "Casino system inspired by modded Economy",
-    "REQUIREMENTS" : ["tabulate"]
+    "REQUIREMENTS" : ["tabulate"],
     "DESCRIPTION" : "Allows you to create your own Casino system. Can play blackjack, coin, dice, allin, and cups.\n Credit to Spriter for inspiration.\n If you have problems contact me on discord, Redjumpman#2375, and if you wish to contribute to me visit my github page https://github.com/Redjumpman/Jumper-Cogs to donate."
 }
