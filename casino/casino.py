@@ -226,8 +226,12 @@ class CasinoBank:
                                 "Max": 20}}
                 path["Games"].update(hl)
 
-            # FIXME Remove this later. Used for a hotfix.
+            # FIXME Remove this later. Used for a hotfixes.
             for x in path["Players"].keys():
+
+                if "War" not in path["Players"][x]["Cooldowns"]:
+                    path["Players"][x]["Cooldowns"]["War"] = 0
+
                 if "Membership" not in path["Players"][x]:
                     path["Players"][x]["Membership"] = None
 
