@@ -227,9 +227,9 @@ class CasinoBank:
                 path["Games"].update(hl)
 
             # FIXME Remove this later. Used for a hotfix.
-            for x in settings["Players"].keys():
-                if "Membership" not in settings["Players"][x]:
-                    settings["Players"][x]["Membership"] = None
+            for x in path["Players"].keys():
+                if "Membership" not in path["Players"][x]:
+                    path["Players"][x]["Membership"] = None
 
             # Add war to older versions
             if "War" not in path["Games"]:
@@ -309,7 +309,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.1"
+        self.version = "1.5.1.1"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
