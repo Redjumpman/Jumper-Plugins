@@ -815,7 +815,7 @@ class Casino:
             self.game_add(settings["Players"][user.id], war_data)
 
         # Run a logic check to determine if the user can play the game
-        check = self.game_checks(settings, ctx.prefix, user, bet, "Blackjack", 1, [1])
+        check = self.game_checks(settings, ctx.prefix, user, bet, "War", 1, [1])
         if check:
             msg = check
         else:  # Run the game when the checks return None
