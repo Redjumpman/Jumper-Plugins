@@ -316,7 +316,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.1.2"
+        self.version = "1.5.1.3"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1258,7 +1258,8 @@ class Casino:
         if seconds >= 0:
             settings["System Config"]["Payday Timer"] = seconds
             self.casino_bank.save_system()
-            msg = "{} set the default payday to {} {} chips.".format(author.name, amount, chip_name)
+            time_set = self.time_format(seconds)
+            msg = "{} set the default payday to {}.".format(author.name, time_set)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
             msg = ("You cannot set a negative number to payday timer. That would be like going back"
