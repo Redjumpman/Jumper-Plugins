@@ -226,6 +226,11 @@ class CasinoBank:
                                 "Max": 20}}
                 path["Games"].update(hl)
 
+            # FIXME Remove this later. Used for a hotfix.
+            for x in settings["Players"].keys():
+                if "Membership" not in settings["Players"][x]:
+                    settings["Players"][x]["Membership"] = None
+
             # Add war to older versions
             if "War" not in path["Games"]:
                 war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
@@ -252,7 +257,6 @@ class CasinoBank:
                 for x in path["Players"].keys():
                     path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
                     path["Players"][x]["Membership"] = None
-                    path["Players"][x].pop("Membership")
                     path["Players"][x]["Pending"] = 0
                     raw = [(x.split(" ", 1)[0], y) for x, y in
                            path["Players"][x]["Cooldowns"].items()]
@@ -305,7 +309,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5"
+        self.version = "1.5.1"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
