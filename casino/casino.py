@@ -226,15 +226,6 @@ class CasinoBank:
                                 "Max": 20}}
                 path["Games"].update(hl)
 
-            # FIXME Remove this later. Used for a hotfixes.
-            for x in path["Players"].keys():
-
-                if "War" not in path["Players"][x]["Cooldowns"]:
-                    path["Players"][x]["Cooldowns"]["War"] = 0
-
-                if "Membership" not in path["Players"][x]:
-                    path["Players"][x]["Membership"] = None
-
             # Add war to older versions
             if "War" not in path["Games"]:
                 war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
@@ -242,34 +233,46 @@ class CasinoBank:
                 path["Games"].update(war)
 
             # Add membership changes from patch 1.5 to older versions
-            if "Memberships" not in path.keys():
-                trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
-                         "Membership Lvl 3"]
-                new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
-                       "Payday Timer": 1200}
+            trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
+                     "Membership Lvl 3"]
+            new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
+                   "Payday Timer": 1200}
 
-                # Game access levels added
-                for x in path["Games"].values():
+            if "Threshold" not in path["System Config"]:
+                path["System Config"].update(new)
+
+            if "Memberships" not in path:
+                path["Memberships"] = {}
+
+            # Game access levels added
+            for x in path["Games"].values():
+                if "Access Level" not in x:
                     x["Access Level"] = 0
 
+            if "Min" in path["Games"]["Allin"]:
                 path["Games"]["Allin"].pop("Min")
+
+            if "Max" in path["Games"]["Allin"]:
                 path["Games"]["Allin"].pop("Max")
 
-                for x in trash:
+            for x in trash:
+                if x in path["System Config"]:
                     path["System Config"].pop(x)
 
-                for x in path["Players"].keys():
+            for x in path["Players"].keys():
+                if "CD" in path["Players"][x]:
                     path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
-                    path["Players"][x]["Membership"] = None
-                    path["Players"][x]["Pending"] = 0
                     raw = [(x.split(" ", 1)[0], y) for x, y in
                            path["Players"][x]["Cooldowns"].items()]
                     raw.append(("Payday", 0))
                     new_dict = dict(raw)
                     path["Players"][x]["Cooldowns"] = new_dict
 
-                path["System Config"].update(new)
-                path["Memberships"] = {}
+                if "Membership" not in path["Players"][x]:
+                    path["Players"][x]["Membership"] = None
+
+                if "Pending" not in path["Players"][x]:
+                    path["Players"][x]["Pending"] = 0
 
             # Save changes and return updated dictionary.
             self.save_system()
@@ -313,7 +316,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.1.1"
+        self.version = "1.5.1.2"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1227,9 +1230,9 @@ class Casino:
         for it.
         """
 
-        chip_name = settings["System Config"]["Chip Name"]
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
+        chip_name = settings["System Config"]["Chip Name"]
 
         if amount >= 0:
             settings["System Config"]["Default Payday"] = amount
@@ -1253,7 +1256,7 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if seconds >= 0:
-            settings["System Config"]["Payday Timer"] = amount
+            settings["System Config"]["Payday Timer"] = seconds
             self.casino_bank.save_system()
             msg = "{} set the default payday to {} {} chips.".format(author.name, amount, chip_name)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
