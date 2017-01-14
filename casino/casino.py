@@ -26,7 +26,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.52
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -46,6 +46,17 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Min": 20, "Max": 20, "Access Level": 0},
                             }
                   }
+
+new_user = {"Chips": 100,
+            "Membership": None,
+            "Pending": 0,
+            "Played": {"Dice Played": 0, "Cups Played": 0, "BJ Played": 0, "Coin Played": 0,
+                       "Allin Played": 0, "Hi-Lo Played": 0, "War Played": 0},
+            "Won": {"Dice Won": 0, "Cups Won": 0, "BJ Won": 0, "Coin Won": 0, "Allin Won": 0,
+                    "Hi-Lo Won": 0, "War Won": 0},
+            "Cooldowns": {"Dice": 0, "Cups": 0, "Coin": 0, "Allin": 0, "Hi-Lo": 0, "War": 0,
+                          "Blackjack": 0, "Payday": 0}
+            }
 
 # Deck used for blackjack, and a dictionary to correspond values of the cards.
 main_deck = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'] * 4
@@ -88,27 +99,15 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
+        self.patch = 1.52
 
     def create_account(self, user):
         server = user.server
         path = self.check_server_settings(server)
 
         if user.id not in path["Players"]:
-            path["Players"][user.id] = {"Chips": 100,
-                                        "Membership": None,
-                                        "Name": user.name,
-                                        "Pending": 0,
-                                        "Played": {"Dice Played": 0, "Cups Played": 0,
-                                                   "BJ Played": 0, "Coin Played": 0,
-                                                   "Allin Played": 0, "Hi-Lo Played": 0,
-                                                   "War Played": 0},
-                                        "Won": {"Dice Won": 0, "Cups Won": 0, "BJ Won": 0,
-                                                "Coin Won": 0, "Allin Won": 0, "Hi-Lo Won": 0,
-                                                "War Won": 0},
-                                        "Cooldowns": {"Dice": 0, "Cups": 0, "Coin": 0, "Allin": 0,
-                                                      "Blackjack": 0, "Hi-Lo": 0, "War": 0,
-                                                      "Payday": 0}
-                                        }
+            path["Players"][user.id] = new_user
+            path["Players"][user.id]["Name"] = user.name
             self.save_system()
             membership = path["Players"][user.id]
             return membership
@@ -220,63 +219,72 @@ class CasinoBank:
         else:  # NOTE Will be moved to a cmd in future patch. Used to update JSON from older version
             path = self.memberships["Servers"][server.id]
 
-            # Add hi-lo to older versions
-            if "Hi-Lo" not in path["Games"]:
-                hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
-                                "Max": 20}}
-                path["Games"].update(hl)
+            try:
+                if path["System Config"]["Version"] < self.patch:
+                    self.casino_patcher(path)
+            except KeyError:
+                path["System Config"]["Version"] = self.patch
+                self.casino_patcher(path)
 
-            # Add war to older versions
-            if "War" not in path["Games"]:
-                war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
-                               "Max": 100}}
-                path["Games"].update(war)
-
-            # Add membership changes from patch 1.5 to older versions
-            trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
-                     "Membership Lvl 3"]
-            new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
-                   "Payday Timer": 1200}
-
-            if "Threshold" not in path["System Config"]:
-                path["System Config"].update(new)
-
-            if "Memberships" not in path:
-                path["Memberships"] = {}
-
-            # Game access levels added
-            for x in path["Games"].values():
-                if "Access Level" not in x:
-                    x["Access Level"] = 0
-
-            if "Min" in path["Games"]["Allin"]:
-                path["Games"]["Allin"].pop("Min")
-
-            if "Max" in path["Games"]["Allin"]:
-                path["Games"]["Allin"].pop("Max")
-
-            for x in trash:
-                if x in path["System Config"]:
-                    path["System Config"].pop(x)
-
-            for x in path["Players"].keys():
-                if "CD" in path["Players"][x]:
-                    path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
-                    raw = [(x.split(" ", 1)[0], y) for x, y in
-                           path["Players"][x]["Cooldowns"].items()]
-                    raw.append(("Payday", 0))
-                    new_dict = dict(raw)
-                    path["Players"][x]["Cooldowns"] = new_dict
-
-                if "Membership" not in path["Players"][x]:
-                    path["Players"][x]["Membership"] = None
-
-                if "Pending" not in path["Players"][x]:
-                    path["Players"][x]["Pending"] = 0
-
-            # Save changes and return updated dictionary.
-            self.save_system()
             return path
+
+    def casino_patcher(self, path):
+        # Add hi-lo to older versions
+        if "Hi-Lo" not in path["Games"]:
+            hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
+                            "Max": 20}}
+            path["Games"].update(hl)
+
+        # Add war to older versions
+        if "War" not in path["Games"]:
+            war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
+                           "Max": 100}}
+            path["Games"].update(war)
+
+        # Add membership changes from patch 1.5 to older versions
+        trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
+                 "Membership Lvl 3"]
+        new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
+               "Payday Timer": 1200}
+
+        if "Threshold" not in path["System Config"]:
+            path["System Config"].update(new)
+
+        if "Memberships" not in path:
+            path["Memberships"] = {}
+
+        # Game access levels added
+        for x in path["Games"].values():
+            if "Access Level" not in x:
+                x["Access Level"] = 0
+
+        if "Min" in path["Games"]["Allin"]:
+            path["Games"]["Allin"].pop("Min")
+
+        if "Max" in path["Games"]["Allin"]:
+            path["Games"]["Allin"].pop("Max")
+
+        for x in trash:
+            if x in path["System Config"]:
+                path["System Config"].pop(x)
+
+        for x in path["Players"].keys():
+            if "CD" in path["Players"][x]:
+                path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
+                raw = [(x.split(" ", 1)[0], y) for x, y in
+                       path["Players"][x]["Cooldowns"].items()]
+                raw.append(("Payday", 0))
+                new_dict = dict(raw)
+                path["Players"][x]["Cooldowns"] = new_dict
+
+            if "Membership" not in path["Players"][x]:
+                path["Players"][x]["Membership"] = None
+
+            if "Pending" not in path["Players"][x]:
+                path["Players"][x]["Pending"] = 0
+
+        # Save changes and return updated dictionary.
+        self.save_system()
 
 
 class PluralDict(dict):
@@ -316,7 +324,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.1.3"
+        self.version = "1.5.2"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -360,7 +368,8 @@ class Casino:
                 msg = "Transfer cancelled."
             elif response.content.title() == "Yes":
                 old_data = self.legacy_system["Players"][user.id]
-                transfer = {user.id: old_data}
+                player_data = self.player_update(old_data, new_game, path=None)
+                transfer = {user.id: player_data}
                 settings["Players"].update(transfer)
                 self.legacy_system["Players"].pop(user.id)
                 dataIO.save_json(self.legacy_path, self.legacy_system)
@@ -561,19 +570,23 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         chip_name = settings["System Config"]["Chip Name"]
-        cooldown = self.check_cooldowns(user, "Payday", settings)
-        if not cooldown:
-            if settings["Players"][user.id]["Membership"]:
-                membership = settings["Players"][user.id]["Membership"]
-                amount = settings["Memberships"][membership]["Payday"]
-                self.casino_bank.deposit_chips(user, amount)
-                msg = "You recieved {} {} chips".format(amount, chip_name)
+        if self.casino_bank.membership_exists(user):
+            cooldown = self.check_cooldowns(user, "Payday", settings)
+            if not cooldown:
+                if settings["Players"][user.id]["Membership"]:
+                    membership = settings["Players"][user.id]["Membership"]
+                    amount = settings["Memberships"][membership]["Payday"]
+                    self.casino_bank.deposit_chips(user, amount)
+                    msg = "You recieved {} {} chips".format(amount, chip_name)
+                else:
+                    payday = settings["System Config"]["Default Payday"]
+                    self.casino_bank.deposit_chips(user, payday)
+                    msg = "You recieved {} {} chips. Enjoy!".format(payday, chip_name)
             else:
-                payday = settings["System Config"]["Default Payday"]
-                self.casino_bank.deposit_chips(user, payday)
-                msg = "You recieved {} {} chips. Enjoy!".format(payday, chip_name)
+                msg = cooldown
         else:
-            msg = cooldown
+            msg = ("You need to register to the {} Casino. To register type `{}casino "
+                   "join`.".format(casino_name, prefix))
         await self.bot.say(msg)
 
     @casino.command(name="balance", pass_context=True)
@@ -600,7 +613,7 @@ class Casino:
 
         # Check if casino json file has the hi-lo game, and if not add it.
         if "Hi-Lo Played" not in settings["Players"][user.id]["Played"].keys():
-            self.game_add(settings["Players"][user.id], hilo_data)
+            self.player_update(settings["Players"][user.id], hilo_data)
 
         # Run a logic check to determine if the user can play the game
         check = self.game_checks(settings, ctx.prefix, user, bet, "Hi-Lo", choice, choices)
@@ -815,7 +828,7 @@ class Casino:
 
         # Check if casino json file has the hi-lo game, and if not add it.
         if "War Played" not in settings["Players"][user.id]["Played"].keys():
-            self.game_add(settings["Players"][user.id], war_data)
+            self.player_update(settings["Players"][user.id], war_data)
 
         # Run a logic check to determine if the user can play the game
         check = self.game_checks(settings, ctx.prefix, user, bet, "War", 1, [1])
@@ -2078,15 +2091,15 @@ class Casino:
         color = colors[color]
         return color
 
-    def game_add(self, player_data, new_game, path=None):
-        """Helper function to add new games into the player's data"""
+    def player_update(self, player_data, new_game, path=None):
+        """Helper function to add new data into the player's data"""
 
         if path is None:
             path = []
         for key in new_game:
             if key in player_data:
                 if isinstance(player_data[key], dict) and isinstance(new_game[key], dict):
-                    self.game_add(player_data[key], new_game[key], path + [str(key)])
+                    self.player_update(player_data[key], new_game[key], path + [str(key)])
                 elif player_data[key] == new_game[key]:
                     pass
                 else:
