@@ -26,7 +26,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.53
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.54
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -99,7 +99,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.53
+        self.patch = 1.54
 
     def create_account(self, user):
         server = user.server
@@ -324,7 +324,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.2.1"
+        self.version = "1.5.4"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1621,6 +1621,7 @@ class Casino:
 
     async def war_game(self, user, settings, deck, amount):
         player_card, dealer_card, pc, dc = self.war_draw(deck)
+        multiplier = settings["Games"]["War"]["Multiplier"]
 
         await self.bot.say("The dealer shuffles the deck and deals 1 card face down to the player "
                            "and dealer...")
@@ -1630,21 +1631,22 @@ class Casino:
 
         if pc > dc:
             outcome = "Win"
+            amount = int(amount * multiplier)
         elif dc > pc:
             outcome = "Loss"
         else:
             check = lambda m: m.content.title() in ["War", "Surrender", "Ffs"]
-            await self.bot.say("The player and dealer are both showing a {}!\nTHIS MEANS WAR! You "
-                               "may choose to surrender and forfiet half your bet, or you can go "
-                               "to war.\nYour bet will be doubled, but you will only win on half "
-                               "the bet, the rest will be pushed.".format(player_card))
+            await self.bot.say("The player and dealer are both showing a **{}**!\nTHIS MEANS WAR! "
+                               "You may choose to surrender and forfiet half your bet, or you can "
+                               "go to war.\nYour bet will be doubled, but you will only win on "
+                               "half the bet, the rest will be pushed.".format(player_card))
             choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
 
             if choice is None or choice.content.title() in ["Surrender", "Ffs"]:
                 outcome = "Surrender"
-                amount = int(bet / 2)
-            elif choice == "War":
-                self.casino_bank.withdraw_chips(user, bet)
+                amount = int(amount / 2)
+            elif choice.content.title() == "War":
+                self.casino_bank.withdraw_chips(user, amount)
                 player_card, dealer_card, pc, dc = self.burn_three(deck)
 
                 await self.bot.say("The dealer burns three cards and deals two cards face down...")
@@ -1653,9 +1655,13 @@ class Casino:
 
                 if pc >= dc:
                     outcome = "Win"
-                    amount = bet * multiplier + bet
+                    amount = int(amount * multiplier + amount)
                 else:
                     outcome = "Loss"
+            else:
+                await self.bot.say("Improper response. You are being forced to forfiet.")
+                outcome = "Surrender"
+                amount = int(amount / 2)
 
         return outcome, player_card, dealer_card, amount
 
@@ -1756,15 +1762,15 @@ class Casino:
                                                                 str(outcome[0]).ljust(10)))
             else:
                 self.casino_bank.deposit_chips(user, amount)
-                msg += ("**\*\*\*\*\*\*Winner!*\*\*\*\*\*\***\n```Python\nYou just won {} {} "
+                msg += ("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just won {} {} "
                         "chips.```".format(amount, chip_name))
 
         elif outcome == "Loss":
             msg += "======House Wins!======"
         else:
             self.casino_bank.deposit_chips(user, amount)
-            msg += (":flag_white: Surrendered :flag_white\n{} {} chips "
-                    "returned.".format(amount, chip_name))
+            msg = ("======**{}**======\n:flag_white: Surrendered :flag_white:\n==================\n"
+                   "{} {} chips returned.".format(user.name, amount, chip_name))
 
         # Save results and return appropriate outcome message.
         self.casino_bank.save_system()
