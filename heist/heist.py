@@ -87,7 +87,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.6"
+        self.version = "2.0.7"
 
     @commands.group(pass_context=True, no_pm=True)
     async def heist(self, ctx):
@@ -215,7 +215,7 @@ class Heist:
             await self.bot.say("Bank creation cancelled.")
             return
 
-        if crew.content in [subdict["Crew"] for subdict in settings["Banks"].values()]:
+        if int(crew.content) + 1 in [subdict["Crew"] for subdict in settings["Banks"].values()]:
             await self.bot.say("Crew size conflicts with another bank. Cancelling bank creation.")
             return
 
@@ -372,6 +372,21 @@ class Heist:
         else:
             msg = "You still have a pulse. I can't revive someone who isn't dead."
         await self.bot.say(msg)
+
+    def cleric_hook(self, server, author, user):
+        settings = self.check_server_settings(server)
+        self.account_check(settings, user)
+        if settings["Players"][user.id]["Status"] == "Dead":
+            settings["Players"][user.id]["Death Timer"] = 0
+            settings["Players"][user.id]["Status"] = "Free"
+            dataIO.save_json(self.file_path, self.system)
+            msg = ("{} casted `resurrection` on {} and returned them "
+                   "to the living.".format(author.name, user.name))
+            action = "True"
+        else:
+            msg = "Cast failed. {} is alive.".format(user.name)
+            action = None
+        return action, msg
 
     @heist.command(name="stats", pass_context=True)
     async def _stats_heist(self, ctx):
@@ -835,7 +850,7 @@ class Heist:
 
     def check_server_settings(self, server):
         if server.id not in self.system["Servers"]:
-            default = {"Config": {"Heist Start": False, "Heist Planned": False,  "Heist Cost": 100,
+            default = {"Config": {"Heist Start": False, "Heist Planned": False, "Heist Cost": 100,
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400},
