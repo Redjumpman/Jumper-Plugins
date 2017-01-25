@@ -1,7 +1,10 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog requires tabulate use pip3 install tabulate in cmd prompt.\nThis cog integrates with Economy\nPM me at Redjumpman#2375 if you have issues.",
-    "NAME" : "Heist",
     "SHORT" : "Heist mini-game inspired by Twitch's deep bot",
-    "DESCRIPTION" : "Plays through a bank heist with different outcomes to steal credits in the vault.\n Credit to Aikaterna for helping me test this cog.\n If you have problems contact me on discord, Redjumpman#2375, and if you wish to contribute to me visit my github page https://github.com/Redjumpman/Jumper-Cogs to donate."
+    "DESCRIPTION" : "Plays through a bank heist with different outcomes to steal credits in the vault.\n Credit to Aikaterna for helping me test this cog.\n If you have problems contact me on discord, Redjumpman#2375, and if you wish to contribute to me visit my github page https://github.com/Redjumpman/Jumper-Cogs to donate.",
+    "DISABLED" : false,
+    "NAME" : "Heist",
+    "REQUIREMENTS": ["tabulate"],
+    "TAGS" : ["heist", "games", "economy"],
+    "INSTALL_MSG" : "Thank you for installing Heist from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
