@@ -2,7 +2,7 @@
 {
     "AUTHOR" : "Redjumpman",
     "SHORT" : "Allows server owner to create a shop",
-    "DESCRIPTION" : "Users can buy/gift/redeem items created by an Admin.\nAdmins can change the shop name and add/remove items from the shop and monitor the pending list."
+    "DESCRIPTION" : "Users can buy/gift/redeem items created by an Admin.\nAdmins can change the shop name and add/remove items from the shop and monitor the pending list.",
     "DISABLED" : false,
     "NAME" : "Shop",
     "REQUIREMENTS": ["tabulate"],
