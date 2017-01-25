@@ -1,7 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "These cogs are constantly in development and may require you to install a library to function. Please read over the requirements for each cog and PM me directly on discord if you have issues at Redjumpman#2375",
+    "INSTALL_MSG" : "Thank you for install the Jumper Cogs Repo! These cogs are in constant development. Please update regularly to get the latest additions.If you wish to contribute or post an issue please do so on my github:\nhttps://github.com/Redjumpman/Jumper-Cogs",
     "NAME" : "Jumper Cogs",
     "SHORT" : "Gaming related cogs",
-    "DESCRIPTION" : "Thank you for using Jumper Cogs\nIf you have issues with your cog PM me directly on discord, Redjumpman#2375\n Don't forget to star my repo and watch for new commits here: https://github.com/Redjumpman/Jumper-Cogs"
+    "DESCRIPTION" : "Mini games that integrate with economy, some game info cogs, and cogs that provide utility to game servers."
 }
