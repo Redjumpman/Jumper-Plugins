@@ -1,7 +1,9 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog has no library requirements. PM me at Redjumpman#2375 if you have issues.",
-    "NAME" : "Fortune",
     "SHORT" : "Gives a random fortune",
-    "DESCRIPTION" : "Simple example cog that outputs fortunes"
+    "DESCRIPTION" : "Simple example cog that outputs fortunes.",
+    "DISABLED" : false,
+    "NAME" : "fortune",
+    "TAGS" : ["fortune", "example"],
+    "INSTALL_MSG" : "Thank you for installing Fortune from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
