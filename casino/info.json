@@ -6,5 +6,5 @@
     "NAME" : "Casino",
     "REQUIREMENTS" : ["tabulate"],
     "TAGS" : ["casino", "games", "gambling", "economy"],
-    "INSTALL_MSG" : "Thank you for installing Anime List from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
+    "INSTALL_MSG" : "Thank you for installing Casino from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
