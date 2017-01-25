@@ -1,7 +1,7 @@
 {
     "AUTHOR" : "Redjumpman",
-    "SHORT" : "Provides anime & manga info"
-    "DESCRIPTION" : "Can search for anime and manga and return info on that series"
+    "SHORT" : "Provides anime & manga info",
+    "DESCRIPTION" : "Can search for anime and manga and return info on that series",
     "DISABLED" : false,
     "NAME" : "Animelist",
     "TAGS" : ["anime", "manga"],
