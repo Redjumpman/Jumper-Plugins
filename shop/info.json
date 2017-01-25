@@ -1,9 +1,11 @@
+
 {
     "AUTHOR" : "Redjumpman",
-    "DISABLED": false,
-    "INSTALL_MSG" : "This cog requires Tabulate.\n Type pip3 install tabulate in cmd prompt to install this library.\nPM me at Redjumpman#2375 on Discord if you have issues.",
-    "NAME" : "Shop",
-    "REQUIREMENTS": ["tabulate"],
     "SHORT" : "Allows server owner to create a shop",
     "DESCRIPTION" : "Users can buy/gift/redeem items created by an Admin.\nAdmins can change the shop name and add/remove items from the shop and monitor the pending list."
+    "DISABLED" : false,
+    "NAME" : "Shop",
+    "REQUIREMENTS": ["tabulate"],
+    "TAGS" : ["shop", "economy"],
+    "INSTALL_MSG" : "Thank you for installing Shop from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
