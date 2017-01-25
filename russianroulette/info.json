@@ -1,7 +1,10 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog has no library requirements.\nPM me at Redjumpman#2375 on Discord if you have issues.",
-    "NAME" : "Russianroulette",
     "SHORT" : "Play a game of russian roulette with up to 6 players",
-    "DESCRIPTION" : "Russian roulette simulator. Only one will survive. Change the initial bet requirement with <p>russianset"
+    "DESCRIPTION" : "Russian roulette simulator. Only one will survive.",
+    "DISABLED" : false,
+    "NAME" : "Russianroulette",
+    "TAGS" : ["roulette", "gambling", "economy"],
+    "INSTALL_MSG" : "Thank you for installing Russian Roulette from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
+
