@@ -1,7 +1,10 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog requires Tabulate and BeautifulSoup4.\n Type pip3 install tabulate and then type pip3 install Beautifulsoup4 in cmd prompt to install these libraries.\nPM me at Redjumpman#2375 on Discord if you have issues.",
-    "NAME" : "Tibia",
     "SHORT" : "Returns Tibia items/monsters/server info",
-    "DESCRIPTION" : "Displays Tibia item and monster information as well as Server info. Can check the total number of tibia players online."
+    "DESCRIPTION" : "Displays Tibia item and monster information as well as Server info. Can check the total number of tibia players online.",
+    "DISABLED" : false,
+    "NAME" : "Tibia",
+    "REQUIREMENTS": ["beautifulsoup4", "tabulate"],
+    "TAGS" : ["tibia", "games", "info"],
+    "INSTALL_MSG" : "Thank you for installing Tibia from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
