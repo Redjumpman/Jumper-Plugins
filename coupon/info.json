@@ -1,7 +1,9 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog has no library requirements. PM me at Redjumpman#2375 if you have issues.",
+    "SHORT" : "Creates coupons redeemable for credits",
+    "DESCRIPTION" : "Admins can generate a unique coupon id, that can be redeemed for a set number of points only once. PM the code to the user of your choice.",
+    "DISABLED" : false,
     "NAME" : "Coupon",
-    "SHORT" : "Creates coupons redeemable for points",
-    "DESCRIPTION" : "Admins can generate a unique coupon id, that can be redeemed for a set number of points only once. PM the code to the user of your choice."
+    "TAGS" : ["coupon", "economy"],
+    "INSTALL_MSG" : "Thank you for installing Coupon from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
