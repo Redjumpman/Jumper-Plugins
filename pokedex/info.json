@@ -1,8 +1,12 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "This cog requires Tabulate and BeautifulSoup4.\nType pip3 install tabulate and then type pip3 install BeautifulSoup4 into cmd prompt to install these libraries.\nPM me at Redjumpman#2375 on Discord if you have issues.",
+    "SHORT" : "Fetch movesets, locations, data, and more on Pokemon",
+    "DESCRIPTION" : "Shows movesets, locations, pokedex info, evolution chains, and item searches for all Pokemon generations.",
+    "DISABLED" : false,
     "NAME" : "Pokedex",
-    "SHORT" : "Returns movesets, locations, and more on Pokemon",
-    "DESCRIPTION" : "Shows movesets, locations, pokedex info, evolution chains, and item searches for all Pokemon generations."
+    "REQUIREMENTS" : ["beautifulsoup4", "tabulate"],
+    "TAGS" : ["pokemon", "pokedex"],
+    "INSTALL_MSG" : "Thank you for installing Pokedex from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
+
 
