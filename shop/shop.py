@@ -36,9 +36,7 @@ class Shop:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         self.user_check(settings, user)
-        header = "```{}```".format(
-                self.bordered("{}'s\nI N V E N T O R Y".format(user.name))
-                )
+        header = "```{}```".format(self.bordered("{}'s\nI N V E N T O R Y".format(user.name)))
         if settings["Users"][user.id]["Inventory"]:
             column1 = ["[{}]".format(subdict["Item Name"].title())
                        if "Role" in subdict else subdict["Item Name"].title()
@@ -545,9 +543,8 @@ class Shop:
                        for subdict in settings["Pending"][users].values()]
             data = list(zip(column2, column1, column3, column4, column5))
             if len(data) > 12:
-                msg, msg2 = await self.table_split(user, data)
+                msg = await self.table_split(user, data)
                 await self.bot.say(msg)
-                await self.bot.say(msg2)
             else:
                 table = tabulate(data, headers=["Time Stamp", "Name", "Item",
                                                 "Confirmation#", "Status"], numalign="left")
@@ -734,7 +731,7 @@ class Shop:
 
     async def shop_table_split(self, user, data):
         headers = ["Item Name", "Item Quantity", "Item Cost", "Discount"]
-        groups = [data[i:i+15] for i in range(0, len(data), 15)]
+        groups = [data[i:i + 12] for i in range(0, len(data), 12)]
         pages = len(groups)
         if pages == 1:
             page = 0
@@ -777,7 +774,7 @@ class Shop:
 
     async def table_split(self, user, data):
         headers = ["Time Stamp", "Name", "Item", "Confirmation#", "Status"]
-        groups = [data[i:i+12] for i in range(0, len(data), 12)]
+        groups = [data[i:i + 12] for i in range(0, len(data), 12)]
         pages = len(groups)
         await self.bot.say("There are {} pages of pending items. "
                            "Which page would you like to display?".format(pages))
@@ -787,14 +784,14 @@ class Shop:
         else:
             try:
                 page = int(response.content) - 1
-                table = tabulate(groups[page], headers=headers, numalign="left",  tablefmt="simple")
+                table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
                 msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
                        "{} pending items```".format(table, page + 1, pages, len(data)))
                 return msg
             except ValueError:
                 await self.bot.say("Sorry your response was not a number. Defaulting to page 1")
                 page = 0
-                table = tabulate(groups[page], headers=headers, numalign="left",  tablefmt="simple")
+                table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
                 msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
                        "{} pending items```".format(table, pages, len(data)))
                 return msg
@@ -880,8 +877,8 @@ class Shop:
             await self.bot.say("Trade Rejected. Cancelling trade.")
         elif reply.content.title() == "Yes" or reply.content.title() == "Accept":
             quantity = 1
-            self.user_gt_item(self, settings, author, user, quantity, itemname)
-            self.user_gt_item(self, settings, user, author, quantity, itemname)
+            self.user_gt_item(settings, author, user, quantity, itemname)
+            self.user_gt_item(settings, user, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, tradeoffer)
             await self.bot.say("Trading items... {} recieved {}, and {} recieved "
@@ -1118,7 +1115,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.5"
+               "Version": "2.2.4"
                }
 
     f = "data/JumperCogs/shop/system.json"
