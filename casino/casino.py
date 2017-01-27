@@ -26,7 +26,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.54
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.55
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -99,7 +99,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.54
+        self.patch = 1.55
 
     def create_account(self, user):
         server = user.server
@@ -221,6 +221,7 @@ class CasinoBank:
 
             try:
                 if path["System Config"]["Version"] < self.patch:
+                    path["System Config"]["Version"] = self.patch
                     self.casino_patcher(path)
             except KeyError:
                 path["System Config"]["Version"] = self.patch
@@ -324,7 +325,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.4"
+        self.version = "1.5.5"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2020,12 +2021,12 @@ class Casino:
             self.casino_bank.save_system()
         # Check if method is for a game or for payday
         if method in self.games:
-            path = settings["Games"][method]["Cooldown"] - reduction
+            path = settings["Games"][method]["Cooldown"]
         else:
             path = settings["System Config"]["Payday Timer"]
 
         # Begin cooldown logic calculation
-        if abs(base - int(time.perf_counter())) >= path:
+        if abs(base - int(time.perf_counter())) >= path - reduction:
             settings["Players"][user.id]["Cooldowns"][method] = int(time.perf_counter())
             self.casino_bank.save_system()
             return None
@@ -2035,7 +2036,7 @@ class Casino:
             return None
         else:
             s = abs(base - int(time.perf_counter()))
-            seconds = abs(s - path)
+            seconds = abs(s - path - reduction)
             remaining = self.time_format(seconds)
             msg = "{} is still on a cooldown. You still have: {}".format(method, remaining)
             return msg
@@ -2057,20 +2058,21 @@ class Casino:
     def game_checks(self, settings, prefix, user, bet, game, choice, choices):
         casino_name = settings["System Config"]["Casino Name"]
         game_access = settings["Games"][game]["Access Level"]
-        user_access = self.access_calculator(settings, user)
         # Allin does not require a minmax check, so we set it to None if Allin.
         if game != "Allin":
             minmax_fail = self.minmax_check(bet, game, settings)
         else:
             minmax_fail = None
+        # Check for membership first.
+        if not self.casino_bank.membership_exists(user):
+            msg = ("You need to register to the {} Casino. To register type `{}casino "
+                   "join`.".format(casino_name, prefix))
+            return msg
 
+        user_access = self.access_calculator(settings, user)
         # Begin logic to determine if the game can be played.
         if choice not in choices:
             msg = "Incorrect response. Accepted response are:\n{}".format(", ".join(choices))
-            return msg
-        elif not self.casino_bank.membership_exists(user):
-            msg = ("You need to register to the {} Casino. To register type `{}casino "
-                   "join`.".format(casino_name, prefix))
             return msg
         elif not settings["System Config"]["Casino Open"]:
             msg = "The {} Casino is closed.".format(casino_name)
