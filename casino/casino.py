@@ -782,7 +782,6 @@ class Casino:
             self.casino_bank.withdraw_chips(user, bet)
             #Two d6 for probablilities to be correct, each one a variable so it's possible to print exact results.
             dieone = random.randint(1, 6) 
-            outcome = dieone + dietwo
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
