@@ -92,7 +92,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.8"
+        self.version = "2.0.8.1"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -387,21 +387,6 @@ class Heist:
         else:
             msg = "You still have a pulse. I can't revive someone who isn't dead."
         await self.bot.say(msg)
-
-    def cleric_hook(self, server, author, user):
-        settings = self.check_server_settings(server)
-        self.account_check(settings, user)
-        if settings["Players"][user.id]["Status"] == "Dead":
-            settings["Players"][user.id]["Death Timer"] = 0
-            settings["Players"][user.id]["Status"] = "Free"
-            dataIO.save_json(self.file_path, self.system)
-            msg = ("{} casted `resurrection` on {} and returned them "
-                   "to the living.".format(author.name, user.name))
-            action = "True"
-        else:
-            msg = "Cast failed. {} is alive.".format(user.name)
-            action = None
-        return action, msg
 
     @heist.command(name="stats", pass_context=True)
     async def _stats_heist(self, ctx):
@@ -719,13 +704,7 @@ class Heist:
             settings["Players"][user.id]["Total Jail"] += 1
             settings["Players"][user.id]["Criminal Level"] += 1
         else:
-            settings["Players"][user.id]["Criminal Level"] = 0
-            settings["Players"][user.id]["Status"] = "Dead"
-            settings["Players"][user.id]["Deaths"] += 1
-            settings["Players"][user.id]["Jail Counter"] = 0
-            settings["Players"][user.id]["Death Timer"] = int(time.perf_counter())
-            if settings["Config"]["Hardcore"]:
-                self.hardcore_handler(settings, user)
+            self.run_death(settings, user)
 
     def heist_target(self, settings, crew):
         groups = sorted([(x, y["Crew"]) for x, y in settings["Banks"].items()], key=itemgetter(1))
@@ -733,6 +712,18 @@ class Heist:
         breakpoints = [x for x in crew_sizes if x != max(crew_sizes)]
         banks = [x[0] for x in groups]
         return banks[bisect(breakpoints, crew)]
+
+    def run_death(self, settings, user):
+        settings["Players"][user.id]["Criminal Level"] = 0
+        settings["Players"][user.id]["OOB"] = False
+        settings["Players"][user.id]["Bail Cost"] = 0
+        settings["Players"][user.id]["Sentence"] = 0
+        settings["Players"][user.id]["Status"] = "Dead"
+        settings["Players"][user.id]["Deaths"] += 1
+        settings["Players"][user.id]["Jail Counter"] = 0
+        settings["Players"][user.id]["Death Timer"] = int(time.perf_counter())
+        if settings["Config"]["Hardcore"]:
+            self.hardcore_handler(settings, user)
 
     def user_clear(self, settings, user):
         settings["Players"][user.id]["Status"] = "Free"
@@ -921,6 +912,37 @@ class Heist:
         else:
             path = self.system["Servers"][server.id]
             return path
+
+    # =========== Commission hooks =====================
+
+    def reaper_hook(self, server, author, user):
+        settings = self.check_server_settings(server)
+        self.account_check(settings, user)
+        if settings["Players"][user.id]["Status"] == "Dead":
+            msg = "Cast failed. {} is dead.".format(user.name)
+            action = None
+        else:
+            self.run_death(settings, user)
+            dataIO.save_json(self.file_path, self.system)
+            msg = ("{} casted :skull: `death` :skull: on {} and sent them "
+                   "to the graveyard.".format(author.name, user.name))
+            action = "True"
+        return action, msg
+
+    def cleric_hook(self, server, author, user):
+        settings = self.check_server_settings(server)
+        self.account_check(settings, user)
+        if settings["Players"][user.id]["Status"] == "Dead":
+            settings["Players"][user.id]["Death Timer"] = 0
+            settings["Players"][user.id]["Status"] = "Free"
+            dataIO.save_json(self.file_path, self.system)
+            msg = ("{} casted :trident: `resurrection` :trident: on {} and returned them "
+                   "to the living.".format(author.name, user.name))
+            action = "True"
+        else:
+            msg = "Cast failed. {} is alive.".format(user.name)
+            action = None
+        return action, msg
 
 
 def check_folders():
