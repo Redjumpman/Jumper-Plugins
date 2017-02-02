@@ -780,7 +780,10 @@ class Casino:
             msg = check
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
-            outcome = random.randint(1, 12)
+            #Two d6 for probablilities to be correct, each one a variable so it's possible to print exact results.
+            dieone = random.randint(1, 6) 
+            dietwo = random.randint(1, 6)
+            outcome = dieone + dietwo
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
@@ -790,7 +793,8 @@ class Casino:
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = "Congratulations! The dice landed on {}.".format(outcome)
+                msg = ("Congratulations! The dice landed on {} and {}," 
+                       "for total of {}.".format(dieone, dietwo, outcome))
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -809,7 +813,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry! The dice landed on {}.".format(outcome)
+                msg = "Sorry! The dice landed on {} and {} for a total of {}.".format(dieone, dietwo, outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
