@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.553
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.56
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -105,7 +105,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.553
+        self.patch = 1.56
 
     def create_account(self, user):
         server = user.server
@@ -332,7 +332,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.5.3"
+        self.version = "1.5.6"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -787,17 +787,22 @@ class Casino:
             msg = check
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
-            outcome = random.randint(1, 12)
+            dieone = random.randint(1, 6) 
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)  
+            dietwo = random.randint(1, 6)
+            outcome = dieone + dietwo
+            await asyncio.sleep(1)
+
 
             # Begin game logic to determine a win or loss
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = "Congratulations! The dice landed on {}.".format(outcome)
+                msg = ("Congratulations! The dice landed on {} and {}," 
+                       "for total of {}.".format(dieone, dietwo, outcome))
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -816,7 +821,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry! The dice landed on {}.".format(outcome)
+                msg = "Sorry! The dice landed on {} and {} for a total of {}.".format(dieone, dietwo, outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
