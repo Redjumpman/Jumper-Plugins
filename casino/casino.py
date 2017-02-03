@@ -640,8 +640,8 @@ class Casino:
             # Begin game logic to determine a win or loss
             msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) 
             if choice in outcome:
-                msg += ("Congratulations the outcome was "
-                       "{} ({})".format(outcome[0], outcome[2]))
+                msg += ("Congratulations! The outcome was "
+                       "{} ({})!".format(outcome[0], outcome[2]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
                 # Check for a 7 to give a 6x multiplier
@@ -668,7 +668,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg += "Sorry. The outcome was {} ({})".format(outcome[0], outcome[2])
+                msg += "Sorry. The outcome was {} ({}).".format(outcome[0], outcome[2])
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -801,11 +801,11 @@ class Casino:
 
 
             # Begin game logic to determine a win or loss
-            msg = "The dice landed on {} and {}\n"
+            msg = "The dice landed on {} and {} \n"
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = "Congratulations! You win with a roll of {}".format(outcome)
+                msg = "Congratulations! You win with a roll of {}!".format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -824,7 +824,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg += "Sorry! The result was {}".format(outcome)
+                msg += "Sorry! The result was {}.".format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1985,8 +1985,11 @@ class Casino:
         if mi <= bet <= mx:
             return None
         else:
-            msg = ("Your bet needs to be higher than {}, but cannot exceed the"
-                   "maximum of {} chips.".format(mi, mx))
+            if mi != mx:
+                msg = ("Your bet needs to be {} or higher, but cannot exceed the "
+                       "maximum of {} chips.".format(mi, mx))
+            else:
+                msg = ("Your bet needs to be exactly {}.".format(mi))
             return msg
 
     def stats_cooldowns(self, settings, user, cd_list):
