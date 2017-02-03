@@ -630,8 +630,11 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            outcome = self.hl_outcome()
+            dieone = random.randint(1,6)
             await self.bot.say("The dice hit the table and slowly fall into place...")
+            dietwo = random.randint(1,6)
+            result = dieone + dietwo
+            outcome = self.hl_outcome(result)
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
@@ -1970,11 +1973,11 @@ class Casino:
         else:
             return False
 
-    def hl_outcome(self):
+    def hl_outcome(self, dicetotal):
         choices = [(1, "Lo", "Low"), (2, "Lo", "Low"), (3, "Lo", "Low"), (4, "Lo", "Low"),
                    (5, "Lo", "Low"), (6, "Lo", "Low"), (7, "7", "Seven"), (8, "Hi", "High"),
                    (9, "Hi", "High"), (10, "Hi", "High"), (11, "Hi", "High"), (12, "Hi", "High")]
-        outcome = random.choice(choices)
+        outcome = choices[dicetotal]
         return outcome
 
     def minmax_check(self, bet, game, settings):
