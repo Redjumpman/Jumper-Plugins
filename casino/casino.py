@@ -630,8 +630,8 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            await self.bot.say("The dice hit the table and slowly fall into place...")
             dieone = random.randint(1,6)
+            await self.bot.say("The dice hit the table and slowly fall into place...")
             dietwo = random.randint(1,6)
             result = dieone + dietwo
             outcome = self.hl_outcome(result)
@@ -792,9 +792,9 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
+            dieone = random.randint(1, 6) 
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
-            dieone = random.randint(1, 6) 
             dietwo = random.randint(1, 6)
             outcome = dieone + dietwo
             await asyncio.sleep(2)
