@@ -630,24 +630,24 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            dieone = random.randint(1,6)
             await self.bot.say("The dice hit the table and slowly fall into place...")
+            dieone = random.randint(1,6)
             dietwo = random.randint(1,6)
             result = dieone + dietwo
             outcome = self.hl_outcome(result)
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) #NOTE(Marsh): Helps us find bugs. Let this stay.
+            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) 
             if choice in outcome:
                 msg += ("Congratulations the outcome was "
                        "{} ({})".format(outcome[0], outcome[2]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
-                # Check for a 7 to give a 12x multiplier
+                # Check for a 7 to give a 6x multiplier
                 if outcome[2] == "Seven":
-                    amount = bet * 12
-                    msg += "\n**BONUS!** 12x multiplier for Seven!"
+                    amount = bet * 6 #NOTE(Marsh): This is going to need balancing. It could be a good idea to make it a variable.  
+                    msg += "\n**BONUS!** 6x multiplier for Seven!"
                 else:
                     amount = int(round(bet * settings["Games"]["Hi-Lo"]["Multiplier"]))
 
@@ -791,22 +791,21 @@ class Casino:
             msg = check
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
-            dieone = random.randint(1, 6) 
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
-            await asyncio.sleep(1)  
+            dieone = random.randint(1, 6) 
             dietwo = random.randint(1, 6)
             outcome = dieone + dietwo
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
 
             # Begin game logic to determine a win or loss
+            msg = "The dice landed on {} and {}\n"
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = ("Congratulations! The dice landed on {} and {}," 
-                       "for total of {}.".format(dieone, dietwo, outcome))
+                msg = "Congratulations! You win with a roll of {}".format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -825,7 +824,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry! The dice landed on {} and {} for a total of {}.".format(dieone, dietwo, outcome)
+                msg += "Sorry! The result was {}".format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1976,7 +1975,7 @@ class Casino:
         choices = [(1, "Lo", "Low"), (2, "Lo", "Low"), (3, "Lo", "Low"), (4, "Lo", "Low"),
                    (5, "Lo", "Low"), (6, "Lo", "Low"), (7, "7", "Seven"), (8, "Hi", "High"),
                    (9, "Hi", "High"), (10, "Hi", "High"), (11, "Hi", "High"), (12, "Hi", "High")]
-        outcome = choices[dicetotal]
+        outcome = choices[dicetotal - 1]
         return outcome
 
     def minmax_check(self, bet, game, settings):
