@@ -638,7 +638,7 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = "The dice landed on {} and {}\n".format(dieone, dietwo) #NOTE(Marsh): Helps us find bugs. Let this stay.
+            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) #NOTE(Marsh): Helps us find bugs. Let this stay.
             if choice in outcome:
                 msg += ("Congratulations the outcome was "
                        "{} ({})".format(outcome[0], outcome[2]))
