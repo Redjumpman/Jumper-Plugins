@@ -638,8 +638,9 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
+            msg = "The dice landed on {} and {}\n".format(dieone, dietwo) #NOTE(Marsh): Helps us find bugs. Let this stay.
             if choice in outcome:
-                msg = ("Congratulations the outcome was "
+                msg += ("Congratulations the outcome was "
                        "{} ({})".format(outcome[0], outcome[2]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
@@ -667,7 +668,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry. The outcome was {} ({})".format(outcome[0], outcome[2])
+                msg += "Sorry. The outcome was {} ({})".format(outcome[0], outcome[2])
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
