@@ -787,8 +787,6 @@ class Casino:
             msg = check
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
-            #NOTE(Marsh):Two d6 for probablilities to be correct, each one a variable so it's possible to print exact results.
-            #NOTE(Marsh): Chances of winning should be around 10/36 (~27.7%) as long as the random works works as expected.
             dieone = random.randint(1, 6) 
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
