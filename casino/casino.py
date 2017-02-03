@@ -805,7 +805,7 @@ class Casino:
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = "Congratulations! You win with a roll of {}!".format(outcome)
+                msg += "Congratulations! You win with a roll of {}!".format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
