@@ -1,12 +1,17 @@
 # Developed by Redjumpman for Redbot.
 # Inspired by Spriter's work on a modded economy.
 # Creates 1 json file, 1 log file per 10mb, and requires tabulate.
+
+# STD Library
 import asyncio
 import logging
 import logging.handlers
 import os
 import random
 import time
+from copy import deepcopy
+
+# Discord imports
 import discord
 from fractions import Fraction
 from operator import itemgetter
@@ -15,6 +20,7 @@ from .utils import checks
 from discord.ext import commands
 from __main__ import send_cmd_help
 
+# Third Party Libraries
 try:   # Check if Tabulate is installed
     from tabulate import tabulate
     tabulateAvailable = True
@@ -26,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.552
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.553
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -99,14 +105,15 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.552
+        self.patch = 1.553
 
     def create_account(self, user):
         server = user.server
         path = self.check_server_settings(server)
 
         if user.id not in path["Players"]:
-            path["Players"][user.id] = new_user
+            default_user = deepcopy(new_user)
+            path["Players"][user.id] = default_user
             path["Players"][user.id]["Name"] = user.name
             self.save_system()
             membership = path["Players"][user.id]
@@ -325,7 +332,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.5.2"
+        self.version = "1.5.5.3"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
