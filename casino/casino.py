@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.56
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.57
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -105,7 +105,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.56
+        self.patch = 1.57
 
     def create_account(self, user):
         server = user.server
@@ -332,7 +332,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.6"
+        self.version = "1.5.7"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -630,20 +630,24 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            outcome = self.hl_outcome()
+            dieone = random.randint(1,6)
             await self.bot.say("The dice hit the table and slowly fall into place...")
+            dietwo = random.randint(1,6)
+            result = dieone + dietwo
+            outcome = self.hl_outcome(result)
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
+            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) 
             if choice in outcome:
-                msg = ("Congratulations the outcome was "
-                       "{} ({})".format(outcome[0], outcome[2]))
+                msg += ("Congratulations! The outcome was "
+                       "{} ({})!".format(outcome[0], outcome[2]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
-                # Check for a 7 to give a 12x multiplier
+                # Check for a 7 to give a 6x multiplier
                 if outcome[2] == "Seven":
-                    amount = bet * 12
-                    msg += "\n**BONUS!** 12x multiplier for Seven!"
+                    amount = bet * 6  
+                    msg += "\n**BONUS!** 6x multiplier for Seven!"
                 else:
                     amount = int(round(bet * settings["Games"]["Hi-Lo"]["Multiplier"]))
 
@@ -664,7 +668,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry. The outcome was {} ({})".format(outcome[0], outcome[2])
+                msg += "Sorry. The outcome was {} ({}).".format(outcome[0], outcome[2])
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -787,22 +791,21 @@ class Casino:
             msg = check
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
-            dieone = random.randint(1, 6) 
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
+            dieone = random.randint(1, 6) 
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
-            await asyncio.sleep(1)  
             dietwo = random.randint(1, 6)
             outcome = dieone + dietwo
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
 
             # Begin game logic to determine a win or loss
+            msg = "The dice landed on {} and {} \n".format(dieone, dietwo)
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg = ("Congratulations! The dice landed on {} and {}," 
-                       "for total of {}.".format(dieone, dietwo, outcome))
+                msg += "Congratulations! You win with a roll of {}!".format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -821,7 +824,7 @@ class Casino:
                     self.casino_bank.deposit_chips(user, amount)
                     msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
             else:
-                msg = "Sorry! The dice landed on {} and {} for a total of {}.".format(dieone, dietwo, outcome)
+                msg += "Sorry! The result was {}.".format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1968,11 +1971,11 @@ class Casino:
         else:
             return False
 
-    def hl_outcome(self):
+    def hl_outcome(self, dicetotal):
         choices = [(1, "Lo", "Low"), (2, "Lo", "Low"), (3, "Lo", "Low"), (4, "Lo", "Low"),
                    (5, "Lo", "Low"), (6, "Lo", "Low"), (7, "7", "Seven"), (8, "Hi", "High"),
                    (9, "Hi", "High"), (10, "Hi", "High"), (11, "Hi", "High"), (12, "Hi", "High")]
-        outcome = random.choice(choices)
+        outcome = choices[dicetotal - 1]
         return outcome
 
     def minmax_check(self, bet, game, settings):
@@ -1982,8 +1985,11 @@ class Casino:
         if mi <= bet <= mx:
             return None
         else:
-            msg = ("Your bet needs to be higher than {}, but cannot exceed the"
-                   "maximum of {} chips.".format(mi, mx))
+            if mi != mx:
+                msg = ("Your bet needs to be {} or higher, but cannot exceed the "
+                       "maximum of {} chips.".format(mi, mx))
+            else:
+                msg = ("Your bet needs to be exactly {}.".format(mi))
             return msg
 
     def stats_cooldowns(self, settings, user, cd_list):
