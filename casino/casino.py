@@ -608,7 +608,7 @@ class Casino:
 
     @commands.command(pass_context=True, no_pm=True, aliases=["hl", "hi-lo"])
     async def hilo(self, ctx, choice: str, bet: int):
-        """Pick High, Low, Seven. Lo is < 7 Hi is > 7. 12x payout on 7"""
+        """Pick High, Low, Seven. Lo is < 7 Hi is > 7. 6x payout on 7"""
 
         # Declare variables for the game.
         user = ctx.message.author
