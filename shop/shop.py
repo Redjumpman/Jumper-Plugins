@@ -293,7 +293,7 @@ class Shop:
         column2 = [subdict["Quantity"] for subdict in settings["Shop List"].values()]
         column3 = [subdict["Item Cost"] for subdict in settings["Shop List"].values()]
         column4_raw = [subdict["Discount"] for subdict in settings["Shop List"].values()]
-        column4 = [x + "%" for x in list(map(str, column4_raw))]
+        column4 = [x + "%" if x != "0" else "None" for x in list(map(str, column4_raw))]
         if not column1:
             await self.bot.say("There are no items for sale in the shop.")
         else:
@@ -410,10 +410,10 @@ class Shop:
         itemname = itemname.title()
         if itemname in settings["Shop List"]:
             if discount == 0:
-                settings["Shop List"][itemname]["Discount"] = ""
+                settings["Shop List"][itemname]["Discount"] = 0
                 dataIO.save_json(self.file_path, self.system)
                 msg = "Remove discount from {}".format(itemname)
-            elif discount > 0 and discount <= 99:
+            elif 0 < discount <= 99:
                 settings["Shop List"][itemname]["Discount"] = discount
                 dataIO.save_json(self.file_path, self.system)
                 msg = "Adding {}% discount to item {}".format(discount, itemname)
@@ -1115,7 +1115,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.4"
+               "Version": "2.2.5"
                }
 
     f = "data/JumperCogs/shop/system.json"
