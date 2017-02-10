@@ -642,7 +642,7 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo))
+            msg = ("The dice landed on {} and {} \n".format(die_one, die_two))
             if choice in outcome:
                 msg += ("Congratulations! The outcome was "
                         "{} ({})!".format(outcome[0], outcome[2]))
@@ -804,7 +804,7 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = "The dice landed on {} and {} \n".format(dieone, dietwo)
+            msg = "The dice landed on {} and {} \n".format(die_one, die_two)
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
