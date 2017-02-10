@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.58
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.581
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -109,7 +109,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.58
+        self.patch = 1.581
 
     def create_account(self, user):
         server = user.server
@@ -336,7 +336,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.8"
+        self.version = "1.5.8.1"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -612,7 +612,7 @@ class Casino:
 
     @commands.command(pass_context=True, no_pm=True, aliases=["hl", "hi-lo"])
     async def hilo(self, ctx, choice: str, bet: int):
-        """Pick High, Low, Seven. Lo is < 7 Hi is > 7. 12x payout on 7"""
+        """Pick High, Low, Seven. Lo is < 7 Hi is > 7. 6x payout on 7"""
 
         # Declare variables for the game.
         user = ctx.message.author
@@ -642,7 +642,7 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo))
+            msg = ("The dice landed on {} and {} \n".format(die_one, die_two))
             if choice in outcome:
                 msg += ("Congratulations! The outcome was "
                         "{} ({})!".format(outcome[0], outcome[2]))
@@ -804,7 +804,7 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = "The dice landed on {} and {} \n".format(dieone, dietwo)
+            msg = "The dice landed on {} and {} \n".format(die_one, die_two)
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
