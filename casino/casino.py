@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.57
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.58
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -79,6 +79,10 @@ class CasinoError(Exception):
     pass
 
 
+class WipeError(CasinoError):
+    pass
+
+
 class UserAlreadyRegistered(CasinoError):
     pass
 
@@ -105,7 +109,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.57
+        self.patch = 1.58
 
     def create_account(self, user):
         server = user.server
@@ -332,7 +336,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.7"
+        self.version = "1.5.8"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -630,23 +634,23 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            dieone = random.randint(1,6)
             await self.bot.say("The dice hit the table and slowly fall into place...")
-            dietwo = random.randint(1,6)
-            result = dieone + dietwo
+            die_one = random.randint(1, 6)
+            die_two = random.randint(1, 6)
+            result = die_one + die_two
             outcome = self.hl_outcome(result)
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo)) 
+            msg = ("The dice landed on {} and {} \n".format(dieone, dietwo))
             if choice in outcome:
                 msg += ("Congratulations! The outcome was "
-                       "{} ({})!".format(outcome[0], outcome[2]))
+                        "{} ({})!".format(outcome[0], outcome[2]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
-                # Check for a 7 to give a 6x multiplier
+                # Check for a 7 to give a 12x multiplier
                 if outcome[2] == "Seven":
-                    amount = bet * 6  
+                    amount = bet * 6
                     msg += "\n**BONUS!** 6x multiplier for Seven!"
                 else:
                     amount = int(round(bet * settings["Games"]["Hi-Lo"]["Multiplier"]))
@@ -792,20 +796,20 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
-            dieone = random.randint(1, 6) 
             await self.bot.say("The dice strike the back of the table and begin to tumble into "
                                "place...")
-            dietwo = random.randint(1, 6)
-            outcome = dieone + dietwo
+            die_one = random.randint(1, 6)
+            die_two = random.randint(1, 6)
+            outcome = die_one + die_two
             await asyncio.sleep(2)
-
 
             # Begin game logic to determine a win or loss
             msg = "The dice landed on {} and {} \n".format(dieone, dietwo)
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
-                msg += "Congratulations! You win with a roll of {}!".format(outcome)
+
+                msg += "Congratulations! The dice landed on {}.".format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
@@ -1034,6 +1038,11 @@ class Casino:
             await self.bot.say("Membership creation cancelled.")
             return
 
+        if int(access.content) in [x["Access"] for x in list(settings["Memberships"].keys())]:
+            await self.bot.say("You cannot have memberships with the same access level. Cancelling "
+                               "creation.")
+            return
+
         await self.bot.say("What is the requirement for this membership? Available options are:\n"
                            "Days on server, Credits, Chips, or Role\nWhich would you "
                            "like set? You can always remove and add additional requirements later"
@@ -1179,36 +1188,39 @@ class Casino:
 
     @casino.command(name="wipe", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _wipe_casino(self, ctx, servername: str):
-        """Wipe casino server data"""
+    async def _wipe_casino(self, ctx, *, servername: str):
+        """Wipe casino server data. Case Sensitive"""
         user = ctx.message.author
         servers = self.casino_bank.get_all_servers()
-        server = [self.bot.get_server(x) for x in servers.keys()
-                  if self.bot.get_server(x).name == servername][0]
 
-        if not server:
-            msg = "This server hasn't used casino yet!"
-        else:
-            await self.bot.say("This will wipe casino server data.**WARNING** ALL PLAYER DATA WILL "
-                               "BE DESTROYED.\nDo you wish to wipe {}?".format(server.name))
+        try:
+            server = [self.bot.get_server(x) for x in servers.keys()
+                      if self.bot.get_server(x).name == servername][0]
+        except IndexError:
+            raise WipeError("This server name provided could not be located. Check your spelling "
+                            "and remember that names are case sensitive")
+
+        await self.bot.say("This will wipe casino server data.**WARNING** ALL PLAYER DATA WILL "
+                           "BE DESTROYED.\nDo you wish to wipe {}?".format(server.name))
+        response = await self.bot.wait_for_message(timeout=15, author=user)
+
+        if response is None:
+            msg = "No response, casino wipe cancelled."
+        elif response.content.title() == "No":
+            msg = "Cancelling casino wipe."
+        elif response.content.title() == "Yes":
+            await self.bot.say("To confirm type the server name: {}".format(server.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
-
             if response is None:
                 msg = "No response, casino wipe cancelled."
-            elif response.content.title() == "No":
-                msg = "Cancelling casino wipe."
-            elif response.content.title() == "Yes":
-                await self.bot.say("To confirm type the server name: {}".format(server.name))
-                response = await self.bot.wait_for_message(timeout=15, author=user)
-                if response is None:
-                    msg = "No response, casino wipe cancelled."
-                elif response.content == server.name:
-                    self.casino_bank.wipe_caisno_server(server)
-                    msg = "Casino wiped."
-                else:
-                    msg = "Incorrect server name. Cancelling casino wipe."
+            elif response.content == server.name:
+                self.casino_bank.wipe_caisno_server(server)
+                msg = "Casino wiped."
             else:
-                msg = "Improper response. Cancelling casino wipe."
+                msg = "Incorrect server name. Cancelling casino wipe."
+        else:
+            msg = "Improper response. Cancelling casino wipe."
+
         await self.bot.say(msg)
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1898,7 +1910,8 @@ class Casino:
         # Loop through the memberships and their requirements
         for membership in memberships:
             requirements = []
-            for req in path[membership]["Requirements"].keys():
+            reqs = path[membership]["Requirements"]
+            for req in reqs.keys():
 
                 # If the requirement is a role, run role logic
                 if req == "Role":
@@ -2108,10 +2121,7 @@ class Casino:
         else:
             cd_check = self.check_cooldowns(user, game, settings)
             # Cooldowns are checked last incase another check failed.
-            if cd_check:
-                return cd_check
-            else:
-                return None
+            return cd_check
 
     def color_lookup(self, color):
         colors = {"blue": 0x3366FF, "red": 0xFF0000, "green": 0x00CC33, "orange": 0xFF6600,
