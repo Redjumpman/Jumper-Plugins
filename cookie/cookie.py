@@ -55,6 +55,25 @@ class Cookie:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    async def give(self, ctx, user: discord.Member, gives:int):
+        """Gives another user your cookies"""
+        author = ctx.message.author
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        self.account_check(settings, author)
+        cookies = settings["Players"][author.id]["Cookies"]
+        if user is None:
+           return await self.bot.say("Specify a user to give your cookies to.")
+        else:
+            if gives == 0 or gives > cookies:
+               return await self.bot.say("You don't have enough cookies in your account")
+            if cookies <= cookies:
+                settings["Players"][author.id]["Cookies"] -= gives
+                settings["Players"][user.id]["Cookies"] += gives
+                dataIO.save_json(self.file_path, self.system)
+                return await self.bot.say("You gave **{}** cookies to {}".format(gives, user.name))
+        
+    @commands.command(pass_context=True, no_pm=True)
     async def cookie(self, ctx):
         """Obtain a random number of cookies. 12h cooldown"""
         author = ctx.message.author
