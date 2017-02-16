@@ -55,6 +55,23 @@ class Cookie:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    async def give(self, ctx, user: discord.Member, cookies: int):
+        """Gives another user your cookies"""
+        author = ctx.message.author
+        settings = self.check_server_settings(author.server)
+        self.account_check(settings, author)
+        sender_cookies = settings["Players"][author.id]["Cookies"]
+        if 0 < cookies <= sender_cookies:
+            settings["Players"][author.id]["Cookies"] -= cookies
+            settings["Players"][user.id]["Cookies"] += cookies
+            dataIO.save_json(self.file_path, self.system)
+            msg = "You gave **{}** cookies to {}".format(cookies, user.name)
+        else:
+            msg = "You don't have enough cookies in your account"
+
+        await self.bot.say(msg)
+
+    @commands.command(pass_context=True, no_pm=True)
     async def cookie(self, ctx):
         """Obtain a random number of cookies. 12h cooldown"""
         author = ctx.message.author
@@ -90,7 +107,8 @@ class Cookie:
         settings = self.check_server_settings(server)
         self.account_check(settings, author)
         if not user:
-            users = [server.get_member(x) for x in settings["Players"].keys() if x != author.id and x in settings["Players"].keys()]
+            users = [server.get_member(x) for x in settings["Players"].keys()
+                     if x != author.id and x in settings["Players"].keys()]
             users = [x for x in users if settings["Players"][x.id]["Cookies"] > 0]
             if not users:
                 user = "Fail"
@@ -115,7 +133,7 @@ class Cookie:
                     settings["Players"][author.id]["Cookies"] += stolen
                     dataIO.save_json(self.file_path, self.system)
                     msg = ("ω(=＾ ‥ ＾=)ﾉ彡:cookie:\nYou stole {} cookies from "
-                          "{}!".format(stolen, user.name))
+                           "{}!".format(stolen, user.name))
                 else:
                     msg = ("ω(=｀ｪ ´=)ω Nyaa... Neko-chan couldn't find their :cookie: jar!")
             await self.bot.say("ଲ(=(|) ɪ (|)=)ଲ Neko-chan is on the prowl to steal :cookie:")
