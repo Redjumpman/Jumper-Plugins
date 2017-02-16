@@ -65,7 +65,7 @@ class Cookie:
         if user is None:
            return await self.bot.say("Specify a user to give your cookies to.")
         else:
-            if gives == 0 or gives > cookies:
+            if gives <= 0 or gives > cookies:
                return await self.bot.say("You don't have enough cookies in your account")
             if cookies <= cookies:
                 settings["Players"][author.id]["Cookies"] -= gives
