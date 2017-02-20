@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.581
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.59
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -109,7 +109,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.581
+        self.patch = 1.59
 
     def create_account(self, user):
         server = user.server
@@ -217,6 +217,18 @@ class CasinoBank:
         else:
             return []
 
+    def name_fix(self):
+        servers = self.get_all_servers()
+        for server in servers.keys():
+            self.name_bug_fix(server)
+
+    def name_bug_fix(self, server):
+        players = self.get_server_memberships(server)
+        for player in players.keys():
+            mobj = server.get_member(player)
+            if players[player]["Name"] != mobj.name:
+                players[player]["Name"] = mobj.name
+
     def save_system(self):
         dataIO.save_json("data/JumperCogs/casino/casino.json", self.memberships)
 
@@ -232,8 +244,8 @@ class CasinoBank:
 
             try:
                 if path["System Config"]["Version"] < self.patch:
-                    path["System Config"]["Version"] = self.patch
                     self.casino_patcher(path)
+                    path["System Config"]["Version"] = self.patch
             except KeyError:
                 path["System Config"]["Version"] = self.patch
                 self.casino_patcher(path)
@@ -241,61 +253,66 @@ class CasinoBank:
             return path
 
     def casino_patcher(self, path):
-        # Add hi-lo to older versions
-        if "Hi-Lo" not in path["Games"]:
-            hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
-                            "Max": 20}}
-            path["Games"].update(hl)
 
-        # Add war to older versions
-        if "War" not in path["Games"]:
-            war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
-                           "Max": 100}}
-            path["Games"].update(war)
+        if path["System Config"]["Version"] < 1.581:
 
-        # Add membership changes from patch 1.5 to older versions
-        trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
-                 "Membership Lvl 3"]
-        new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
-               "Payday Timer": 1200}
+            # Fixes the name bug for older versions
+            self.name_fix()
+            # Add hi-lo to older versions
+            if "Hi-Lo" not in path["Games"]:
+                hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
+                                "Max": 20}}
+                path["Games"].update(hl)
 
-        if "Threshold" not in path["System Config"]:
-            path["System Config"].update(new)
+            # Add war to older versions
+            if "War" not in path["Games"]:
+                war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
+                               "Max": 100}}
+                path["Games"].update(war)
 
-        if "Memberships" not in path:
-            path["Memberships"] = {}
+            # Add membership changes from patch 1.5 to older versions
+            trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
+                     "Membership Lvl 3"]
+            new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
+                   "Payday Timer": 1200}
 
-        # Game access levels added
-        for x in path["Games"].values():
-            if "Access Level" not in x:
-                x["Access Level"] = 0
+            if "Threshold" not in path["System Config"]:
+                path["System Config"].update(new)
 
-        if "Min" in path["Games"]["Allin"]:
-            path["Games"]["Allin"].pop("Min")
+            if "Memberships" not in path:
+                path["Memberships"] = {}
 
-        if "Max" in path["Games"]["Allin"]:
-            path["Games"]["Allin"].pop("Max")
+            # Game access levels added
+            for x in path["Games"].values():
+                if "Access Level" not in x:
+                    x["Access Level"] = 0
 
-        for x in trash:
-            if x in path["System Config"]:
-                path["System Config"].pop(x)
+            if "Min" in path["Games"]["Allin"]:
+                path["Games"]["Allin"].pop("Min")
 
-        for x in path["Players"].keys():
-            if "CD" in path["Players"][x]:
-                path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
-                raw = [(x.split(" ", 1)[0], y) for x, y in
-                       path["Players"][x]["Cooldowns"].items()]
-                raw.append(("Payday", 0))
-                new_dict = dict(raw)
-                path["Players"][x]["Cooldowns"] = new_dict
+            if "Max" in path["Games"]["Allin"]:
+                path["Games"]["Allin"].pop("Max")
 
-            if "Membership" not in path["Players"][x]:
-                path["Players"][x]["Membership"] = None
+            for x in trash:
+                if x in path["System Config"]:
+                    path["System Config"].pop(x)
 
-            if "Pending" not in path["Players"][x]:
-                path["Players"][x]["Pending"] = 0
+            for x in path["Players"].keys():
+                if "CD" in path["Players"][x]:
+                    path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
+                    raw = [(x.split(" ", 1)[0], y) for x, y in
+                           path["Players"][x]["Cooldowns"].items()]
+                    raw.append(("Payday", 0))
+                    new_dict = dict(raw)
+                    path["Players"][x]["Cooldowns"] = new_dict
 
-        # Save changes and return updated dictionary.
+                if "Membership" not in path["Players"][x]:
+                    path["Players"][x]["Membership"] = None
+
+                if "Pending" not in path["Players"][x]:
+                    path["Players"][x]["Pending"] = 0
+
+            # Save changes and return updated dictionary.
         self.save_system()
 
 
@@ -321,7 +338,8 @@ class Casino:
     Any user can join casino by using the casino join command. Casino uses hooks from economy to
     cash in/out chips. You are able to create your own casino name and chip name. Casino comes with
     7 mini games that you can set min/max bets, multipliers, and access levels. Check out all of the
-    admin settings by using commands in the setcasino group.
+    admin settings by using commands in the setcasino group. For additional information please
+    check out the wiki on my github.
 
     """
 
@@ -336,7 +354,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.8.1"
+        self.version = "1.5.9"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -514,8 +532,9 @@ class Casino:
             embed.title = "{} Casino".format(casino_name)
             embed.set_author(name=str(author), icon_url=author.avatar_url)
             embed.add_field(name="Benefits", value=b_msg)
-            embed.add_field(name="Pending Chips", value=pending_chips, inline=False)
-            embed.add_field(name="Games", value="```Prolog\n{}```".format("\n".join(games)))
+            embed.add_field(name="Pending Chips", value=pending_chips)
+            embed.add_field(name="Games", value="```Prolog\n{}```".format("\n".join(games)),
+                            inline=False)
             embed.add_field(name="Played",
                             value="```Prolog\n{}```".format("\n".join(map(str, played))))
             embed.add_field(name="Won", value="```Prolog\n{}```".format("\n".join(map(str, won))))
@@ -589,11 +608,11 @@ class Casino:
                     membership = settings["Players"][user.id]["Membership"]
                     amount = settings["Memberships"][membership]["Payday"]
                     self.casino_bank.deposit_chips(user, amount)
-                    msg = "You recieved {} {} chips".format(amount, chip_name)
+                    msg = "You received {} {} chips.".format(amount, chip_name)
                 else:
                     payday = settings["System Config"]["Default Payday"]
                     self.casino_bank.deposit_chips(user, payday)
-                    msg = "You recieved {} {} chips. Enjoy!".format(payday, chip_name)
+                    msg = "You received {} {} chips. Enjoy!".format(payday, chip_name)
             else:
                 msg = cooldown
         else:
@@ -970,7 +989,7 @@ class Casino:
                  "provide benefits to your members such as reduced cooldowns and access levels.\n"
                  "You may cancel this process at anytime by typing {}cancel. Let's begin with the "
                  "first question.\n\nWhat is the name of this membership? Examples: Silver, Gold, "
-                 "Diamond".format(ctx.prefix))
+                 "and Diamond.".format(ctx.prefix))
 
         # Begin creation process
         await self.bot.say(start)
@@ -1269,7 +1288,7 @@ class Casino:
     async def _payday_setcasino(self, ctx, amount: int):
         """Set the default payday amount with no membership
 
-        This amount is what users who have no membership will recieve. If the
+        This amount is what users who have no membership will receive. If the
         user has a membership it will be based on what payday amount that was set
         for it.
         """
@@ -1309,9 +1328,9 @@ class Casino:
             msg = ("You cannot set a negative number to payday timer. That would be like going back"
                    " in time. Which would be totally cool, but I don't understand the physics of "
                    "how it might apply in this case. One would assume you would go back in time to "
-                   "the point in which you could recieve a payday, but it is actually quite the "
+                   "the point in which you could receive a payday, but it is actually quite the "
                    "opposite. You would go back to the point where you were about to claim a "
-                   "payday and thus claim it again, but unfortunately your total would not recieve "
+                   "payday and thus claim it again, but unfortunately your total would not receive "
                    "a net gain, because you are robbing from yourself. Next time think before you "
                    "do something so stupid.")
 
@@ -1351,7 +1370,7 @@ class Casino:
         elif access > 0:
             settings["Games"][game.title()]["Access Level"] = access
             self.casino_bank.save_system()
-            msg = "{} changed the access level for {} to {}".format(author.name, game, access)
+            msg = "{} changed the access level for {} to {}.".format(author.name, game, access)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
             msg = "Access level must be higher than 0."
@@ -1477,13 +1496,13 @@ class Casino:
             settings["System Config"]["Chip Rate"] = rate
             logger.info("{}({}) changed the chip rate to {}".format(author.name, author.id, rate))
             self.casino_bank.save_system()
-            msg = "Setting the exchange rate for credits to chips to {}".format(rate)
+            msg = "Setting the exchange rate for credits to chips to {}.".format(rate)
         elif currency.title() == "Credits":
             settings["System Config"]["Credit Rate"] = rate
             logger.info("SETTINGS CHANGED {}({}) changed the credit rate to "
                         "{}".format(author.name, author.id, rate))
             self.casino_bank.save_system()
-            msg = "Setting the exchange rate for chips to credits to {}".format(rate)
+            msg = "Setting the exchange rate for chips to credits to {}.".format(rate)
         else:
             msg = "Please specify chips or credits"
 
@@ -1529,7 +1548,7 @@ class Casino:
             settings["Games"][game.title()]["Cooldown"] = seconds
             time_set = self.time_format(seconds)
             self.casino_bank.save_system()
-            msg = "Setting the cooldown period for {} to {}".format(game, time_set)
+            msg = "Setting the cooldown period for {} to {}.".format(game, time_set)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
 
         await self.bot.say(msg)
@@ -1707,7 +1726,7 @@ class Casino:
             return ph, dh, amount
 
         msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
-               "{}\nHit, stay, or double".format(user.mention, ", ".join(ph), count, dh[0]))
+               "{}\nHit, stay, or double?".format(user.mention, ", ".join(ph), count, dh[0]))
         await self.bot.say(msg)
         choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
 
