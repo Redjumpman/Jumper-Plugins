@@ -60,7 +60,10 @@ class Cookie:
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
         self.account_check(settings, author)
+        self.account_check(settings, user)
         sender_cookies = settings["Players"][author.id]["Cookies"]
+        if author.id == user.id:
+            return await self.bot.say("You can't give yourself cookies.")
         if 0 < cookies <= sender_cookies:
             settings["Players"][author.id]["Cookies"] -= cookies
             settings["Players"][user.id]["Cookies"] += cookies
