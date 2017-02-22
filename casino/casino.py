@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.59
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.591
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -109,7 +109,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.59
+        self.patch = 1.591
 
     def create_account(self, user):
         server = user.server
@@ -354,7 +354,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.9"
+        self.version = "1.5.91"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1367,7 +1367,7 @@ class Casino:
 
         if game not in self.games:
             msg = "This game does not exist. Please pick from: {}".format(", ".join(self.games))
-        elif access > 0:
+        elif access >= 0:
             settings["Games"][game.title()]["Access Level"] = access
             self.casino_bank.save_system()
             msg = "{} changed the access level for {} to {}.".format(author.name, game, access)
