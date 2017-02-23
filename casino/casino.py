@@ -32,7 +32,7 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.592
+                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.593
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -109,7 +109,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.592
+        self.patch = 1.593
 
     def create_account(self, user):
         server = user.server
@@ -359,7 +359,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.92"
+        self.version = "1.5.93"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -537,9 +537,8 @@ class Casino:
             embed.title = "{} Casino".format(casino_name)
             embed.set_author(name=str(author), icon_url=author.avatar_url)
             embed.add_field(name="Benefits", value=b_msg)
-            embed.add_field(name="Pending Chips", value=pending_chips)
-            embed.add_field(name="Games", value="```Prolog\n{}```".format("\n".join(games)),
-                            inline=False)
+            embed.add_field(name="Pending Chips", value=pending_chips, inline=False)
+            embed.add_field(name="Games", value="```Prolog\n{}```".format("\n".join(games)))
             embed.add_field(name="Played",
                             value="```Prolog\n{}```".format("\n".join(map(str, played))))
             embed.add_field(name="Won", value="```Prolog\n{}```".format("\n".join(map(str, won))))
