@@ -62,6 +62,8 @@ class Cookie:
         self.account_check(settings, author)
         self.account_check(settings, user)
         sender_cookies = settings["Players"][author.id]["Cookies"]
+        if user.bot:
+            return await self.bot.say("Nice try, us bots can't accept cookies from strangers.")
         if author.id == user.id:
             return await self.bot.say("You can't give yourself cookies.")
         if 0 < cookies <= sender_cookies:
