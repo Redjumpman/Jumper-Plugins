@@ -62,7 +62,7 @@ class Cookie:
         self.account_check(settings, author)
         self.account_check(settings, user)
         sender_cookies = settings["Players"][author.id]["Cookies"]
-        if user.bot:
+        if user is None and user.bot:
             return await self.bot.say("Nice try, us bots can't accept cookies from strangers.")
         if author.id == user.id:
             return await self.bot.say("You can't give yourself cookies.")
@@ -111,7 +111,7 @@ class Cookie:
         action = "Steal CD"
         settings = self.check_server_settings(server)
         self.account_check(settings, author)
-        if user.bot:
+        if user is None and user.bot:
             return await self.bot.say("You are not allow to steal a cookie from a bot")
         if not user:
             users = [server.get_member(x) for x in settings["Players"].keys()
