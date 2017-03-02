@@ -111,7 +111,7 @@ class Cookie:
         action = "Steal CD"
         settings = self.check_server_settings(server)
         self.account_check(settings, author)
-        if user is None and user.bot:
+        if user is not None and user.bot:
             return await self.bot.say("You are not allowed to steal cookie from a bot")
         if not user:
             users = [server.get_member(x) for x in settings["Players"].keys()
@@ -121,6 +121,8 @@ class Cookie:
                 user = "Fail"
             else:
                 user = random.choice(users)
+                if user.bot:
+                    return await self.bot.say("Stealing is failed because the picked target is a bot.\nThis message appeared because someone, in the past, gave cookies to bot user\n You can retry stealing again, your cooldown is not consumed.")
                 self.account_check(settings, user)
         if await self.check_cooldowns(author.id, action, settings):
             if user == "Fail":
