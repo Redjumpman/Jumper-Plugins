@@ -112,7 +112,7 @@ class Cookie:
         settings = self.check_server_settings(server)
         self.account_check(settings, author)
         if user is None and user.bot:
-            return await self.bot.say("You are not allow to steal a cookie from a bot")
+            return await self.bot.say("You are not allowed to steal cookie from a bot")
         if not user:
             users = [server.get_member(x) for x in settings["Players"].keys()
                      if x != author.id and x in settings["Players"].keys()]
