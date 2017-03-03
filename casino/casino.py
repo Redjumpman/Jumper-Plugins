@@ -32,7 +32,8 @@ except ImportError:
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Version": 1.594
+                                    "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
+                                    "Transfer Cooldown": 30, "Version": 1.6
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -99,7 +100,15 @@ class NegativeChips(CasinoError):
     pass
 
 
+class NegativeValue(CasinoError):
+    pass
+
+
 class SameSenderAndReceiver(CasinoError):
+    pass
+
+
+class BotNotAUser(CasinoError):
     pass
 
 
@@ -109,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.594
+        self.patch = 1.6
 
     def create_account(self, user):
         server = user.server
@@ -176,14 +185,17 @@ class CasinoBank:
         if sender is receiver:
             raise SameSenderAndReceiver()
 
+        if receiver == self.bot.user:
+            raise BotNotAUser()
+
         if self.membership_exists(sender) and self.membership_exists(receiver):
             sender_acc = self.get_membership(sender)
             if sender_acc["Chips"] < amount:
-                raise InsufficientChips()
-            self.withdraw_credits(sender, amount)
-            self.deposit_credits(receiver, amount)
+                raise InsufficientChips('You cannot cover this amount.')
+            self.withdraw_chips(sender, amount)
+            self.deposit_chips(receiver, amount)
         else:
-            raise UserNotRegistered()
+            raise UserNotRegistered('{} is not registered.'.format(receiver.name))
 
     def wipe_caisno_server(self, server):
         self.memberships["Servers"].pop(server.id)
@@ -219,13 +231,19 @@ class CasinoBank:
 
     def name_fix(self):
         servers = self.get_all_servers()
-        for server in servers.keys():
-            server = self.bot.get_server(server)
-            self.name_bug_fix(server)
+        for server in servers:
+            try:
+                server = self.bot.get_server(server)
+                self.name_bug_fix(server)
+            except AttributeError:
+                self.memberships["Servers"].pop(server)
+                logger.info("WIPED SERVER: {} FROM CASINO".format(server))
+                print("Removed server ID: {} from the list of servers, because the bot is no "
+                      "longer on that server.".format(server))
 
     def name_bug_fix(self, server):
         players = self.get_server_memberships(server)
-        for player in players.keys():
+        for player in players:
             mobj = server.get_member(player)
             try:
                 if players[player]["Name"] != mobj.name:
@@ -302,7 +320,7 @@ class CasinoBank:
                 if x in path["System Config"]:
                     path["System Config"].pop(x)
 
-            for x in path["Players"].keys():
+            for x in path["Players"]:
                 if "CD" in path["Players"][x]:
                     path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
                     raw = [(x.split(" ", 1)[0], y) for x, y in
@@ -316,6 +334,16 @@ class CasinoBank:
 
                 if "Pending" not in path["Players"][x]:
                     path["Players"][x]["Pending"] = 0
+
+        if path["System Config"]["Version"] < 1.6:
+            if "Transfer Limit" not in path["System Config"]:
+                transfer_dict = {"Transfer Limit": 1000, "Transfer Cooldown": 30}
+                path["System Config"].update(transfer_dict)
+
+            for x in path["Players"]:
+                if "Transfer" not in path["Players"][x]["Cooldowns"]:
+                    path["Players"][x]["Cooldowns"]["Transfer"] = 0
+                    self.save_system()
 
             # Save changes and return updated dictionary.
         self.save_system()
@@ -359,7 +387,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.5.94"
+        self.version = "1.6"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -382,7 +410,39 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="transfer", pass_context=True)
-    async def _transfer_casino(self, ctx):
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _transfer_casino(self, ctx, user: discord.Member, chips: int):
+        """Transfers chips to another player"""
+        author = ctx.message.author
+        settings = self.casino_bank.check_server_settings(author.server)
+        chip_name = settings["System Config"]["Chip Name"]
+        limit = settings["System Config"]["Transfer Limit"]
+
+        if not self.casino_bank.membership_exists(author):
+            raise UserNotRegistered("{} is not registered to the casino.".format(author.name))
+
+        if not self.casino_bank.membership_exists(user):
+            raise UserNotRegistered("{} is not registered to the casino.".format(user.name))
+
+        if chips > limit:
+            return await self.bot.say("Your transfer cannot exceed the server limit of {} {} "
+                                      "chips.".format(limit, chip_name))
+
+        chip_name = settings["System Config"]["Chip Name"]
+        cooldown = self.check_cooldowns(user, "Transfer", settings)
+
+        if not cooldown:
+            self.casino_bank.transfer_chips(author, user, chips)
+            logger.info("{}({}) transferred {} {} to {}({}).".format(author.name, author.id,
+                                                                     chip_name, chips, user.name,
+                                                                     user.id))
+            msg = ("{} transferred {} {} to {}.".format(author.name, chip_name, chips, user.name))
+        else:
+            msg = cooldown
+        await self.bot.say(msg)
+
+    @casino.command(name="acctransfer", pass_context=True)
+    async def _acctransfer_casino(self, ctx):
         """Transfers account info from old casino. Limit 1 transfer per user"""
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
@@ -392,8 +452,8 @@ class Casino:
         elif not self.legacy_available:
             msg = "No legacy file was found. Unable to perform membership transfers."
         elif user.id in self.legacy_system["Players"]:
-            await self.bot.say("Account for {} found. Your casino data will be transfered to the "
-                               "{} server. After your data is transfered your old data will be "
+            await self.bot.say("Account for {} found. Your casino data will be transferred to the "
+                               "{} server. After your data is transferred your old data will be "
                                "deleted. I can only transfer data **one time**.\nDo you wish to "
                                "transfer?".format(user.name, user.server.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
@@ -417,6 +477,7 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="leaderboard", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _leaderboard_casino(self, ctx, sort="top"):
         """Displays Casino Leaderboard"""
         user = ctx.message.author
@@ -451,6 +512,7 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="exchange", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _exchange_casino(self, ctx, currency: str, amount: int):
         """Exchange chips for credits and credits for chips"""
 
@@ -503,6 +565,7 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="stats", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _stats_casino(self, ctx):
         """Shows your casino play stats"""
 
@@ -526,7 +589,7 @@ class Casino:
             color = self.color_lookup(benefits["Color"])
 
             # Build columns for the table
-            games = list(sorted(settings["Games"].keys()))
+            games = list(sorted(settings["Games"]))
             played = [x[1] for x in sorted(player["Played"].items(), key=lambda tup: tup[0])]
             won = [x[1] for x in sorted(player["Won"].items(), key=lambda tup: tup[0])]
             cool_items = list(sorted(games + ["Payday"]))
@@ -553,6 +616,7 @@ class Casino:
                                "join`.".format(casino_name, ctx.prefix))
 
     @casino.command(name="info", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _info_casino(self, ctx):
         """Shows information about the server casino"""
 
@@ -599,6 +663,7 @@ class Casino:
         await self.bot.say(msg)
 
     @casino.command(name="payday", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _payday_casino(self, ctx):
         """Gives you some chips"""
 
@@ -622,10 +687,11 @@ class Casino:
                 msg = cooldown
         else:
             msg = ("You need to register to the {} Casino. To register type `{}casino "
-                   "join`.".format(casino_name, prefix))
+                   "join`.".format(casino_name, ctx.prefix))
         await self.bot.say(msg)
 
     @casino.command(name="balance", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _balance_casino(self, ctx):
         """Shows your number of chips"""
         user = ctx.message.author
@@ -635,6 +701,7 @@ class Casino:
         await self.bot.say("```Python\nYou have {} {} chips.```".format(balance, chip_name))
 
     @commands.command(pass_context=True, no_pm=True, aliases=["hl", "hi-lo"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def hilo(self, ctx, choice: str, bet: int):
         """Pick High, Low, Seven. Lo is < 7 Hi is > 7. 6x payout on 7"""
 
@@ -648,7 +715,7 @@ class Casino:
                      "Cooldown": {"Hi-Lo": 0}}
 
         # Check if casino json file has the hi-lo game, and if not add it.
-        if "Hi-Lo Played" not in settings["Players"][user.id]["Played"].keys():
+        if "Hi-Lo Played" not in settings["Players"][user.id]["Played"]:
             self.player_update(settings["Players"][user.id], hilo_data)
 
         # Run a logic check to determine if the user can play the game
@@ -703,6 +770,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def cups(self, ctx, cup: int, bet: int):
         """Pick the cup that is hiding the gold coin. Choose 1, 2, 3, or 4"""
 
@@ -754,6 +822,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def coin(self, ctx, choice: str, bet: int):
         """Bet on heads or tails"""
 
@@ -805,6 +874,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def dice(self, ctx, bet: int):
         """Roll 2, 7, 11 or 12 to win."""
 
@@ -859,7 +929,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
-    @commands.cooldown(1, 4, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def war(self, ctx, bet: int):
         """Modified War Card Game."""
 
@@ -871,7 +941,7 @@ class Casino:
                     "Cooldown": {"War": 0}}
 
         # Check if casino json file has the hi-lo game, and if not add it.
-        if "War Played" not in settings["Players"][user.id]["Played"].keys():
+        if "War Played" not in settings["Players"][user.id]["Played"]:
             self.player_update(settings["Players"][user.id], war_data)
 
         # Run a logic check to determine if the user can play the game
@@ -888,6 +958,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True, aliases=["bj", "21"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def blackjack(self, ctx, bet: int):
         """Modified Blackjack."""
 
@@ -910,6 +981,7 @@ class Casino:
         await self.bot.say(msg)
 
     @commands.command(pass_context=True, no_pm=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def allin(self, ctx, multiplier: int):
         """It's all or nothing. Bets everything you have."""
 
@@ -1008,7 +1080,7 @@ class Casino:
             await self.bot.say("Membership creation cancelled.")
             return
 
-        if name.content.title() in list(settings["Memberships"].keys()):
+        if name.content.title() in list(settings["Memberships"]):
             await self.bot.say("A membership with that name already exists. Cancelling creation.")
             return
 
@@ -1062,7 +1134,7 @@ class Casino:
             await self.bot.say("Membership creation cancelled.")
             return
 
-        if int(access.content) in [x["Access"] for x in list(settings["Memberships"].keys())]:
+        if int(access.content) in [x["Access"] for x in list(settings["Memberships"])]:
             await self.bot.say("You cannot have memberships with the same access level. Cancelling "
                                "creation.")
             return
@@ -1218,7 +1290,7 @@ class Casino:
         servers = self.casino_bank.get_all_servers()
 
         try:
-            server = [self.bot.get_server(x) for x in servers.keys()
+            server = [self.bot.get_server(x) for x in servers
                       if self.bot.get_server(x).name == servername][0]
         except IndexError:
             raise WipeError("This server name provided could not be located. Check your spelling "
@@ -1252,6 +1324,52 @@ class Casino:
         """Configures Casino Options"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @setcasino.command(name="transferlimit", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _xferlimit_setcasino(self, ctx, limit: int):
+        """This is the limit of chips a player can transfer at one time.
+
+        Remember, that without a cooldown, a player can still use this command
+        over and over. This is just to prevent a transfer of outrageous amounts.
+
+        """
+        author = ctx.message.author
+        settings = self.casino_bank.check_server_settings(author.server)
+
+        if limit > 0:
+            settings["System Config"]["Transfer Limit"] = limit
+            msg = "{} set transfer limit to {}.".format(author.name, limit)
+            logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
+            self.casino_bank.save_system()
+        else:
+            raise NegativeValue()
+
+        await self.bot.say(msg)
+
+    @setcasino.command(name="transfercd", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _xcdlimit_setcasino(self, ctx, seconds: int):
+        """Set the cooldown for transferring chips.
+
+        There is already a five second cooldown in place. Use this to prevent
+        users from circumventing the transfer limit through spamming. Default
+        is set to 30 seconds.
+
+        """
+        author = ctx.message.author
+        settings = self.casino_bank.check_server_settings(author.server)
+
+        if limit > 0:
+            settings["System Config"]["Transfer Cooldown"] = seconds
+            time_fmt = self.time_format(seconds)
+            msg = "{} set transfer cooldown to {}.".format(author.name, time_fmt)
+            logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
+            self.casino_bank.save_system()
+        else:
+            raise NegativeValue()
+
+        await self.bot.say(msg)
 
     @setcasino.command(name="threshold", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1656,11 +1774,11 @@ class Casino:
             await asyncio.sleep(30)
             while True:
                 servers = self.casino_bank.get_all_servers()
-                for server in servers.keys():
+                for server in servers:
                     server = [self.bot.get_server(server)][0]
                     settings = self.casino_bank.check_server_settings(server)
                     user_path = self.casino_bank.get_server_memberships(server)
-                    users = [server.get_member(user) for user in list(user_path.keys())]
+                    users = [server.get_member(user) for user in list(user_path)]
                     if users:
                         for user in users:
                             membership = self.gather_requirements(settings, user)
@@ -1935,7 +2053,7 @@ class Casino:
         for membership in memberships:
             requirements = []
             reqs = path[membership]["Requirements"]
-            for req in reqs.keys():
+            for req in reqs:
 
                 # If the requirement is a role, run role logic
                 if req == "Role":
@@ -2078,8 +2196,10 @@ class Casino:
         # Check if method is for a game or for payday
         if method in self.games:
             path = settings["Games"][method]["Cooldown"]
-        else:
+        elif method == "Payday":
             path = settings["System Config"]["Payday Timer"]
+        else:
+            path = settings["System Config"]["Transfer Cooldown"]
 
         # Begin cooldown logic calculation
         if abs(base - int(time.perf_counter())) >= path - reduction:
