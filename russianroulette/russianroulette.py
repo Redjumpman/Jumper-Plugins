@@ -56,7 +56,7 @@ class Russianroulette:
                              "Is it weird that I wish {1} was dead instead?",
                              "Oh real great. {0} dies and I\'m still stuck with {1}. Real. Great.",
                              "Are you eating cheetos? Have some respect {1}! {0} just died!"]
-        self.version = "2.1"
+        self.version = "2.1.1"
 
     @commands.group(pass_context=True, no_pm=True)
     async def setrussian(self, ctx):
@@ -100,6 +100,7 @@ class Russianroulette:
         user = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
+        bank = self.bot.get_cog("Economy").bank
         if await self.logic_checks(settings, user, bet):
             if settings["System"]["Roulette Initial"]:
                 if user.id in settings["Players"]:
@@ -126,6 +127,10 @@ class Russianroulette:
                 if len(settings["Players"].keys()) == 1:
                     await self.bot.say("Sorry I can't let you play by yourself, that's just "
                                        "suicide.\nTry again when you find some 'friends'.")
+                    player = list(settings["Players"].keys())[0]
+                    mobj = server.get_member(player)
+                    initial_bet = settings["Players"][player]["Bet"]
+                    bank.deposit_credits(mobj, initial_bet)
                     self.reset_game(settings)
                 else:
                     await self.bot.say("Gather around! The game of russian roulette is starting.\n"
