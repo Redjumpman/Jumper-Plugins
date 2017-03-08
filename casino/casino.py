@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.62
+                                    "Transfer Cooldown": 30, "Version": 1.63
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.62
+        self.patch = 1.63
 
     def create_account(self, user):
         server = user.server
@@ -387,7 +387,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.2"
+        self.version = "1.6.3"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1080,7 +1080,7 @@ class Casino:
             await self.bot.say("Membership creation cancelled.")
             return
 
-        if name.content.title() in list(settings["Memberships"]):
+        if name.content.title() in list(settings["Memberships"].keys()):
             await self.bot.say("A membership with that name already exists. Cancelling creation.")
             return
 
@@ -1370,7 +1370,7 @@ class Casino:
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
 
-        if limit > 0:
+        if seconds > 0:
             settings["System Config"]["Transfer Cooldown"] = seconds
             time_fmt = self.time_format(seconds)
             msg = "{} set transfer cooldown to {}.".format(author.name, time_fmt)
@@ -1788,11 +1788,11 @@ class Casino:
             await asyncio.sleep(30)
             while True:
                 servers = self.casino_bank.get_all_servers()
-                for server in servers:
+                for server in servers.keys():
                     server = [self.bot.get_server(server)][0]
                     settings = self.casino_bank.check_server_settings(server)
                     user_path = self.casino_bank.get_server_memberships(server)
-                    users = [server.get_member(user) for user in list(user_path)]
+                    users = [server.get_member(user) for user in list(user_path.keys())]
                     if users:
                         for user in users:
                             membership = self.gather_requirements(settings, user)
@@ -2067,7 +2067,7 @@ class Casino:
         for membership in memberships:
             requirements = []
             reqs = path[membership]["Requirements"]
-            for req in reqs:
+            for req in reqs.keys():
 
                 # If the requirement is a role, run role logic
                 if req == "Role":
