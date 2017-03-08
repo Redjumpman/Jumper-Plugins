@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.63
+                                    "Transfer Cooldown": 30, "Version": 1.64
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.63
+        self.patch = 1.64
 
     def create_account(self, user):
         server = user.server
@@ -222,6 +222,9 @@ class CasinoBank:
     def get_all_servers(self):
         return self.memberships["Servers"]
 
+    def get_casino_server(self, server):
+        return self.membership["Servers"][server.id]
+
     def get_server_memberships(self, server):
         if server.id in self.memberships["Servers"]:
             members = self.memberships["Servers"][server.id]["Players"]
@@ -277,76 +280,81 @@ class CasinoBank:
     def casino_patcher(self, path):
 
         if path["System Config"]["Version"] < 1.581:
-
-            # Fixes the name bug for older versions
-            self.name_fix()
-            # Add hi-lo to older versions
-            if "Hi-Lo" not in path["Games"]:
-                hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
-                                "Max": 20}}
-                path["Games"].update(hl)
-
-            # Add war to older versions
-            if "War" not in path["Games"]:
-                war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
-                               "Max": 100}}
-                path["Games"].update(war)
-
-            # Add membership changes from patch 1.5 to older versions
-            trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
-                     "Membership Lvl 3"]
-            new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
-                   "Payday Timer": 1200}
-
-            for k, v in new.items():
-                if k not in path["System Config"]:
-                    path["System Config"][k] = v
-
-            if "Memberships" not in path:
-                path["Memberships"] = {}
-
-            # Game access levels added
-            for x in path["Games"].values():
-                if "Access Level" not in x:
-                    x["Access Level"] = 0
-
-            if "Min" in path["Games"]["Allin"]:
-                path["Games"]["Allin"].pop("Min")
-
-            if "Max" in path["Games"]["Allin"]:
-                path["Games"]["Allin"].pop("Max")
-
-            for x in trash:
-                if x in path["System Config"]:
-                    path["System Config"].pop(x)
-
-            for x in path["Players"]:
-                if "CD" in path["Players"][x]:
-                    path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
-                    raw = [(x.split(" ", 1)[0], y) for x, y in
-                           path["Players"][x]["Cooldowns"].items()]
-                    raw.append(("Payday", 0))
-                    new_dict = dict(raw)
-                    path["Players"][x]["Cooldowns"] = new_dict
-
-                if "Membership" not in path["Players"][x]:
-                    path["Players"][x]["Membership"] = None
-
-                if "Pending" not in path["Players"][x]:
-                    path["Players"][x]["Pending"] = 0
+            self.DICT_PATCH_1581(path)
 
         if path["System Config"]["Version"] < 1.6:
-            if "Transfer Limit" not in path["System Config"]:
-                transfer_dict = {"Transfer Limit": 1000, "Transfer Cooldown": 30}
-                path["System Config"].update(transfer_dict)
-
-            for x in path["Players"]:
-                if "Transfer" not in path["Players"][x]["Cooldowns"]:
-                    path["Players"][x]["Cooldowns"]["Transfer"] = 0
-                    self.save_system()
+            self.DICT_PATCH_16(path)
 
             # Save changes and return updated dictionary.
         self.save_system()
+
+    def DICT_PATCH_16(self, path):
+        if "Transfer Limit" not in path["System Config"]:
+            transfer_dict = {"Transfer Limit": 1000, "Transfer Cooldown": 30}
+            path["System Config"].update(transfer_dict)
+
+        for x in path["Players"]:
+            if "Transfer" not in path["Players"][x]["Cooldowns"]:
+                path["Players"][x]["Cooldowns"]["Transfer"] = 0
+                self.save_system()
+
+    def DICT_PATCH_1581(self, path):
+        # Fixes the name bug for older versions
+        self.name_fix()
+        # Add hi-lo to older versions
+        if "Hi-Lo" not in path["Games"]:
+            hl = {"Hi-Lo": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 20,
+                            "Max": 20}}
+            path["Games"].update(hl)
+
+        # Add war to older versions
+        if "War" not in path["Games"]:
+            war = {"War": {"Multiplier": 1.5, "Cooldown": 0, "Open": True, "Min": 50,
+                           "Max": 100}}
+            path["Games"].update(war)
+
+        # Add membership changes from patch 1.5 to older versions
+        trash = ["Membership Lvl 0", "Membership Lvl 1", "Membership Lvl 2",
+                 "Membership Lvl 3"]
+        new = {"Threshold Switch": False, "Threshold": 10000, "Default Payday": 100,
+               "Payday Timer": 1200}
+
+        for k, v in new.items():
+            if k not in path["System Config"]:
+                path["System Config"][k] = v
+
+        if "Memberships" not in path:
+            path["Memberships"] = {}
+
+        # Game access levels added
+        for x in path["Games"].values():
+            if "Access Level" not in x:
+                x["Access Level"] = 0
+
+        if "Min" in path["Games"]["Allin"]:
+            path["Games"]["Allin"].pop("Min")
+
+        if "Max" in path["Games"]["Allin"]:
+            path["Games"]["Allin"].pop("Max")
+
+        for x in trash:
+            if x in path["System Config"]:
+                path["System Config"].pop(x)
+
+        for x in path["Players"]:
+            if "CD" in path["Players"][x]:
+                path["Players"][x]["Cooldowns"] = path["Players"][x].pop("CD")
+                raw = [(x.split(" ", 1)[0], y) for x, y in
+                       path["Players"][x]["Cooldowns"].items()]
+                raw.append(("Payday", 0))
+                new_dict = dict(raw)
+                path["Players"][x]["Cooldowns"] = new_dict
+
+            if "Membership" not in path["Players"][x]:
+                path["Players"][x]["Membership"] = None
+
+            if "Pending" not in path["Players"][x]:
+                path["Players"][x]["Pending"] = 0
 
 
 class PluralDict(dict):
@@ -387,7 +395,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.3"
+        self.version = "1.6.4"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -397,7 +405,22 @@ class Casino:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @casino.command(name="join", pass_context=True)
+    @casino.command(name="forceupdate", pass_context=True)
+    @checks.is_owner()
+    async def _forceupdate_casino(self, ctx):
+        """Force update old dictionary patches
+        This command will attempt to update your JSON with the
+        new dictionary keys. If you are having issues with your JSON
+        having a lot of key errors, namely Cooldown, then try using
+        this command. THIS DOES NOT UPDATE CASINO"""
+        user = ctx.message.author
+        settings = self.casino_bank.check_server_settings(user.server)
+        self.casino_bank.DICT_PATCH_1581(settings)
+        self.casino_bank.DICT_PATCH_16(settings)
+        await self.bot.say("Attempted a JSON update. Please reload casino and try replicating the "
+                           "error")
+
+    @casino.command(name="", pass_context=True)
     async def _join_casino(self, ctx):
         """Grants you membership access to the casino"""
         user = ctx.message.author
@@ -2282,6 +2305,7 @@ class Casino:
             return cd_check
 
     def color_lookup(self, color):
+        color = color.lower()
         colors = {"blue": 0x3366FF, "red": 0xFF0000, "green": 0x00CC33, "orange": 0xFF6600,
                   "purple": 0x663399, "yellow": 0xFFFF00, "teal": 0x009999, "magenta": 0xFF33CC,
                   "turquoise": 0x00FFFF, "grey": 0x666666}
