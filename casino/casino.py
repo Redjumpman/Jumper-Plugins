@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.61
+                                    "Transfer Cooldown": 30, "Version": 1.62
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.61
+        self.patch = 1.62
 
     def create_account(self, user):
         server = user.server
@@ -387,7 +387,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.1"
+        self.version = "1.6.2"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1294,7 +1294,7 @@ class Casino:
         try:
             server = [self.bot.get_server(x) for x in servers
                       if self.bot.get_server(x).name == servername][0]
-        except IndexError:
+        except AttributeError:
             msg = ("A server with that name could not be located.\n**List of "
                    "Servers:**")
             if len(fmt_list) > 25:
@@ -1588,20 +1588,24 @@ class Casino:
         if membership not in settings["Memberships"]:
             await self.bot.say("This membership does not exist.")
         else:  # Membership was found.
-            current_requirements = settings["Memberships"][membership].keys()
-            check = lambda m: m.content.title() in current_requirements
+            current_requirements = settings["Memberships"][membership]["Requirements"].keys()
+
+            if not current_requirements:
+                return await self.bot.say("This membership has no requirements.")
+
+            check = lambda m: m.content in current_requirements
 
             await self.bot.say("The current requirements for this membership are:\n{}\nWhich would "
                                "you like to remove?".format(", ".join(current_requirements)))
             resp = await self.bot.wait_for_message(timeout=15, author=author, check=check)
 
             if resp is None:
-                await self.bot.say("You took too long. Cancelling requirement removal.")
-                return
+                return await self.bot.say("You took too long. Cancelling requirement removal.")
             else:
-                settings["Memberships"][membership].pop(resp.title())
+                settings["Memberships"][membership]["Requirements"].pop(resp.content)
                 self.casino_bank.save_system()
-                await self.bot.say("{} requirement removed from {}.".format(resp.title, membership))
+                await self.bot.say("{} requirement removed from {}.".format(resp.content.title,
+                                                                            membership))
 
     @setcasino.command(name="balance", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
