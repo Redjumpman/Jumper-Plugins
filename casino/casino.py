@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.64
+                                    "Transfer Cooldown": 30, "Version": 1.641
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.64
+        self.patch = 1.641
 
     def create_account(self, user):
         server = user.server
@@ -395,7 +395,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.4"
+        self.version = "1.6.41"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -420,7 +420,7 @@ class Casino:
         await self.bot.say("Attempted a JSON update. Please reload casino and try replicating the "
                            "error")
 
-    @casino.command(name="", pass_context=True)
+    @casino.command(name="join", pass_context=True)
     async def _join_casino(self, ctx):
         """Grants you membership access to the casino"""
         user = ctx.message.author
