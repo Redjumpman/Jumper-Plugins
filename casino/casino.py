@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.642
+                                    "Transfer Cooldown": 30, "Version": 1.65
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.642
+        self.patch = 1.65
 
     def create_account(self, user):
         server = user.server
@@ -268,19 +268,23 @@ class CasinoBank:
 
     def name_fix(self):
         servers = self.get_all_servers()
-        for server in servers:
+        removal = []
+        for server in servers.keys():
             try:
                 server_obj = self.bot.get_server(server)
                 self.name_bug_fix(server_obj)
             except AttributeError:
-                self.memberships["Servers"].pop(server)
+                removal.append(server)
                 logger.info("WIPED SERVER: {} FROM CASINO".format(server))
                 print("Removed server ID: {} from the list of servers, because the bot is no "
                       "longer on that server.".format(server))
+        for x in removal:
+            self.memberships["Servers"].pop(x)
+        self.save_system()
 
     def name_bug_fix(self, server):
         players = self.get_server_memberships(server)
-        for player in players:
+        for player in players.keys():
             mobj = server.get_member(player)
             try:
                 if players[player]["Name"] != mobj.name:
@@ -395,7 +399,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.42"
+        self.version = "1.6.5"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
