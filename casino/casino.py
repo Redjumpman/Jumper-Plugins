@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.65
+                                    "Transfer Cooldown": 30, "Version": 1.66
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.65
+        self.patch = 1.66
 
     def create_account(self, user):
         server = user.server
@@ -292,6 +292,18 @@ class CasinoBank:
             except AttributeError:
                 print("Error updating name! {} is no longer on this server.".format(player))
 
+    def DICT_PATCH_GAMES(self, path):
+
+        # Check if player data has the war game, and if not add it.
+        for player in path["Players"]:
+            if "War Played" not in path["Players"][player]["Played"]:
+                path["Players"][player]["Played"]["War Played"] = 0
+            if "War Won" not in path["Players"][player]["Won"]:
+                path["Players"][player]["Won"]["War Won"] = 0
+            if "War" not in path["Players"][player]["Cooldowns"]:
+                path["Players"][player]["Cooldowns"]["War"] = 0
+        self.save_system()
+
     def DICT_PATCH_16(self, path):
         if "Transfer Limit" not in path["System Config"]:
             transfer_dict = {"Transfer Limit": 1000, "Transfer Cooldown": 30}
@@ -300,7 +312,7 @@ class CasinoBank:
         for x in path["Players"]:
             if "Transfer" not in path["Players"][x]["Cooldowns"]:
                 path["Players"][x]["Cooldowns"]["Transfer"] = 0
-                self.save_system()
+        self.save_system()
 
     def DICT_PATCH_1581(self, path):
         # Fixes the name bug for older versions
@@ -359,6 +371,7 @@ class CasinoBank:
 
             if "Pending" not in path["Players"][x]:
                 path["Players"][x]["Pending"] = 0
+        self.save_system()
 
 
 class PluralDict(dict):
@@ -399,7 +412,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.5"
+        self.version = "1.6.6"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -416,13 +429,15 @@ class Casino:
         This command will attempt to update your JSON with the
         new dictionary keys. If you are having issues with your JSON
         having a lot of key errors, namely Cooldown, then try using
-        this command. THIS DOES NOT UPDATE CASINO"""
+        this command. THIS DOES NOT UPDATE CASINO
+        """
+
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         self.casino_bank.DICT_PATCH_1581(settings)
         self.casino_bank.DICT_PATCH_16(settings)
-        await self.bot.say("Attempted a JSON update. Please reload casino and try replicating the "
-                           "error")
+        self.casino_bank.DICT_PATCH_GAMES(settings)
+        await self.bot.say("Force applied three previous JSON updates. Please reload casino.")
 
     @casino.command(name="join", pass_context=True)
     async def _join_casino(self, ctx):
