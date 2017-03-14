@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2"
+        self.version = "2.2.01"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -134,7 +134,7 @@ class Heist:
                    "createtarget .".format(ctx.prefix))
         else:
             target_names = [x for x in settings["Targets"]]
-            crews = [subdict["Crew"] - 1 for subdict in settings["Targets"].values()]
+            crews = [subdict["Crew"] for subdict in settings["Targets"].values()]
             success = [str(subdict["Success"]) + "%" for subdict in settings["Targets"].values()]
             vaults = [subdict["Vault"] for subdict in settings["Targets"].values()]
             data = list(zip(target_names, crews, vaults, success))
@@ -748,7 +748,7 @@ class Heist:
 
     def get_theme(self, settings):
         theme = settings["Config"]["Theme"]
-        with open('data/JumperCogs/heist/{}.txt'.format(theme)) as f:
+        with open('data/heist/{}.txt'.format(theme)) as f:
             data = f.readlines()
             good = [list(literal_eval(line.replace("|Good| ", "")))
                     for line in data if line.startswith('|Good|')]
