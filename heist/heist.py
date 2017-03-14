@@ -2,10 +2,11 @@
 
 # Standard Library
 import asyncio
+import bisect
 import os
 import random
 import time
-from bisect import bisect
+from ast import literal_eval
 from operator import itemgetter
 
 # Discord / Red Bot
@@ -22,54 +23,9 @@ try:
 except ImportError:
     tabulateAvailable = False
 
-good = [["{} had the car gassed up and ready to go. +25 credits.", 25],
-        ["{} cut the power to the bank. +50 credits.", 50],
-        ["{} erased the video footage. +50 credits.", 50],
-        ["{} hacked the security system and put it on a loop feed. +75 credits.", 75],
-        ["{} stopped the teller from triggering the silent alarm. +50 credits.", 50],
-        ["{} knocked out the local security. +50 credits.", 50],
-        ["{} stopped a local from being a hero +50 credits.", 50],
-        ["{} got the police negotiator to deliver everyone pizza. +25 credits.", 25],
-        ["{} brought masks of former presidents to hide our identity. +25 credits.", 25],
-        ["{} found an escape route. +25 credits.", 25],
-        ["{} brought extra ammunition for the crew. +25 credits.", 25],
-        ["{} cut through that safe like butter. +25 credits.", 25],
-        ["{} kept the hostages under control. +25 credits.", 25],
-        ["{} created a distraction to get the crew out. +50 credits.", 50],
-        ["{} improvised under pressure and got the crew out. +50 credits.", 50],
-        ["{} counter sniped a sniper. +100 credits.", 100],
-        ["{} distracted the guard. +25 credits.", 25],
-        ["{} brought a Go-Bag for the team. +25 credits.", 25],
-        ["{} found a secret stash in the deposit box room. +50 credits.", 50],
-        ["{} found a box of jewelry on a civilian. +25 credits.", 25]]
 
-bad = [["A shoot out with local authorities began and {0} was hit...but survived!", "Apprehended"],
-       ["The cops dusted for finger prints and later arrested {0}.", "Apprehended"],
-       ["{0} thought they could double cross the crew and paid for it.", "Dead"],
-       ["{0} blew a tire in the getaway car.", "Apprehended"],
-       ["{0}'s gun jammed while fighting local security, and was knocked out.", "Apprehended"],
-       ["{0} held off the police while the crew was making their getaway.", "Apprehended"],
-       ["A hostage situation went south, and {0} was captured.", "Apprehended"],
-       ["{0} showed up to the heist high as kite, and was subsequently caught.", "Apprehended"],
-       ["{0}'s bag of money contained exploding blue ink and was later caught.", "Apprehended"],
-       ["{0} was sniped by a swat sniper.", "Dead"],
-       ["The crew decided to shaft {0}.", "Dead"],
-       ["Evidence was later found at {0}'s place' linking them to the heist.", "Apprehended"],
-       ["The crew missed a CCTV camera that identified {0} and they were caught.", "Apprehended"],
-       ["{0} forgot the escape plan, and took the route leading to the police.", "Apprehended"],
-       ["{0} was hit and killed by friendly fire.", "Dead"],
-       ["Security system's redundancies caused {0} to be identified.", "Apprehended"],
-       ["{0} accidentally revealed their identity to the teller.", "Apprehended"],
-       ["The swat team released sleeping gas, {0} is sleeping like a baby.", "Apprehended"],
-       ["'FLASH BANG OUT!', was the last thing {0} heard.", "Apprehended"],
-       ["'GRENADE OUT!', {0} is now sleeping with the fishes.", "Dead"],
-       ["{0} tripped a laser wire and was caught.", "Apprehended"],
-       ["One of the hostages later identified {0} from the heist.", "Apprehended"],
-       ["During the power outage, police caught {0} in the confusion.", "Apprehended"],
-       ["{0} was left behind for slowing down the crew, due to a leg wound.", "Apprehended"],
-       ["Someone snitched and {0} was arrested.", "Apprehended"],
-       ["Before the crew could intervene a guard tazed {0} and is now out cold.", "Apprehended"],
-       ["Swat came through the vents, and neutralized {0}.", "Apprehended"]]
+class ThemeError(Exception):
+    pass
 
 
 # Thanks stack overflow http://stackoverflow.com/questions/21872366/plural-string-formatting
@@ -86,13 +42,13 @@ class PluralDict(dict):
 
 
 class Heist:
-    """Bankheist system inspired by Deepbot"""
+    """Heist system inspired by Deepbot"""
 
     def __init__(self, bot):
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.0.8.1"
+        self.version = "2.2"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -102,10 +58,50 @@ class Heist:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
+    @heist.command(name="theme", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _theme_heist(self, ctx, theme):
+        """Sets the theme for heist"""
+        theme = theme.title()
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+
+        if not os.path.exists("data/heist/{}.txt".format(theme)):
+            themes = [os.path.join(x).replace('.txt', '')
+                      for x in os.listdir("data/heist/") if x.endswith(".txt")]
+            print(themes)
+            msg = ("I could not find a theme with that name. Available Themes:"
+                   "```\n{}```".format('\n'.join(themes)))
+        else:
+            theme_dict = self.theme_loader(settings, theme)
+            settings["Theme"] = theme_dict
+            settings["Config"]["Theme"] = theme
+            msg = "{} theme found. Heist will now use this for future games.".format(theme)
+
+        await self.bot.say(msg)
+
+    def theme_loader(self, settings, theme):
+        keys = ["Jail", "OOB", "Police", "Bail", "Crew", "Sentence", "Heist", "Vault"]
+        theme_dict = dict()
+
+        with open('data/heist/{}.txt'.format(theme)) as f:
+            data = f.readlines()
+            for line in data:
+                if "=" in line:
+                    index = line.find('=')
+                    key = line[:index].strip()
+                    value = line[index + 1:].strip()
+                    theme_dict[key] = value
+
+        if all(key in theme_dict for key in keys):
+            return theme_dict
+        else:
+            raise ThemeError("Some keys were missing in your theme. Please check your txt file.")
+
     @heist.command(name="reset", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _reset_heist(self, ctx):
-        """Resets heist incase it hangs"""
+        """Resets heist in case it hangs"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
         self.reset_heist(settings)
@@ -114,7 +110,7 @@ class Heist:
     @heist.command(name="clear", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _clear_heist(self, ctx, user: discord.Member):
-        """Clears a member of jail and death."""
+        """Clears a member of jail and death statuses."""
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
         self.user_clear(settings, user)
@@ -126,57 +122,65 @@ class Heist:
         """Shows the version of heist you are running"""
         await self.bot.say("You are running Heist version {}.".format(self.version))
 
-    @heist.command(name="banks", pass_context=True)
-    async def _banks_heist(self, ctx):
-        """Shows a list of banks"""
+    @heist.command(name="targets", pass_context=True)
+    async def _targets_heist(self, ctx):
+        """Shows a list of targets"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
-        if len(settings["Banks"].keys()) < 0:
-            msg = ("There aren't any banks! To create a bank use {}heist "
-                   "createbank .".format(ctx.prefix))
+        t_vault = settings["Theme"]["Vault"]
+
+        if len(settings["Targets"].keys()) < 0:
+            msg = ("There aren't any targets! To create a target use {}heist "
+                   "createtarget .".format(ctx.prefix))
         else:
-            bank_names = [x for x in settings["Banks"]]
-            crews = [subdict["Crew"] - 1 for subdict in settings["Banks"].values()]
-            success = [str(subdict["Success"]) + "%" for subdict in settings["Banks"].values()]
-            vaults = [subdict["Vault"] for subdict in settings["Banks"].values()]
-            data = list(zip(bank_names, crews, vaults, success))
+            target_names = [x for x in settings["Targets"]]
+            crews = [subdict["Crew"] - 1 for subdict in settings["Targets"].values()]
+            success = [str(subdict["Success"]) + "%" for subdict in settings["Targets"].values()]
+            vaults = [subdict["Vault"] for subdict in settings["Targets"].values()]
+            data = list(zip(target_names, crews, vaults, success))
             table_data = sorted(data, key=itemgetter(1), reverse=True)
-            table = tabulate(table_data, headers=["Bank", "Max Crew", "Vault", "Success Rate"])
+            table = tabulate(table_data, headers=["Target", "Max Group", t_vault, "Success Rate"])
             msg = "```Python\n{}```".format(table)
+
         await self.bot.say(msg)
 
     @heist.command(name="bailout", pass_context=True)
     async def _bailout_heist(self, ctx, user: discord.Member=None):
-        """Specify who you want to bailout. Defaults to you."""
+        """Specify who you want to pay for release. Defaults to you."""
         author = ctx.message.author
-        server = ctx.message.server
-        settings = self.check_server_settings(server)
+        settings = self.check_server_settings(author.server)
+
+        t_bail = settings["Theme"]["Bail"]
+        t_sentence = settings["Theme"]["Sentence"]
         self.account_check(settings, author)
+
         if not user:
             user = author
+
         if settings["Players"][user.id]["Status"] == "Apprehended":
             cost = settings["Players"][user.id]["Bail Cost"]
+
             if not self.bank_check(settings, user, cost):
-                await self.bot.say("You do not have enough credits to afford the bail amount.")
+                await self.bot.say("You do not have enough to afford the {} amount.".format(t_bail))
                 return
 
             if user.id == author.id:
-                msg = ("Do you want to make bail? It will cost {} credits. If you are caught "
-                       "robbing a bank while out on bail your next sentence and bail amount will "
-                       "triple. Do you still wish to make bail?".format(cost))
+                msg = ("Do you want to make a {0} amount? It will cost {1} credits. If you are "
+                       "caught again, your next {2} and {0} amount will triple. "
+                       "Do you still wish to pay the {0} amount?".format(t_bail, cost, t_sentence))
             else:
-                msg = ("You are about to make bail for {0} and it will cost you {1} credits. "
-                       "Are you sure you wish to pay {1} for {0}?".format(user.name, cost))
+                msg = ("You are about pay a {3} amount for {0} and it will cost you {1} credits. "
+                       "Are you sure you wish to pay {1} for {0}?".format(user.name, cost, t_bail))
 
             await self.bot.say(msg)
             response = await self.bot.wait_for_message(timeout=15, author=author)
 
             if response is None:
-                await self.bot.say("You took too long. Cancelling transaction.")
+                await self.bot.say("You took too long. canceling transaction.")
                 return
 
             if response.content.title() == "Yes":
-                msg = ("Congratulations {} you are free! Enjoy your freedom while it "
+                msg = ("Congratulations {}, you are free! Enjoy your freedom while it "
                        "lasts...".format(user.name))
                 self.subtract_costs(settings, author, cost)
                 print("Author ID :{}\nUser ID :{}".format(author.id, user.id))
@@ -184,122 +188,171 @@ class Heist:
                 settings["Players"][user.id]["OOB"] = True
                 dataIO.save_json(self.file_path, self.system)
             elif response.content.title() == "No":
-                msg = "Cancelling transaction."
+                msg = "canceling transaction."
             else:
-                msg = "Incorrect response, cancelling transaction."
+                msg = "Incorrect response, canceling transaction."
+
             await self.bot.say(msg)
 
-    @heist.command(name="createbank", pass_context=True)
+    @heist.command(name="createtarget", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _bankadd_heist(self, ctx):
-        """Add a bank to heist"""
+    async def _targetadd_heist(self, ctx):
+        """Add a target to heist"""
 
         author = ctx.message.author
         server = ctx.message.server
         settings = self.check_server_settings(server)
         cancel = ctx.prefix + "cancel"
         check = lambda m: m.content.isdigit() and int(m.content) > 0 or m.content == cancel
-        start = ("This will walkthrough the bank creation process. You may cancel this process at "
-                 "anytime by typing {}cancel. Let's begin with the first question.\nWhat is the "
-                 "name of this bank?".format(ctx.prefix))
+        start = ("This will walk-through the target creation process. You may cancel this process "
+                 "at anytime by typing {}cancel. Let's begin with the first question.\nWhat is the "
+                 "name of this target?".format(ctx.prefix))
 
         await self.bot.say(start)
         name = await self.bot.wait_for_message(timeout=35, author=author)
 
         if name is None:
-            await self.bot.say("You took too long. Cancelling bank creation.")
+            await self.bot.say("You took too long. canceling target creation.")
             return
 
         if name.content == cancel:
-            await self.bot.say("Bank creation cancelled.")
+            await self.bot.say("Target creation cancelled.")
             return
 
-        if name.content.title() in list(settings["Banks"].keys()):
-            await self.bot.say("A bank with that name already exists. Cancelling bank creation.")
+        if name.content.title() in settings["Targets"]:
+            await self.bot.say("A target with that name already exists. canceling target "
+                               "creation.")
             return
 
-        await self.bot.say("What is the max crew size for this bank? Cannot be the same as other "
-                           "banks.")
+        await self.bot.say("What is the max group size for this target? Cannot be the same as "
+                           "other targets.")
         crew = await self.bot.wait_for_message(timeout=35, author=author, check=check)
 
         if crew is None:
-            await self.bot.say("You took too long. Cancelling bank creation.")
+            await self.bot.say("You took too long. canceling target creation.")
             return
 
         if crew.content == cancel:
-            await self.bot.say("Bank creation cancelled.")
+            await self.bot.say("Target creation cancelled.")
             return
 
-        if int(crew.content) + 1 in [subdict["Crew"] for subdict in settings["Banks"].values()]:
-            await self.bot.say("Crew size conflicts with another bank. Cancelling bank creation.")
+        if int(crew.content) in [subdict["Crew"] for subdict in settings["Targets"].values()]:
+            await self.bot.say("Group size conflicts with another target. Canceling target "
+                               "creation.")
             return
 
-        await self.bot.say("How many starting credits are in the vault of this bank?")
+        await self.bot.say("How many starting credits does this target have?")
         vault = await self.bot.wait_for_message(timeout=35, author=author, check=check)
 
         if vault is None:
-            await self.bot.say("You took too long. Cancelling bank creation.")
+            await self.bot.say("You took too long. canceling target creation.")
             return
 
         if vault.content == cancel:
-            await self.bot.say("Bank creation cancelled.")
+            await self.bot.say("Target creation cancelled.")
             return
 
-        await self.bot.say("What is the maximum number of credits this bank can hold?")
+        await self.bot.say("What is the maximum number of credits this target can hold?")
         vault_max = await self.bot.wait_for_message(timeout=35, author=author, check=check)
 
         if vault_max is None:
-            await self.bot.say("You took too long. Cancelling bank creation.")
+            await self.bot.say("You took too long. canceling target creation.")
             return
 
         if vault_max.content == cancel:
-            await self.bot.say("Bank creation cancelled.")
+            await self.bot.say("Target creation cancelled.")
             return
 
-        await self.bot.say("What is the individual chance of success for this bank? 1-100")
+        await self.bot.say("What is the individual chance of success for this target? 1-100")
         check = lambda m: m.content.isdigit() and 0 < int(m.content) <= 100 or m.content == cancel
         success = await self.bot.wait_for_message(timeout=35, author=author, check=check)
 
         if success is None:
-            await self.bot.say("You took too long. Cancelling bank creation.")
+            await self.bot.say("You took too long. canceling target creation.")
             return
 
         if success.content == cancel:
-            await self.bot.say("Bank creation cancelled.")
+            await self.bot.say("Target creation cancelled.")
             return
         else:
-            msg = ("Bank Created.\n```Name:       {}\nCrew:       {}\nVault:      {}\nVault Max:  "
-                   "{}\nSuccess:    {}%```".format(name.content.title(), crew.content,
-                                                   vault.content, vault_max.content,
-                                                   success.content)
+            msg = ("Target Created.\n```Name:       {}\nGroup:      {}\nVault:      {}\nVault Max: "
+                   " {}\nSuccess:    {}%```".format(name.content.title(), crew.content,
+                                                    vault.content, vault_max.content,
+                                                    success.content)
                    )
-            bank_fmt = {"Crew": int(crew.content) + 1, "Vault": int(vault.content),
-                        "Vault Max": int(vault_max.content), "Success": int(success.content)}
-            settings["Banks"][name.content.title()] = bank_fmt
+            target_fmt = {"Crew": int(crew.content), "Vault": int(vault.content),
+                          "Vault Max": int(vault_max.content), "Success": int(success.content)}
+            settings["Targets"][name.content.title()] = target_fmt
             dataIO.save_json(self.file_path, self.system)
             await self.bot.say(msg)
 
+    @heist.command(name="edittarget", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _edittarget_heist(self, ctx, *, target: str):
+        """Edits a heist target"""
+        author = ctx.message.author
+        settings = self.check_server_settings(author.server)
+        if target.title() in settings["Targets"]:
+            keys = [x for x in settings["Targets"]]
+            check = lambda m: m.content.title() in keys
+            await self.bot.say("Which property of {} would you like to edit?\n"
+                               "{}".format(target.title(), ", ".join(keys)))
+
+            response = await self.bot.wait_for_message(timeout=15, author=author, check=check)
+            if response is None:
+                return await self.bot.say("Canceling removal. You took too long.")
+
+            if response.content.title() == "Name":
+                await self.bot.say("What would you like to rename the target to?")
+                check2 = lambda m: m.content.title() not in settings["Targets"]
+            elif response.content.title() in ["Vault", "Vault Max"]:
+                await self.bot.say("What would you like to set the {} "
+                                   "to?".format(response.content.title()))
+                check2 = lambda m: m.content.isdigit() and int(m.content) > 0
+            elif response.content.title() == "Success":
+                await self.bot.say("What would you like to change the success rate to?")
+                check = lambda m: m.content.isdigit() and 0 < int(m.content) <= 100
+            elif response.content.title() == "Crew":
+                await self.bot.say("What would you like to change the max crew size to?")
+                crew_sizes = [subdict["Crew"] for subdict in settings["Targets"].values()]
+                check2 = lambda m: m.content.isdigit() and int(m.content) not in crew_sizes
+
+            choice = await self.bot.wait_for_message(timeout=15, author=author, check=check2)
+
+            if choice is None:
+                return await self.bot.say("Canceling removal. You took too long.")
+
+            if response.content.title() == "Name":
+                settings["Target"][choice.content.title()] = settings["Target"].pop(target.title())
+                dataIO.save_json(self.file_path, self.system)
+                await self.bot.say("Changed the target {} to {}.")
+            else:
+                settings["Target"][target.title()][response.content.title()] = choice
+                dataIO.save_json(self.file_path, self.system)
+                await self.bot.say("Changed {}'s {} to {}.")
+        else:
+            await self.bot.say("That target does not exist.")
+
     @heist.command(name="remove", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _remove_heist(self, ctx, *, bank: str):
-        """Remove a bank from the heist list"""
+    async def _remove_heist(self, ctx, *, target: str):
+        """Remove a target from the heist list"""
         author = ctx.message.author
-        server = ctx.message.server
-        settings = self.check_server_settings(server)
-        if bank.title() in settings["Banks"].keys():
+        settings = self.check_server_settings(author.server)
+        if target.title() in settings["Targets"].keys():
             await self.bot.say("Are you sure you want to remove {} from the list of "
-                               "banks?".format(bank.title()))
+                               "targets?".format(target.title()))
             response = await self.bot.wait_for_message(timeout=15, author=author)
             if response is None:
-                msg = "Cancelling removal. You took too long."
+                msg = "Canceling removal. You took too long."
             elif response.content.title() == "Yes":
-                settings["Banks"].pop(bank.title())
+                settings["Targets"].pop(target.title())
                 dataIO.save_json(self.file_path, self.system)
-                msg = "{} was removed from the list of banks.".format(bank.title())
+                msg = "{} was removed from the list of targets.".format(target.title())
             else:
-                msg = "Cancelling bank removal."
+                msg = "Canceling target removal."
         else:
-            msg = "That bank does not exist."
+            msg = "That target does not exist."
         await self.bot.say(msg)
 
     @heist.command(name="info", pass_context=True)
@@ -312,23 +365,27 @@ class Heist:
             hardcore = "ON"
         else:
             hardcore = "OFF"
-        wait = settings["Config"]["Wait Time"]
-        heist_cost = settings["Config"]["Heist Cost"]
-        bail = settings["Config"]["Bail Base"]
-        police = settings["Config"]["Police Alert"]
-        sentence = settings["Config"]["Sentence Base"]
-        death = settings["Config"]["Death Timer"]
-        timers = list(map(self.time_format, [wait, police, sentence, death]))
-        description = "{} Heist Settings".format(server.name)
+
+        # Theme variables
+        theme = settings["Config"]["Theme"]
+        t_jail = settings["Theme"]["Jail"]
+        t_sentence = settings["Theme"]["Sentence"]
+        t_police = settings["Theme"]["Police"]
+        t_bail = settings["Theme"]["Bail"]
+
+        time_values = [settings["Config"]["Wait Time"], settings["Config"]["Police Alert"],
+                       settings["Config"]["Sentence Base"], settings["Config"]["Death Timer"]]
+        timers = list(map(self.time_format, time_values))
+        description = ["Heist Version {}".format(self.version), "Theme: {}".format(theme)]
         footer = "Heist was developed by Redjumpman for Red Bot."
 
-        embed = discord.Embed(colour=0x0066FF, description=description)
-        embed.title = "Heist Version {}".format(self.version)
-        embed.add_field(name="Heist Cost", value=heist_cost)
-        embed.add_field(name="Base Bail Cost", value=bail)
+        embed = discord.Embed(colour=0x0066FF, description="\n".join(description))
+        embed.title = "{} Heist Settings".format(server.name)
+        embed.add_field(name="Heist Cost", value=settings["Config"]["Heist Cost"])
+        embed.add_field(name="Base {} Cost".format(t_bail), value=settings["Config"]["Bail Base"])
         embed.add_field(name="Crew Gather Time", value=timers[0])
-        embed.add_field(name="Police Timer", value=timers[1])
-        embed.add_field(name="Base Jail Sentence", value=timers[2])
+        embed.add_field(name="{} Timer".format(t_police), value=timers[1])
+        embed.add_field(name="Base {} {}".format(t_jail, t_sentence), value=timers[2])
         embed.add_field(name="Death Timer", value=timers[3])
         embed.add_field(name="Hardcore Mode", value=hardcore)
         embed.set_footer(text=footer)
@@ -346,22 +403,26 @@ class Heist:
         base_time = settings["Players"][author.id]["Sentence"]
         OOB = settings["Players"][author.id]["OOB"]
 
+        # Theme variables
+        t_jail = settings["Theme"]["Jail"]
+        t_sentence = settings["Theme"]["Sentence"]
+
         if settings["Players"][author.id]["Status"] == "Apprehended" or OOB:
             remaining = self.cooldown_calculator(settings, player_time, base_time)
             if remaining:
-                msg = ("You still have time on your sentence. You still need to wait:\n"
-                       "```{}```".format(remaining))
+                msg = ("You still have time on your {}. You still need to wait:\n"
+                       "```{}```".format(t_sentence, remaining))
             else:
                 msg = "You served your time. Enjoy the fresh air of freedom while you can."
                 if OOB:
-                    msg = "Hmmm. I guess your free of all charges. But I'll be watching you!"
+                    msg = "You have been set free!"
                     settings["Players"][author.id]["OOB"] = False
                 settings["Players"][author.id]["Sentence"] = 0
                 settings["Players"][author.id]["Time Served"] = 0
                 settings["Players"][author.id]["Status"] = "Free"
                 dataIO.save_json(self.file_path, self.system)
         else:
-            msg = "I can't remove you from jail if your not *in* jail."
+            msg = "I can't remove you from {0} if your not *in* {0}.".format(t_jail)
         await self.bot.say(msg)
 
     @heist.command(name="revive", pass_context=True)
@@ -392,39 +453,38 @@ class Heist:
     async def _stats_heist(self, ctx):
         """Shows your Heist stats"""
         author = ctx.message.author
-        server = ctx.message.server
         avatar = ctx.message.author.avatar_url
-        settings = self.check_server_settings(server)
+        settings = self.check_server_settings(author.server)
         self.account_check(settings, author)
+        path = settings["Players"][author.id]
 
-        status = settings["Players"][author.id]["Status"]
-        sentence = settings["Players"][author.id]["Sentence"]
-        time_served = settings["Players"][author.id]["Time Served"]
+        # Theme variables
+        sentencing = "{} {}".format(settings["Theme"]["Jail"], settings["Theme"]["Sentence"])
+        t_bail = "{} Cost".format(settings["Theme"]["Bail"])
+        t_OOB = settings["Theme"]["OOB"]
+
+        sentence = path["Sentence"]
+        time_served = path["Time Served"]
         jail_fmt = self.cooldown_calculator(settings, time_served, sentence)
-        bail = settings["Players"][author.id]["Bail Cost"]
-        jail_counter = settings["Players"][author.id]["Jail Counter"]
-        death_timer = settings["Players"][author.id]["Death Timer"]
+
+        death_timer = path["Death Timer"]
         base_death_timer = settings["Config"]["Death Timer"]
         death_fmt = self.cooldown_calculator(settings, death_timer, base_death_timer)
-        spree = settings["Players"][author.id]["Spree"]
-        probation = settings["Players"][author.id]["OOB"]
-        total_deaths = settings["Players"][author.id]["Deaths"]
-        total_jail = settings["Players"][author.id]["Total Jail"]
-        level = settings["Players"][author.id]["Criminal Level"]
-        rank = self.criminal_level(level)
+
+        rank = self.criminal_level(path["Criminal Level"])
 
         embed = discord.Embed(colour=0x0066FF, description=rank)
         embed.title = author.name
         embed.set_thumbnail(url=avatar)
-        embed.add_field(name="Status", value=status)
-        embed.add_field(name="Spree", value=spree)
-        embed.add_field(name="Cost of Bail", value=bail)
-        embed.add_field(name="Out on Bail", value=probation)
-        embed.add_field(name="Jail Sentence", value=jail_fmt)
-        embed.add_field(name="Apprehended", value=jail_counter)
+        embed.add_field(name="Status", value=path["Status"])
+        embed.add_field(name="Spree", value=path["Spree"])
+        embed.add_field(name=t_bail, value=path["Bail Cost"])
+        embed.add_field(name=t_OOB, value=path["OOB"])
+        embed.add_field(name=sentencing, value=jail_fmt)
+        embed.add_field(name="Apprehended", value=path["Jail Counter"])
         embed.add_field(name="Death Timer", value=death_fmt)
-        embed.add_field(name="Total Deaths", value=total_deaths)
-        embed.add_field(name="Lifetime Apprehensions", value=total_jail)
+        embed.add_field(name="Total Deaths", value=path["Deaths"])
+        embed.add_field(name="Lifetime Apprehensions", value=path["Total Jail"])
 
         await self.bot.say(embed=embed)
 
@@ -437,6 +497,12 @@ class Heist:
         cost = settings["Config"]["Heist Cost"]
         wait_time = settings["Config"]["Wait Time"]
         prefix = ctx.prefix
+
+        # Theme Variables
+        t_crew = settings["Theme"]["Crew"]
+        t_heist = settings["Theme"]["Heist"]
+        t_vault = settings["Theme"]["Vault"]
+
         self.account_check(settings, author)
         outcome, msg = self.requirement_check(settings, prefix, author, cost)
 
@@ -446,36 +512,33 @@ class Heist:
             self.subtract_costs(settings, author, cost)
             settings["Config"]["Heist Planned"] = True
             settings["Crew"][author.id] = {}
-            await self.bot.say("A heist is being planned by {}\nThe heist "
-                               "begin in {} seconds. Type {}heist play to join"
-                               " their crew.".format(author.name, wait_time, ctx.prefix))
+            await self.bot.say("A {4} is being planned by {0}\nThe {4} "
+                               "will begin in {1} seconds. Type {2}heist play to join their "
+                               "{3}.".format(author.name, wait_time, ctx.prefix, t_crew, t_heist))
             await asyncio.sleep(wait_time)
-            if len(settings["Crew"].keys()) <= 1:
-                await self.bot.say("You tried to rally a crew, but no one "
-                                   "wanted to follow you. The heist has been "
-                                   "cancelled.")
+            if len(settings["Crew"]) <= 1:
+                await self.bot.say("You tried to rally a {}, but no one wanted to follow you. The "
+                                   "{} has been cancelled.".format(t_crew, t_heist))
                 self.reset_heist(settings)
             else:
                 crew = len(settings["Crew"])
                 target = self.heist_target(settings, crew)
-                good_out = good[:]
-                bad_out = bad[:]
                 settings["Config"]["Heist Start"] = True
                 players = [server.get_member(x) for x in list(settings["Crew"])]
-                results = self.game_outcomes(settings, good_out, bad_out, players, target)
-                await self.bot.say("Lock and load. The heist is starting\nThe crew has decided "
-                                   "to hit **{}**.".format(target))
+                results = self.game_outcomes(settings, players, target)
+                await self.bot.say("Get ready! The {} is starting\nThe {} has decided "
+                                   "to hit **{}**.".format(t_heist, t_crew, target))
                 await asyncio.sleep(3)
                 await self.show_results(settings, server, results, target)
                 if settings["Crew"]:
                     players = [server.get_member(x) for x in list(settings["Crew"])]
                     data = self.calculate_credits(settings, players, target)
-                    headers = ["Criminals", "Credits Stolen", "Bonuses", "Total"]
+                    headers = ["Players", "Credits Obtained", "Bonuses", "Total"]
                     t = tabulate(data, headers=headers)
-                    msg = ("The credits stolen from the vault was split among the winners:\n```"
-                           "Python\n{}```".format(t))
+                    msg = ("The credits collected from the {} was split among the winners:\n```"
+                           "Python\n{}```".format(t_vault, t))
                 else:
-                    msg = "No one made it out safe. The good guys win."
+                    msg = "No one made it out safe."
                 await self.bot.say(msg)
                 settings["Config"]["Alert"] = int(time.perf_counter())
                 self.reset_heist(settings)
@@ -484,8 +547,8 @@ class Heist:
             self.subtract_costs(settings, author, cost)
             settings["Crew"][author.id] = {}
             crew_size = len(settings["Crew"])
-            await self.bot.say("{} has joined the crew.\nThe crew now has {} "
-                               "members.".format(author.name, crew_size))
+            await self.bot.say("{0} has joined the {2}.\nThe {2} now has {1} "
+                               "members.".format(author.name, crew_size, t_crew))
 
     @commands.group(pass_context=True, no_pm=True)
     async def setheist(self, ctx):
@@ -497,15 +560,17 @@ class Heist:
     @setheist.command(name="sentence", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _sentence_setheist(self, ctx, seconds: int):
-        """Set the base jail time when caught"""
+        """Set the base apprehension time when caught"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
+        t_jail = settings["Theme"]["Jail"]
+        t_sentence = settings["Theme"]["Sentence"]
 
         if seconds > 0:
             settings["Config"]["Sentence Base"] = seconds
             dataIO.save_json(self.file_path, self.system)
             time_fmt = self.time_format(seconds)
-            msg = "Setting base jail sentence to {}.".format(time_fmt)
+            msg = "Setting base {} {} to {}.".format(t_jail, t_sentence, time_fmt)
         else:
             msg = "Need a number higher than 0."
         await self.bot.say(msg)
@@ -525,18 +590,19 @@ class Heist:
             msg = "Need a number higher than -1."
         await self.bot.say(msg)
 
-    @setheist.command(name="police", pass_context=True)
+    @setheist.command(name="authorities", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _police_setheist(self, ctx, seconds: int):
-        """Set the time police will prevent heists"""
+    async def _authorities_setheist(self, ctx, seconds: int):
+        """Set the time authorities will prevent heists"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
+        t_police = settings["Theme"]["Police"]
 
         if seconds > 0:
             settings["Config"]["Police Alert"] = seconds
             dataIO.save_json(self.file_path, self.system)
             time_fmt = self.time_format(seconds)
-            msg = "Setting police alert to {}.".format(time_fmt)
+            msg = "Setting {} alert time to {}.".format(t_police, time_fmt)
         else:
             msg = "Need a number higher than 0."
         await self.bot.say(msg)
@@ -547,11 +613,11 @@ class Heist:
         """Set the base cost of bail"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
-
+        t_bail = settings["Theme"]["Bail"]
         if cost >= 0:
             settings["Config"]["Bail Cost"] = cost
             dataIO.save_json(self.file_path, self.system)
-            msg = "Setting base bail cost to {}.".format(cost)
+            msg = "Setting base {} cost to {}.".format(t_bail, cost)
         else:
             msg = "Need a number higher than -1."
         await self.bot.say(msg)
@@ -591,24 +657,26 @@ class Heist:
     @setheist.command(name="wait", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _wait_setheist(self, ctx, seconds: int):
-        """Set how long a player can gather crew"""
+        """Set how long a player can gather players"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
+        t_crew = settings["Theme"]["Crew"]
 
         if seconds > 0:
             settings["Config"]["Wait Time"] = seconds
             dataIO.save_json(self.file_path, self.system)
             time_fmt = self.time_format(seconds)
-            msg = "Setting crew gather time to {}.".format(time_fmt)
+            msg = "Setting {} gather time to {}.".format(t_crew, time_fmt)
         else:
             msg = "Need a number higher than 0."
         await self.bot.say(msg)
 
     async def show_results(self, settings, server, results, target):
+        t_heist = settings["Theme"]["Heist"]
         for result in results:
             await self.bot.say(result)
             await asyncio.sleep(5)
-        await self.bot.say("The Heist is now over. Give me a moment to count your credits.")
+        await self.bot.say("The {} is now over. Distributing player spoils...".format(t_heist))
         await asyncio.sleep(5)
 
     async def vault_updater(self):
@@ -618,12 +686,12 @@ class Heist:
             while True:
                 servers = [x.id for x in self.bot.servers if x.id in self.system["Servers"].keys()]
                 for serverid in servers:
-                    for bank in list(self.system["Servers"][serverid]["Banks"].keys()):
-                        vault = self.system["Servers"][serverid]["Banks"][bank]["Vault"]
-                        vault_max = self.system["Servers"][serverid]["Banks"][bank]["Vault Max"]
+                    for target in list(self.system["Servers"][serverid]["Targets"].keys()):
+                        vault = self.system["Servers"][serverid]["Targets"][target]["Vault"]
+                        vault_max = self.system["Servers"][serverid]["Targets"][target]["Vault Max"]
                         if vault < vault_max:
                             increment = min(vault + 45, vault_max)
-                            self.system["Servers"][serverid]["Banks"][bank]["Vault"] = increment
+                            self.system["Servers"][serverid]["Targets"][target]["Vault"] = increment
                         else:
                             pass
                 dataIO.save_json(self.file_path, self.system)
@@ -639,18 +707,26 @@ class Heist:
     def calculate_credits(self, settings, players, target):
         names = [player.name for player in players]
         bonuses = [subdict["Bonus"] for subdict in settings["Crew"].values()]
-        vault = settings["Banks"][target]["Vault"]
+        vault = settings["Targets"][target]["Vault"]
         credits_stolen = int(vault * 0.75 / len(settings["Crew"].keys()))
         stolen_data = [credits_stolen] * len(settings["Crew"].keys())
         total_winnings = [x + y for x, y in zip(stolen_data, bonuses)]
-        settings["Banks"][target]["Vault"] -= credits_stolen
+        settings["Targets"][target]["Vault"] -= credits_stolen
         credit_data = list(zip(names, stolen_data, bonuses, total_winnings))
         deposits = list(zip(players, total_winnings))
         self.award_credits(deposits)
         return credit_data
 
-    def game_outcomes(self, settings, good_out, bad_out, players, target):
-        success_rate = settings["Banks"][target]["Success"]
+    def calculate_success(self, settings, target):
+        success_rate = settings["Targets"][target]["Success"]
+        max_crew = settings["Targets"][target]["Crew"]
+        crew = len(settings["Crew"].keys())
+        success_chance = success_rate + max_crew - crew
+        return success_chance
+
+    def game_outcomes(self, settings, players, target):
+        success_rate = self.calculate_success(settings, target)
+        good_out, bad_out = self.get_theme(settings)
         results = []
         for player in players:
             chance = random.randint(1, 100)
@@ -669,6 +745,16 @@ class Heist:
                 results.append(dropout_msg.format(player.name))
         dataIO.save_json(self.file_path, self.system)
         return results
+
+    def get_theme(self, settings):
+        theme = settings["Config"]["Theme"]
+        with open('data/JumperCogs/heist/{}.txt'.format(theme)) as f:
+            data = f.readlines()
+            good = [list(literal_eval(line.replace("|Good| ", "")))
+                    for line in data if line.startswith('|Good|')]
+            bad = [list(literal_eval(line.replace("|Bad| ", "")))
+                   for line in data if line.startswith('|Bad|')]
+        return good, bad
 
     def hardcore_handler(self, settings, user):
         bank = self.bot.get_cog('Economy').bank
@@ -707,11 +793,11 @@ class Heist:
             self.run_death(settings, user)
 
     def heist_target(self, settings, crew):
-        groups = sorted([(x, y["Crew"]) for x, y in settings["Banks"].items()], key=itemgetter(1))
+        groups = sorted([(x, y["Crew"]) for x, y in settings["Targets"].items()], key=itemgetter(1))
         crew_sizes = [x[1] for x in groups]
         breakpoints = [x for x in crew_sizes if x != max(crew_sizes)]
-        banks = [x[0] for x in groups]
-        return banks[bisect(breakpoints, crew)]
+        targets = [x[0] for x in groups]
+        return targets[bisect.bisect_right(breakpoints, crew)]
 
     def run_death(self, settings, user):
         settings["Players"][user.id]["Criminal Level"] = 0
@@ -752,17 +838,25 @@ class Heist:
         bank.withdraw_credits(author, cost)
 
     def requirement_check(self, settings, prefix, author, cost):
+        # Theme variables
+        t_jail = settings["Theme"]["Jail"]
+        t_sentence = settings["Theme"]["Sentence"]
+        t_police = settings["Theme"]["Police"]
+        t_bail = settings["Theme"]["Bail"]
+        t_crew = settings["Theme"]["Crew"]
+        t_heist = settings["Theme"]["Heist"]
+
         (alert, remaining) = self.police_alert(settings)
-        if not list(settings["Banks"]):
-            msg = ("Oh no! There are no banks! To start creating a bank, use "
-                   "{}heist createbank.".format(prefix))
+        if not list(settings["Targets"]):
+            msg = ("Oh no! There are no targets! To start creating a target, use "
+                   "{}heist createtarget.".format(prefix))
             return None, msg
         elif settings["Config"]["Heist Start"]:
-            msg = ("A heist is already underway. Wait for the current one to "
-                   "end to plan another heist.")
+            msg = ("A {0} is already underway. Wait for the current one to "
+                   "end to plan another {0}.".format(t_heist))
             return None, msg
         elif author.id in settings["Crew"]:
-            msg = "You are already in the crew."
+            msg = "You are already in the {}.".format(t_crew)
             return None, msg
         elif settings["Players"][author.id]["Status"] == "Apprehended":
             bail = settings["Players"][author.id]["Bail Cost"]
@@ -771,12 +865,12 @@ class Heist:
             remaining = self.cooldown_calculator(settings, sentence_raw, time_served)
             sentence = self.time_format(sentence_raw)
             if remaining:
-                msg = ("You are in jail. You are serving a sentence of {}.\nYou can wait out your "
-                       "remaining sentence of: {} or pay {} credits to post "
-                       "bail.".format(sentence, remaining, bail))
+                msg = ("You are in {0}. You are serving a {1} of {2}.\nYou can wait out "
+                       "your remaining {1} of: {3} or pay {4} credits to finish your"
+                       "{5}.".format(t_jail, t_sentence, sentence, remaining, bail, t_bail))
             else:
-                msg = ("You have finished serving your sentence, but your still in jail! Get the "
-                       "warden to sign your release by typing {}heist release .".format(prefix))
+                msg = ("Looks like your {} is over, but you're still in {}! Get released "
+                       "released by typing {}heist release .".format(t_sentence, t_jail, prefix))
             return None, msg
         elif settings["Players"][author.id]["Status"] == "Dead":
             death_time = settings["Players"][author.id]["Death Timer"]
@@ -794,9 +888,9 @@ class Heist:
                    "entry. You need {} credits to participate.".format(cost))
             return None, msg
         elif not (alert):
-            msg = ("The police is on high alert after the last job. We should "
-                   "wait for things to cool off before hitting another bank.\n"
-                   "Time Remaning: {}".format(remaining))
+            msg = ("The {} are on high alert after the last target. We should "
+                   "wait for things to cool off before hitting another target.\n"
+                   "Time Remaining: {}".format(t_police, remaining))
             return None, msg
         else:
             return "True", ""
@@ -882,7 +976,7 @@ class Heist:
         status = ["Innocent", "Bank Robber", "Notorious", "Serial", "Most Wanted",
                   "Criminal Mastermind"]
         breakpoints = [1, 10, 25, 50, 100]
-        return status[bisect(breakpoints, level)]
+        return status[bisect.bisect_right(breakpoints, level)]
 
     def account_check(self, settings, author):
         if author.id not in settings["Players"]:
@@ -899,10 +993,13 @@ class Heist:
             default = {"Config": {"Heist Start": False, "Heist Planned": False, "Heist Cost": 100,
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
-                                  "Death Timer": 86400},
+                                  "Death Timer": 86400, "Theme": "Heist"},
+                       "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
+                                 "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
+                                 "Heist": "heist", "Vault": "vault"},
                        "Players": {},
                        "Crew": {},
-                       "Banks": {},
+                       "Targets": {},
                        }
             self.system["Servers"][server.id] = default
             dataIO.save_json(self.file_path, self.system)
@@ -911,6 +1008,15 @@ class Heist:
             return path
         else:
             path = self.system["Servers"][server.id]
+            if "Theme" not in path:
+                path["Theme"] = {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
+                                 "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
+                                 "Heist": "heist", "Vault": "vault"},
+            if "Banks" in path:
+                path["Targets"] = path.pop("Banks")
+            if "Theme" not in path["Config"]:
+                path['Config']["Theme"] = "Heist"
+            dataIO.save_json(self.file_path, self.system)
             return path
 
     # =========== Commission hooks =====================
@@ -940,15 +1046,21 @@ class Heist:
                    "to the living.".format(author.name, user.name))
             action = "True"
         else:
-            msg = "Cast failed. {} is alive.".format(user.name)
+            msg = "Cast failed. {} is still alive.".format(user.name)
             action = None
         return action, msg
+
+    # ==================== End of hooks =====================
 
 
 def check_folders():
     if not os.path.exists("data/JumperCogs/heist"):
         print("Creating data/JumperCogs/heist folder...")
         os.makedirs("data/JumperCogs/heist")
+
+    if not os.path.exists("data/heist"):
+        print("Creating data/heist folder...")
+        os.makedirs("data/heist")
 
 
 def check_files():
