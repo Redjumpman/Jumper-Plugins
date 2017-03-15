@@ -3,17 +3,22 @@
 # Check out my wiki on my github page for more information
 # https://github.com/Redjumpman/Jumper-Cogs
 
-import uuid
+# Standard Library
 import os
-import time
 import random
-import discord
-from operator import itemgetter
-from discord.ext import commands
-from .utils.dataIO import dataIO
-from __main__ import send_cmd_help
-from .utils import checks
+import time
+import uuid
 from datetime import datetime
+from operator import itemgetter
+
+# Discord and Red Bot
+import discord
+from discord.ext import commands
+from __main__ import send_cmd_help
+from .utils.dataIO import dataIO
+from .utils import checks
+
+# Thrid Party Library
 try:   # Check if Tabulate is installed
     from tabulate import tabulate
     tabulateAvailable = True
@@ -349,7 +354,7 @@ class Shop:
         item = item.title()
         if item not in settings["Shop List"]:
             msg = "That item is not in the shop."
-        elif len(settings["Shop List"][item]["Buy Msg"]) < settings["Shop List"][item]["Quantity"]:
+        elif len(settings["Shop List"][item]["Buy Msg"]) < int(settings["Shop List"][item]["Quantity"]):
             await self.bot.whisper("What msg do you want users to recieve when purchasing, "
                                    "{}?".format(item))
             response = await self.bot.wait_for_message(timeout=25, author=user)
@@ -1115,7 +1120,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.5"
+               "Version": "2.2.51"
                }
 
     f = "data/JumperCogs/shop/system.json"
