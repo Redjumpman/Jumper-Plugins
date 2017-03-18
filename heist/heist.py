@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.02"
+        self.version = "2.2.03"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -756,7 +756,7 @@ class Heist:
 
     def get_theme(self, settings):
         theme = settings["Config"]["Theme"]
-        with open('data/JumperCogs/heist/{}.txt'.format(theme)) as f:
+        with open('data/heist/Heist/{}.txt'.format(theme)) as f:
             data = f.readlines()
             good = [list(literal_eval(line.replace("|Good| ", "")))
                     for line in data if line.startswith('|Good|')]
