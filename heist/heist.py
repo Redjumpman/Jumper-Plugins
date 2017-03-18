@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.04"
+        self.version = "2.2.05"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -169,7 +169,7 @@ class Heist:
                        "caught again, your next {2} and {0} amount will triple. "
                        "Do you still wish to pay the {0} amount?".format(t_bail, cost, t_sentence))
             else:
-                msg = ("You are about pay a {3} amount for {0} and it will cost you {1} credits. "
+                msg = ("You are about pay a {2} amount for {0} and it will cost you {1} credits. "
                        "Are you sure you wish to pay {1} for {0}?".format(user.name, cost, t_bail))
 
             await self.bot.say(msg)
