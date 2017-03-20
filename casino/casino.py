@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.66
+                                    "Transfer Cooldown": 30, "Version": 1.67
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.66
+        self.patch = 1.67
 
     def create_account(self, user):
         server = user.server
@@ -412,7 +412,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.6"
+        self.version = "1.6.7"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -438,6 +438,18 @@ class Casino:
         self.casino_bank.DICT_PATCH_16(settings)
         self.casino_bank.DICT_PATCH_GAMES(settings)
         await self.bot.say("Force applied three previous JSON updates. Please reload casino.")
+
+    @casino.command(name="memberships", pass_context=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _memberships_casino(self, ctx):
+        """Shows all memberships on the server."""
+        server = ctx.message.server
+        settings = self.casino_bank.check_server_settings(server)
+        memberships = settings["Memberships"].keys()
+        if memberships:
+            await self.bot.say("Available Memberships:```\n{}```".format('\n'.join(memberships)))
+        else:
+            await self.bot.say("There are no memberships.")
 
     @casino.command(name="join", pass_context=True)
     async def _join_casino(self, ctx):
@@ -623,7 +635,7 @@ class Casino:
         if self.casino_bank.membership_exists(author):
             player = settings["Players"][author.id]
             wiki = "[Wiki](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino)"
-            membership, benefits = self.get_benefits(settings, player)
+            membership, benefits = self.get_benefits(settings, author.id)
             b_msg = ("Access Level: {Access}\nCooldown Reduction: {Cooldown Reduction}\n"
                      "Payday: {Payday}".format(**benefits))
             description = ("{}\nMembership: {}\n{} Chips: "
@@ -702,6 +714,7 @@ class Casino:
         msg = ("```Python\n{}\n\nCredit Exchange Rate:    {}\nChip Exchange Rate:      {}\n"
                "Casino Members: {}\nServer Memberships: {}\nServer Threshold: "
                "{}```".format(t, credit_ratio, chip_ratio, players, memberships, threshold))
+        print("THIS MESSAGE IS {} CHARACTERS".format(len(msg)))
         await self.bot.say(msg)
 
     @casino.command(name="payday", pass_context=True)
@@ -1827,7 +1840,7 @@ class Casino:
         """Updates user membership based on requirements every 5 minutes"""
         await self.bot.wait_until_ready()
         try:
-            await asyncio.sleep(30)
+            await asyncio.sleep(10)
             while True:
                 servers = self.casino_bank.get_all_servers()
                 for server in servers.keys():
@@ -2108,8 +2121,7 @@ class Casino:
         # Loop through the memberships and their requirements
         for membership in memberships:
             requirements = []
-            reqs = path[membership]["Requirements"]
-            for req in reqs.keys():
+            for req in path[membership]["Requirements"].keys():
 
                 # If the requirement is a role, run role logic
                 if req == "Role":
@@ -2148,29 +2160,32 @@ class Casino:
             # You have to meet all the requirements to qualify for the membership
             if all(requirements):
                 memberships_met.append((membership, path[membership]["Access"]))
-                requirements.clear()
-            else:
-                requirements.clear()
+            requirements.clear()
 
         # Returns the membership with the highest access value
         if memberships_met:
             try:
                 membership = max(memberships_met, key=itemgetter(1))[0]
                 return membership
-            except ValueError or TypeError:
+            except (ValueError, TypeError):
                 return None
 
         else:  # Returns none if the user has not qualified for any memberships
             return None
 
     def get_benefits(self, settings, player):
-        membership = player["Membership"]
-        if player["Membership"]:
-            benefits = settings["Memberships"][membership]
-        else:
-            payday = settings["System Config"]["Default Payday"]
-            benefits = {"Cooldown Reduction": 0, "Access": 0,
-                        "Payday": payday, "Color": "grey"}
+        payday = settings["System Config"]["Default Payday"]
+        benefits = {"Cooldown Reduction": 0, "Access": 0, "Payday": payday, "Color": "grey"}
+        membership = settings["Players"][player]["Membership"]
+
+        if membership:
+            if membership in settings["Memberships"]:
+                benefits = settings["Memberships"][membership]
+            else:
+                settings["Players"][player]["Membership"] = None
+                self.casino_bank.save_system()
+                membership = None
+
         return membership, benefits
 
     def threshold_check(self, settings, amount):
