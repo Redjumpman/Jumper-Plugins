@@ -43,7 +43,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.0.1"
+        self.version = "2.0.2"
 
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
@@ -109,6 +109,7 @@ class Pokedex:
                     td_attrs = {'width': '50%', 'style': 'padding-top:3px; padding-bottom:3px'}
                     td1 = side_bar.find_all('td', attrs=td_attrs)
                     ab = [td1[0].find('span').get_text()]
+                    formes = None
 
                 ab_format = self.abilities_parser(ab, pokemon, formes)
 
@@ -119,6 +120,11 @@ class Pokedex:
 
                 try:
                     types_output = "{}/{}".format(types[0], types[1])
+                    if pokemon.title() == "Rotom":
+                        types_temp = ("{0}/{1}  (Rotom)\n{2}/{3}  (Heat Rotom)\n"
+                                      "{4}/{5}  (Wash Rotom)\n{6}/{7}  (Frost Rotom)\n"
+                                      "{8}/{9}  (Fan Rotom)\n{10}/{11}  (Mow Rotom)\n")
+                        types_output = types_temp.format(*types)
                 except IndexError:
                     types_output = types[0]
 
