@@ -1107,7 +1107,7 @@ class Shop:
         else:
             path = self.system["Servers"][server.id]
             if "Shop Role" not in path["Config"]:
-                path["Config"] = None
+                path["Config"]["Shop Role"] = None
             return path
 
 
