@@ -819,11 +819,11 @@ class Shop:
             return False
 
     async def notify_handler(self, settings, ctx, itemname, user, confirmation):
+        role = settings["Config"]["Shop Role"]
         if "Role" not in settings["Users"][user.id]["Inventory"][itemname]:
-            if settings["Config"]["Shop Notify"]:
+            if settings["Config"]["Shop Notify"] and role is not None:
                 msg = ("{} was added to the pending list by {}.\nConfirmation#: {}.\nUser ID: "
                        "{}".format(itemname, user.name, confirmation, user.id))
-                role = settings["Config"]["Shop Role"]
                 names = self.role_check(role, ctx)
                 destinations = [m for m in ctx.message.server.members if m.name in names]
                 for destination in destinations:
@@ -1091,6 +1091,7 @@ class Shop:
                                                  "Config": {"Shop Name": "Jumpman's",
                                                             "Shop Open": True,
                                                             "Shop Notify": False,
+                                                            "Shop Role": None,
                                                             "Trade Cooldown": 30,
                                                             "Store Output Method": "Chat",
                                                             "Inventory Output Method": "Chat",
@@ -1105,6 +1106,8 @@ class Shop:
             return path
         else:
             path = self.system["Servers"][server.id]
+            if "Shop Role" not in path["Config"]:
+                path["Config"] = None
             return path
 
 
