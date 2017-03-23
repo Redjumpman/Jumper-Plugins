@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.67
+                                    "Transfer Cooldown": 30, "Version": 1.68
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.67
+        self.patch = 1.68
 
     def create_account(self, user):
         server = user.server
@@ -412,7 +412,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.7"
+        self.version = "1.6.8"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -421,6 +421,35 @@ class Casino:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @casino.command(name="purge", pass_context=True)
+    @checks.is_owner()
+    async def _purge_casino(self, ctx):
+        """Removes all servers that the bot is no longer on.
+        If your JSON file is getting rather large, utilize this
+        command. It is possible that if your bot is on a ton of
+        servers, there are many that it is no longer running on.
+        This will remove them from the JSON file.
+        """
+        user = ctx.message.author
+        servers = self.casino_bank.get_all_servers()
+        purge_list = [x for x in servers if self.bot.get_server(x) is None]
+        if not purge_list:
+            return await self.bot.say("There are no servers for me to purge at this time.")
+        await self.bot.say("I found {} server(s) I am no longer on. Would you like for me to "
+                           "delete their casino data?".format(len(purge_list)))
+        response = await self.bot.wait_for_message(timeout=15, author=user)
+
+        if response is None:
+            return await self.bot.say("You took too long to answer. Canceling purge.")
+
+        if response.content.title() == "Yes":
+            for x in purge_list:
+                servers.pop(x)
+            self.casino_bank.save_system()
+            await self.bot.say("{} server entries have been erased.".format(len(purge_list)))
+        else:
+            return await self.bot.say("Incorrect response. This is a yes or no question.")
 
     @casino.command(name="forceupdate", pass_context=True)
     @checks.is_owner()
@@ -1844,10 +1873,13 @@ class Casino:
             while True:
                 servers = self.casino_bank.get_all_servers()
                 for server in servers.keys():
-                    server = [self.bot.get_server(server)][0]
-                    settings = self.casino_bank.check_server_settings(server)
-                    user_path = self.casino_bank.get_server_memberships(server)
-                    users = [server.get_member(user) for user in list(user_path.keys())]
+                    server = self.bot.get_server(server)
+                    if server is not None:
+                        settings = self.casino_bank.check_server_settings(server)
+                        user_path = self.casino_bank.get_server_memberships(server)
+                        users = [server.get_member(user) for user in list(user_path.keys())]
+                    else:
+                        users = None
                     if users:
                         for user in users:
                             membership = self.gather_requirements(settings, user)
@@ -2132,13 +2164,13 @@ class Casino:
                         requirements.append(False)
                 # If the requirement is a credits, run credit logic
                 if req == "Credits":
-                    try:
+                    if bank.account_exists(user):
                         user_credits = bank.get_balance(user)
                         if user_credits >= int(path[membership]["Requirements"]["Credits"]):
                             requirements.append(True)
                         else:
                             requirements.append(False)
-                    except:  # When a casino member doesn't have a bank account
+                    else:
                         requirements.append(False)
 
                 # If the requirement is a chips, run chip logic
