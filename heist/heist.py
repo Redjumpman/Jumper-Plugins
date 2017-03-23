@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.05"
+        self.version = "2.2.1"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -58,45 +58,17 @@ class Heist:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @heist.command(name="theme", pass_context=True)
+    @heist.command(name="themes", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _theme_heist(self, ctx, theme):
-        """Sets the theme for heist"""
-        theme = theme.title()
-        server = ctx.message.server
-        settings = self.check_server_settings(server)
-
-        if not os.path.exists("data/heist/{}.txt".format(theme)):
-            themes = [os.path.join(x).replace('.txt', '')
-                      for x in os.listdir("data/heist/") if x.endswith(".txt")]
-            print(themes)
-            msg = ("I could not find a theme with that name. Available Themes:"
-                   "```\n{}```".format('\n'.join(themes)))
-        else:
-            theme_dict = self.theme_loader(settings, theme)
-            settings["Theme"] = theme_dict
-            settings["Config"]["Theme"] = theme
-            msg = "{} theme found. Heist will now use this for future games.".format(theme)
-
-        await self.bot.say(msg)
-
-    def theme_loader(self, settings, theme):
-        keys = ["Jail", "OOB", "Police", "Bail", "Crew", "Sentence", "Heist", "Vault"]
-        theme_dict = dict()
-
-        with open('data/heist/{}.txt'.format(theme)) as f:
-            data = f.readlines()
-            for line in data:
-                if "=" in line:
-                    index = line.find('=')
-                    key = line[:index].strip()
-                    value = line[index + 1:].strip()
-                    theme_dict[key] = value
-
-        if all(key in theme_dict for key in keys):
-            return theme_dict
-        else:
-            raise ThemeError("Some keys were missing in your theme. Please check your txt file.")
+    async def _themelist_heist(self, ctx):
+        """Sets the theme for heist
+        Only displays the first 30 themes found.
+        """
+        themes = [os.path.join(x).replace('.txt', '')
+                  for x in os.listdir("data/heist/") if x.endswith(".txt")]
+        if len(themes) > 30:
+            themes = themes[:30]
+        await self.bot.say("Available Themes:```\n{}```".format('\n'.join(themes)))
 
     @heist.command(name="reset", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -292,11 +264,13 @@ class Heist:
         """Edits a heist target"""
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        if target.title() in settings["Targets"]:
-            keys = [x for x in settings["Targets"]]
+        target = target.title()
+        if target in settings["Targets"]:
+            keys = [x for x in settings["Targets"][target]]
+            keys.append("Name")
             check = lambda m: m.content.title() in keys
             await self.bot.say("Which property of {} would you like to edit?\n"
-                               "{}".format(target.title(), ", ".join(keys)))
+                               "{}".format(target, ", ".join(keys)))
 
             response = await self.bot.wait_for_message(timeout=15, author=author, check=check)
             if response is None:
@@ -311,7 +285,7 @@ class Heist:
                 check2 = lambda m: m.content.isdigit() and int(m.content) > 0
             elif response.content.title() == "Success":
                 await self.bot.say("What would you like to change the success rate to?")
-                check = lambda m: m.content.isdigit() and 0 < int(m.content) <= 100
+                check2 = lambda m: m.content.isdigit() and 0 < int(m.content) <= 100
             elif response.content.title() == "Crew":
                 await self.bot.say("What would you like to change the max crew size to?")
                 crew_sizes = [subdict["Crew"] for subdict in settings["Targets"].values()]
@@ -323,13 +297,15 @@ class Heist:
                 return await self.bot.say("Canceling removal. You took too long.")
 
             if response.content.title() == "Name":
-                settings["Target"][choice.content.title()] = settings["Target"].pop(target.title())
+                settings["Targets"][choice.content.title()] = settings["Targets"].pop(target)
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Changed the target {} to {}.")
+                await self.bot.say("Changed {}'s {} to {}.".format(target, response.content,
+                                                                   choice.content))
             else:
-                settings["Target"][target.title()][response.content.title()] = choice
+                settings["Targets"][target][response.content.title()] = choice.content
                 dataIO.save_json(self.file_path, self.system)
-                await self.bot.say("Changed {}'s {} to {}.")
+                await self.bot.say("Changed {}'s {} to {}.".format(target, response.content,
+                                                                   choice.content))
         else:
             await self.bot.say("That target does not exist.")
 
@@ -547,10 +523,10 @@ class Heist:
                            "Python\n{}```".format(t_vault, t))
                 else:
                     msg = "No one made it out safe."
-                await self.bot.say(msg)
                 settings["Config"]["Alert"] = int(time.perf_counter())
                 self.reset_heist(settings)
                 dataIO.save_json(self.file_path, self.system)
+                await self.bot.say(msg)
         else:
             self.subtract_costs(settings, author, cost)
             settings["Crew"][author.id] = {}
@@ -564,6 +540,27 @@ class Heist:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @heist.command(name="theme", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _theme_heist(self, ctx, theme):
+        """Sets the theme for heist"""
+        theme = theme.title()
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+
+        if not os.path.exists("data/heist/{}.txt".format(theme)):
+            themes = [os.path.join(x).replace('.txt', '')
+                      for x in os.listdir("data/heist/") if x.endswith(".txt")]
+            msg = ("I could not find a theme with that name. Available Themes:"
+                   "```\n{}```".format('\n'.join(themes)))
+        else:
+            theme_dict = self.theme_loader(settings, theme)
+            settings["Theme"] = theme_dict
+            settings["Config"]["Theme"] = theme
+            msg = "{} theme found. Heist will now use this for future games.".format(theme)
+
+        await self.bot.say(msg)
 
     @setheist.command(name="sentence", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -711,6 +708,24 @@ class Heist:
         self.cycle_task.cancel()
         self.shutdown_save()
         dataIO.save_json(self.file_path, self.system)
+
+    def theme_loader(self, settings, theme):
+        keys = ["Jail", "OOB", "Police", "Bail", "Crew", "Sentence", "Heist", "Vault"]
+        theme_dict = dict()
+
+        with open('data/heist/{}.txt'.format(theme)) as f:
+            data = f.readlines()
+            for line in data:
+                if "=" in line:
+                    index = line.find('=')
+                    key = line[:index].strip()
+                    value = line[index + 1:].strip()
+                    theme_dict[key] = value
+
+        if all(key in theme_dict for key in keys):
+            return theme_dict
+        else:
+            raise ThemeError("Some keys were missing in your theme. Please check your txt file.")
 
     def calculate_credits(self, settings, players, target):
         names = [player.name for player in players]
