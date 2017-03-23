@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.691
+                                    "Transfer Cooldown": 30, "Version": 1.692
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.691
+        self.patch = 1.692
 
     def create_account(self, user):
         server = user.server
@@ -263,8 +263,8 @@ class CasinoBank:
         if path["System Config"]["Version"] < 1.6:
             self.DICT_PATCH_16(path)
 
-        if path["System Config"]["Version"] < 1.691:
-            self.DICT_PATH_169(path)
+        if path["System Config"]["Version"] < 1.692:
+            self.DICT_PATCH_1692(path)
 
             # Save changes and return updated dictionary.
         self.save_system()
@@ -307,7 +307,7 @@ class CasinoBank:
                 path["Players"][player]["Cooldowns"]["War"] = 0
         self.save_system()
 
-    def DICT_PATCH_169(self, path):
+    def DICT_PATCH_1692(self, path):
         """Issues with memberships storing keys that are lower case.
         Fire bombing everyones memberships so I don't have nightmares.
         """
@@ -422,7 +422,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.91"
+        self.version = "1.6.92"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
