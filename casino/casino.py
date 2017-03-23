@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.68
+                                    "Transfer Cooldown": 30, "Version": 1.69
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.68
+        self.patch = 1.69
 
     def create_account(self, user):
         server = user.server
@@ -263,6 +263,9 @@ class CasinoBank:
         if path["System Config"]["Version"] < 1.6:
             self.DICT_PATCH_16(path)
 
+        if path["System Config"]["Version"] < 1.69:
+            self.DICT_PATHC_169(path)
+
             # Save changes and return updated dictionary.
         self.save_system()
 
@@ -302,6 +305,13 @@ class CasinoBank:
                 path["Players"][player]["Won"]["War Won"] = 0
             if "War" not in path["Players"][player]["Cooldowns"]:
                 path["Players"][player]["Cooldowns"]["War"] = 0
+        self.save_system()
+
+    def DICT_PATCH_169(self, path):
+        """Issues with memberships storing keys that are lower case.
+        Fire bombing everyones memberships so I don't have nightmares.
+        """
+        path["Memberships"] = {}
         self.save_system()
 
     def DICT_PATCH_16(self, path):
@@ -1170,7 +1180,7 @@ class Casino:
 
         await self.bot.say("What is the color for this membership? This color appears in the "
                            "{}casino stats command.\nPlease pick from these colors: "
-                           "{}".format(ctx.prefix, ", ".join(colors)))
+                           "```{}```".format(ctx.prefix, ", ".join(colors)))
         color = await self.bot.wait_for_message(timeout=35, author=author, check=check5)
 
         if color is None:
@@ -1223,8 +1233,8 @@ class Casino:
                                "creation.")
             return
 
-        await self.bot.say("What is the requirement for this membership? Available options are:\n"
-                           "Days on server, Credits, Chips, or Role\nWhich would you "
+        await self.bot.say("What is the requirement for this membership? Available options are:```"
+                           "Days on server, Credits, Chips, or Role```Which would you "
                            "like set? You can always remove and add additional requirements later"
                            "using `{0}setcasino addrequirements` and "
                            "`{0}setcasino removerequirements`.".format(ctx.prefix))
@@ -1265,7 +1275,7 @@ class Casino:
             msg += "```" + "\n".join("{} {}".format(h, p) for h, p in zip(headers, params)) + "```"
             memberships = {"Payday": int(payday.content), "Access": int(access.content),
                            "Cooldown Reduction": int(reduction.content), "Color": color.content,
-                           "Requirements": {req_type.content: req_val}}
+                           "Requirements": {req_type.content.title(): req_val}}
             settings["Memberships"][name.content.title()] = memberships
             self.casino_bank.save_system()
             await self.bot.say(msg)
@@ -1617,8 +1627,8 @@ class Casino:
         else:
 
             await self.bot.say("Which of these requirements would you like to add to the {} "
-                               " membership?\n{}.\nNOTE: You cannot have multiple requirements of "
-                               "the same type.".format(membership, ', '.join(requirement_options)))
+                               " membership?```{}.```NOTE: You cannot have multiple requirements of"
+                               " the same type.".format(membership, ', '.join(requirement_options)))
             rsp = await self.bot.wait_for_message(timeout=15, author=author, check=check1)
 
             if rsp is None:
@@ -1655,7 +1665,7 @@ class Casino:
                         reply = reply.content
 
                 # Add and save the requirement
-                key = rsp.content
+                key = rsp.content.title()
                 reply
                 settings["Memberships"][membership]["Requirements"][key] = reply
                 self.casino_bank.save_system()
@@ -1677,18 +1687,18 @@ class Casino:
             if not current_requirements:
                 return await self.bot.say("This membership has no requirements.")
 
-            check = lambda m: m.content in current_requirements
+            check = lambda m: m.content.title() in current_requirements
 
-            await self.bot.say("The current requirements for this membership are:\n{}\nWhich would "
-                               "you like to remove?".format(", ".join(current_requirements)))
+            await self.bot.say("The current requirements for this membership are:\n```{}```Which "
+                               "would you like to remove?".format(", ".join(current_requirements)))
             resp = await self.bot.wait_for_message(timeout=15, author=author, check=check)
 
             if resp is None:
                 return await self.bot.say("You took too long. Cancelling requirement removal.")
             else:
-                settings["Memberships"][membership]["Requirements"].pop(resp.content)
+                settings["Memberships"][membership]["Requirements"].pop(resp.content.title())
                 self.casino_bank.save_system()
-                await self.bot.say("{} requirement removed from {}.".format(resp.content.title,
+                await self.bot.say("{} requirement removed from {}.".format(resp.content.title(),
                                                                             membership))
 
     @setcasino.command(name="balance", pass_context=True)
@@ -1877,7 +1887,7 @@ class Casino:
                     if server is not None:
                         settings = self.casino_bank.check_server_settings(server)
                         user_path = self.casino_bank.get_server_memberships(server)
-                        users = [server.get_member(user) for user in list(user_path.keys())]
+                        users = [server.get_member(user) for user in user_path]
                     else:
                         users = None
                     if users:
