@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.1"
+        self.version = "2.2.11"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -106,7 +106,7 @@ class Heist:
                    "createtarget .".format(ctx.prefix))
         else:
             target_names = [x for x in settings["Targets"]]
-            crews = [subdict["Crew"] - 1 for subdict in settings["Targets"].values()]
+            crews = [int(subdict["Crew"]) - 1 for subdict in settings["Targets"].values()]
             success = [str(subdict["Success"]) + "%" for subdict in settings["Targets"].values()]
             vaults = [subdict["Vault"] for subdict in settings["Targets"].values()]
             data = list(zip(target_names, crews, vaults, success))
@@ -302,7 +302,7 @@ class Heist:
                 await self.bot.say("Changed {}'s {} to {}.".format(target, response.content,
                                                                    choice.content))
             else:
-                settings["Targets"][target][response.content.title()] = choice.content
+                settings["Targets"][target][response.content.title()] = int(choice.content)
                 dataIO.save_json(self.file_path, self.system)
                 await self.bot.say("Changed {}'s {} to {}.".format(target, response.content,
                                                                    choice.content))
@@ -731,7 +731,7 @@ class Heist:
         names = [player.name for player in players]
         bonuses = [subdict["Bonus"] for subdict in settings["Crew"].values()]
         vault = settings["Targets"][target]["Vault"]
-        credits_stolen = int(vault * 0.75 / len(settings["Crew"].keys()))
+        credits_stolen = int(int(vault) * 0.75 / len(settings["Crew"].keys()))
         stolen_data = [credits_stolen] * len(settings["Crew"].keys())
         total_winnings = [x + y for x, y in zip(stolen_data, bonuses)]
         settings["Targets"][target]["Vault"] -= credits_stolen
