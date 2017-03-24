@@ -660,7 +660,7 @@ class Shop:
 
     async def code_clear(self, settings, server, user, number):
         userid = [subdict for subdict in settings["Pending"]
-                  if number in settings["Pending"][subdict]]
+                  if number in settings["Pending"][subdict]][0]
         if userid:
             mobj = server.get_member(userid)
             await self.bot.say("Do you want to clear this pending item for {}?".format(mobj.name))
