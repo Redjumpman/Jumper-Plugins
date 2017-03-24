@@ -33,7 +33,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.692
+                                    "Transfer Cooldown": 30, "Version": 1.693
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -118,7 +118,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.692
+        self.patch = 1.693
 
     def create_account(self, user):
         server = user.server
@@ -422,7 +422,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.92"
+        self.version = "1.6.93"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1887,7 +1887,8 @@ class Casino:
                     if server is not None:
                         settings = self.casino_bank.check_server_settings(server)
                         user_path = self.casino_bank.get_server_memberships(server)
-                        users = [server.get_member(user) for user in user_path]
+                        users = [server.get_member(user) for user in user_path
+                                 if server.get_member(user) is not None]  # Check for None
                     else:
                         users = None
                     if users:
