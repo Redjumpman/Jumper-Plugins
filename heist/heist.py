@@ -48,7 +48,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.11"
+        self.version = "2.2.12"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -398,7 +398,7 @@ class Heist:
                 settings["Players"][author.id]["Status"] = "Free"
                 dataIO.save_json(self.file_path, self.system)
         else:
-            msg = "I can't remove you from {0} if your not *in* {0}.".format(t_jail)
+            msg = "I can't remove you from {0} if you're not *in* {0}.".format(t_jail)
         await self.bot.say(msg)
 
     @heist.command(name="revive", pass_context=True)
@@ -689,14 +689,14 @@ class Heist:
         try:
             await asyncio.sleep(15)  # Start-up Time
             while True:
-                servers = [x.id for x in self.bot.servers if x.id in self.system["Servers"].keys()]
-                for serverid in servers:
-                    for target in list(self.system["Servers"][serverid]["Targets"].keys()):
-                        vault = self.system["Servers"][serverid]["Targets"][target]["Vault"]
-                        vault_max = self.system["Servers"][serverid]["Targets"][target]["Vault Max"]
+                servers = [x.id for x in self.bot.servers if x.id in self.system["Servers"]]
+                for server in servers:
+                    for target in self.system["Servers"][server]["Targets"]:
+                        vault = self.system["Servers"][server]["Targets"][target]["Vault"]
+                        vault_max = self.system["Servers"][server]["Targets"][target]["Vault Max"]
                         if vault < vault_max:
                             increment = min(vault + 45, vault_max)
-                            self.system["Servers"][serverid]["Targets"][target]["Vault"] = increment
+                            self.system["Servers"][server]["Targets"][target]["Vault"] = increment
                         else:
                             pass
                 dataIO.save_json(self.file_path, self.system)
