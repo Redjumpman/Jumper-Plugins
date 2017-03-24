@@ -24,7 +24,15 @@ except ImportError:
     tabulateAvailable = False
 
 
-class ThemeError(Exception):
+class HeistError(Exception):
+    pass
+
+
+class ThemeError(HeistError):
+    pass
+
+
+class VaultUpdaterStopped(HeistError):
     pass
 
 
@@ -48,7 +56,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.12"
+        self.version = "2.2.13"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -106,7 +114,7 @@ class Heist:
                    "createtarget .".format(ctx.prefix))
         else:
             target_names = [x for x in settings["Targets"]]
-            crews = [int(subdict["Crew"]) - 1 for subdict in settings["Targets"].values()]
+            crews = [int(subdict["Crew"]) for subdict in settings["Targets"].values()]
             success = [str(subdict["Success"]) + "%" for subdict in settings["Targets"].values()]
             vaults = [subdict["Vault"] for subdict in settings["Targets"].values()]
             data = list(zip(target_names, crews, vaults, success))
@@ -702,7 +710,7 @@ class Heist:
                 dataIO.save_json(self.file_path, self.system)
                 await asyncio.sleep(120)  # task runs every 120 seconds
         except asyncio.CancelledError:
-            pass
+            raise VaultUpdaterStopped("The vault has unexpectedly stopped updating.")
 
     def __unload(self):
         self.cycle_task.cancel()
@@ -744,7 +752,7 @@ class Heist:
         success_rate = settings["Targets"][target]["Success"]
         max_crew = settings["Targets"][target]["Crew"]
         crew = len(settings["Crew"].keys())
-        success_chance = success_rate + max_crew - crew
+        success_chance = int(success_rate) + max_crew - crew
         return success_chance
 
     def game_outcomes(self, settings, players, target):
