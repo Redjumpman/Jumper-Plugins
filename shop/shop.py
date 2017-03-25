@@ -660,9 +660,9 @@ class Shop:
 
     async def code_clear(self, settings, server, user, number):
         userid = [subdict for subdict in settings["Pending"]
-                  if number in settings["Pending"][subdict]][0]
+                  if number in settings["Pending"][subdict]]
         if userid:
-            mobj = server.get_member(userid)
+            mobj = server.get_member(userid[0])
             await self.bot.say("Do you want to clear this pending item for {}?".format(mobj.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
@@ -1095,7 +1095,6 @@ class Shop:
                                                             "Trade Cooldown": 30,
                                                             "Store Output Method": "Chat",
                                                             "Inventory Output Method": "Chat",
-                                                            "Notify Role": "Shopkeeper",
                                                             "Sort Method": "Alphabet",
                                                             "Member Discount": None,
                                                             "Pending Type": "Manual"}
@@ -1123,7 +1122,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.51"
+               "Version": "2.2.52"
                }
 
     f = "data/JumperCogs/shop/system.json"
