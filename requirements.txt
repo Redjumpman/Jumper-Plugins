@@ -1,3 +1,4 @@
 git+git://github.com/Rapptz/discord.py.git#egg=discord.py[voice]
 tabulate
 BeautifulSoup4
+python-dateutil
