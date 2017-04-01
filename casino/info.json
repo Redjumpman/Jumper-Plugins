@@ -4,7 +4,7 @@
     "DESCRIPTION" : "Allows you to create your own Casino system. Can play blackjack, coin, dice, allin, war, hi-lo, and cups.",
     "DISABLED" : false,
     "NAME" : "Casino",
-    "REQUIREMENTS" : ["tabulate"],
+    "REQUIREMENTS" : ["tabulate", "python-dateutil"],
     "TAGS" : ["casino", "games", "gambling", "economy"],
     "INSTALL_MSG" : "Thank you for installing Casino from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
 }
