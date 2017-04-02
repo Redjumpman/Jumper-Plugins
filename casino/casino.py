@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.694
+                                    "Transfer Cooldown": 30, "Version": 1.7
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -128,7 +128,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.694
+        self.patch = 1.7
 
     def create_account(self, user):
         server = user.server
@@ -448,7 +448,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.94"
+        self.version = "1.7"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -589,6 +589,7 @@ class Casino:
                 self.casino_bank.DICT_PATCH_1581(settings)
                 self.casino_bank.DICT_PATCH_16(settings)
                 self.casino_bank.DICT_PATCH_GAMES(settings)
+                self.casino_bank.DICT_PATCH_1694(settings)
                 self.casino_bank.save_system()
                 msg = "Data transfer successful. You can now access your old casino data."
             else:
@@ -2297,7 +2298,7 @@ class Casino:
         # Begin cooldown logic calculation
         cooldowns = []
         for method in cd_list:
-            user_time = parser.parse(settings["Players"][user.id]["Cooldowns"][method])
+            user_time = settings["Players"][user.id]["Cooldowns"][method]
 
             # Check if method is for a game or for payday
             if method in self.games:
@@ -2307,16 +2308,19 @@ class Casino:
                 base = settings["System Config"]["Payday Timer"]
 
             # Begin cooldown logic calculation
-            if (datetime.utcnow() - user_time).seconds >= (base - reduction):
+            if user_time == 0:  # For new accounts
+                cooldowns.append("<<Ready to Play!")
+            elif (datetime.utcnow() - parser.parse(user_time)).seconds >= (base - reduction):
                 cooldowns.append("<<Ready to Play!")
             else:
-                seconds = abs((datetime.utcnow() - user_time).seconds - (base - reduction))
+                ut = parser.parse(user_time)
+                seconds = abs((datetime.utcnow() - ut).seconds - base - reduction)
                 remaining = self.time_format(seconds, brief=True)
                 cooldowns.append(remaining)
         return cooldowns
 
     def check_cooldowns(self, user, method, settings):
-        user_time = parser.parse(settings["Players"][user.id]["Cooldowns"][method])
+        user_time = settings["Players"][user.id]["Cooldowns"][method]
         user_membership = settings["Players"][user.id]["Membership"]
         reduction = 0
 
@@ -2336,12 +2340,16 @@ class Casino:
             base = settings["System Config"]["Transfer Cooldown"]
 
         # Begin cooldown logic calculation
-        if (datetime.utcnow() - user_time).seconds >= (base - reduction):
+        if user_time == 0:  # For new accounts
+            settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
+            self.casino_bank.save_system()
+            return None
+        elif (datetime.utcnow() - parser.parse(user_time)).seconds >= base - reduction:
             settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
             self.casino_bank.save_system()
             return None
         else:
-            seconds = abs((datetime.utcnow() - user_time).seconds - (base - reduction))
+            seconds = abs((datetime.utcnow() - parser.parse(user_time)).seconds - base - reduction)
             remaining = self.time_format(seconds)
             msg = "{} is still on a cooldown. You still have: {}".format(method, remaining)
             return msg
