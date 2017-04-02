@@ -135,7 +135,7 @@ class Cookie:
         if user is None:
             user = self.random_user(settings, author, server)
 
-        if user == user.bot:
+        if user.bot:
             return await self.bot.say("Stealing failed because the picked target is a bot.\nYou "
                                       "can retry stealing again, your cooldown is not consumed.")
 
