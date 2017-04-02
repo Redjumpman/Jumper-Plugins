@@ -8,8 +8,8 @@ import logging
 import logging.handlers
 import os
 import random
-import time
 from copy import deepcopy
+from datetime import datetime, timedelta
 
 # Discord imports
 import discord
@@ -21,11 +21,17 @@ from discord.ext import commands
 from __main__ import send_cmd_help
 
 # Third Party Libraries
-try:   # Check if Tabulate is installed
+try:
     from tabulate import tabulate
     tabulateAvailable = True
 except ImportError:
     tabulateAvailable = False
+
+try:
+    from dateutil import parser
+    dateutilAvailable = True
+except ImportError:
+    dateutilAvailable = False
 
 
 # Default settings that is created when a server begin's using Casino
@@ -33,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.693
+                                    "Transfer Cooldown": 30, "Version": 1.694
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -74,6 +80,10 @@ bj_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10
 
 war_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'Jack': 11,
               'Queen': 12, 'King': 13, 'Ace': 14}
+
+hilo_data = {"Played": {"Hi-Lo Played": 0}, "Won": {"Hi-Lo Won": 0}, "Cooldown": {"Hi-Lo": 0}}
+
+war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0}, "Cooldown": {"War": 0}}
 
 
 class CasinoError(Exception):
@@ -118,7 +128,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.693
+        self.patch = 1.694
 
     def create_account(self, user):
         server = user.server
@@ -266,6 +276,9 @@ class CasinoBank:
         if path["System Config"]["Version"] < 1.692:
             self.DICT_PATCH_1692(path)
 
+        if path["System Config"]["Version"] < 1.694:
+            self.DICT_PATCH_1694(path)
+
             # Save changes and return updated dictionary.
         self.save_system()
 
@@ -305,6 +318,19 @@ class CasinoBank:
                 path["Players"][player]["Won"]["War Won"] = 0
             if "War" not in path["Players"][player]["Cooldowns"]:
                 path["Players"][player]["Cooldowns"]["War"] = 0
+        self.save_system()
+
+    def DICT_PATCH_1694(self, path):
+        """This patch aimed at converting the old cooldown times into unix time."""
+        print("DICT_Patch_1694 ran")
+        for player in path["Players"]:
+            try:
+                for cooldown in path["Players"][player]["Cooldowns"]:
+                    s = path["Players"][player]["Cooldowns"][cooldown]
+                    convert = datetime.utcnow() - timedelta(seconds=s)
+                    path["Players"][player]["Cooldowns"][cooldown] = convert.isoformat()
+            except TypeError:
+                pass
         self.save_system()
 
     def DICT_PATCH_1692(self, path):
@@ -422,7 +448,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.6.93"
+        self.version = "1.6.94"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -471,8 +497,8 @@ class Casino:
         this command. THIS DOES NOT UPDATE CASINO
         """
 
-        user = ctx.message.author
-        settings = self.casino_bank.check_server_settings(user.server)
+        server = ctx.message.server
+        settings = self.casino_bank.check_server_settings(server)
         self.casino_bank.DICT_PATCH_1581(settings)
         self.casino_bank.DICT_PATCH_16(settings)
         self.casino_bank.DICT_PATCH_GAMES(settings)
@@ -556,11 +582,13 @@ class Casino:
                 msg = "Transfer cancelled."
             elif response.content.title() == "Yes":
                 old_data = self.legacy_system["Players"][user.id]
-                player_data = self.player_update(old_data, new_game, path=None)
-                transfer = {user.id: player_data}
+                transfer = {user.id: old_data}
                 settings["Players"].update(transfer)
                 self.legacy_system["Players"].pop(user.id)
                 dataIO.save_json(self.legacy_path, self.legacy_system)
+                self.casino_bank.DICT_PATCH_1581(settings)
+                self.casino_bank.DICT_PATCH_16(settings)
+                self.casino_bank.DICT_PATCH_GAMES(settings)
                 self.casino_bank.save_system()
                 msg = "Data transfer successful. You can now access your old casino data."
             else:
@@ -805,8 +833,6 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
         choice = choice.title()
         choices = ["Hi", "High", "Low", "Lo", "Seven", "7"]
-        hilo_data = {"Played": {"Hi-Lo Played": 0}, "Won": {"Hi-Lo Won": 0},
-                     "Cooldown": {"Hi-Lo": 0}}
 
         # Check if casino json file has the hi-lo game, and if not add it.
         if "Hi-Lo Played" not in settings["Players"][user.id]["Played"]:
@@ -1030,9 +1056,6 @@ class Casino:
         # Declare Variables for the game.
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
-
-        war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0},
-                    "Cooldown": {"War": 0}}
 
         # Check if casino json file has the hi-lo game, and if not add it.
         if "War Played" not in settings["Players"][user.id]["Played"]:
@@ -1268,11 +1291,11 @@ class Casino:
 
             params = [name.content, color.content, payday.content, reduction.content,
                       access.content, req_val]
-            headers = ["Name:", "Color:", "Payday:", "Cooldown Reduction:", "Access Level:",
-                       "Requirement:"]
+            msg = ("Membership successfully created. Please review the details below.\n"
+                   "```Name:  {0}\nColor:  {1}\nPayday:  {2}\nCooldown Reduction:  {3}\n"
+                   "Access Level:  {4}\n".format(*params))
+            msg += "Requirement:  {} {}```".format(req_val, req_type.content.title())
 
-            msg = "Membership successfully created. Please review the details below.\n"
-            msg += "```" + "\n".join("{} {}".format(h, p) for h, p in zip(headers, params)) + "```"
             memberships = {"Payday": int(payday.content), "Access": int(access.content),
                            "Cooldown Reduction": int(reduction.content), "Color": color.content,
                            "Requirements": {req_type.content.title(): req_val}}
@@ -2078,10 +2101,8 @@ class Casino:
                        "exceeding the threshold until this has been cleared."
                        "".format(total, chip_name, user.id))
                 logger.info("{}({}) won {} chips exceeding the threshold. Game "
-                            "details:\nPlayer Bet: {}\nGame "
-                            "Outcome: {}\n[END OF FILE]".format(user.name, user.id, total,
-                                                                str(total).ljust(10),
-                                                                str(outcome[0]).ljust(10)))
+                            "details:\nPlayer Bet: {}\nGame\n"
+                            "[END OF FILE]".format(user.name, user.id, total, str(total).ljust(10)))
             else:
                 msg += ("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just "
                         "won {} {} chips.```".format(total, chip_name))
@@ -2194,7 +2215,7 @@ class Casino:
 
                 # If the requirement is a DoS, run DoS logic
                 if req == "Days On Server":
-                    dos = (ctx.message.timestamp - user.joined_at).days
+                    dos = (datetime.utcnow() - user.joined_at).days
                     if dos >= path[membership]["Requirements"]["Days On Server"]:
                         requirements.append(True)
                     else:
@@ -2276,27 +2297,26 @@ class Casino:
         # Begin cooldown logic calculation
         cooldowns = []
         for method in cd_list:
-            base = settings["Players"][user.id]["Cooldowns"][method]
+            user_time = parser.parse(settings["Players"][user.id]["Cooldowns"][method])
 
             # Check if method is for a game or for payday
             if method in self.games:
-                path = settings["Games"][method]["Cooldown"] - reduction
+                base = settings["Games"][method]["Cooldown"]
             else:
-                path = settings["System Config"]["Payday Timer"]
+                reduction = 0
+                base = settings["System Config"]["Payday Timer"]
 
-            if abs(base - int(time.perf_counter())) >= path:
-                cooldowns.append("<<Ready to Play!")
-            elif base == 0:
+            # Begin cooldown logic calculation
+            if (datetime.utcnow() - user_time).seconds >= (base - reduction):
                 cooldowns.append("<<Ready to Play!")
             else:
-                s = abs(base - int(time.perf_counter()))
-                seconds = abs(s - path)
+                seconds = abs((datetime.utcnow() - user_time).seconds - (base - reduction))
                 remaining = self.time_format(seconds, brief=True)
                 cooldowns.append(remaining)
         return cooldowns
 
     def check_cooldowns(self, user, method, settings):
-        base = settings["Players"][user.id]["Cooldowns"][method]
+        user_time = parser.parse(settings["Players"][user.id]["Cooldowns"][method])
         user_membership = settings["Players"][user.id]["Membership"]
         reduction = 0
 
@@ -2309,24 +2329,19 @@ class Casino:
             self.casino_bank.save_system()
         # Check if method is for a game or for payday
         if method in self.games:
-            path = settings["Games"][method]["Cooldown"]
+            base = settings["Games"][method]["Cooldown"]
         elif method == "Payday":
-            path = settings["System Config"]["Payday Timer"]
+            base = settings["System Config"]["Payday Timer"]
         else:
-            path = settings["System Config"]["Transfer Cooldown"]
+            base = settings["System Config"]["Transfer Cooldown"]
 
         # Begin cooldown logic calculation
-        if abs(base - int(time.perf_counter())) >= path - reduction:
-            settings["Players"][user.id]["Cooldowns"][method] = int(time.perf_counter())
-            self.casino_bank.save_system()
-            return None
-        elif base == 0:
-            settings["Players"][user.id]["Cooldowns"][method] = int(time.perf_counter())
+        if (datetime.utcnow() - user_time).seconds >= (base - reduction):
+            settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
             self.casino_bank.save_system()
             return None
         else:
-            s = abs(base - int(time.perf_counter()))
-            seconds = abs(s - path - reduction)
+            seconds = abs((datetime.utcnow() - user_time).seconds - (base - reduction))
             remaining = self.time_format(seconds)
             msg = "{} is still on a cooldown. You still have: {}".format(method, remaining)
             return msg
@@ -2411,6 +2426,7 @@ class Casino:
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
         data = PluralDict({'hour': h, 'minute': m, 'second': s})
+        print(h, m, s)
 
         # Determine the remaining time.
         if not brief:
@@ -2436,23 +2452,22 @@ class Casino:
         else:
 
             if h > 0:
-                msg = "{}h".format(h)
+                msg = "{0}h"
                 if m > 0 and s > 0:
-                    msg += ", {}m, and {}s".format(h, m, s)
+                    msg += ", {1}m, and {2}s"
 
-                if s > 0 and m == 0:
-                    msg += "and {}s"
+                elif s > 0 and m == 0:
+                    msg += "and {2}s"
             elif h == 0 and m > 0:
                 if s == 0:
-                    msg = "{}m".format(m)
+                    msg = "{1}m"
                 else:
-                    msg = "{}m and {}s".format(m, s)
+                    msg = "{1}m and {2}s"
             elif m == 0 and h == 0 and s > 0:
-                msg = "{}s".format(s)
+                msg = "{2}s"
             elif m == 0 and h == 0 and s == 0:
                 msg = "None"
-
-        return msg
+        return msg.format(h, m, s)
 
     def __unload(self):
         self.cycle_task.cancel()
@@ -2488,7 +2503,9 @@ def setup(bot):
         handler.setFormatter(logging.Formatter('%(asctime)s %(name)-12s %(message)s',
                                                datefmt="[%d/%m/%Y %H:%M]"))
         logger.addHandler(handler)
-    if tabulateAvailable:
-        bot.add_cog(Casino(bot))
-    else:
+    if not tabulateAvailable:
         raise RuntimeError("You need to run 'pip3 install tabulate'")
+    elif not dateutilAvailable:
+        raise RuntimeError("You need to install the library python-dateutil.")
+    else:
+        bot.add_cog(Casino(bot))
