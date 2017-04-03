@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.7
+                                    "Transfer Cooldown": 30, "Version": 1.701
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -90,10 +90,6 @@ class CasinoError(Exception):
     pass
 
 
-class WipeError(CasinoError):
-    pass
-
-
 class UserAlreadyRegistered(CasinoError):
     pass
 
@@ -107,10 +103,6 @@ class InsufficientChips(CasinoError):
 
 
 class NegativeChips(CasinoError):
-    pass
-
-
-class NegativeValue(CasinoError):
     pass
 
 
@@ -128,7 +120,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.7
+        self.patch = 1.701
 
     def create_account(self, user):
         server = user.server
@@ -142,7 +134,7 @@ class CasinoBank:
             membership = path["Players"][user.id]
             return membership
         else:
-            raise UserAlreadyRegistered("{} already has a casino membership".format(user.name))
+            raise UserAlreadyRegistered()
 
     def membership_exists(self, user):
         try:
@@ -160,7 +152,7 @@ class CasinoBank:
         if account["Chips"] >= amount:
             return True
         else:
-            raise InsufficientChips("{} does not have enough chips.".format(user.name))
+            raise InsufficientChips()
 
     def set_chips(self, user, amount):
         if amount < 0:
@@ -186,7 +178,7 @@ class CasinoBank:
             account["Chips"] -= amount
             self.save_system()
         else:
-            raise InsufficientChips("{} does not have enough chips.".format(user.name))
+            raise InsufficientChips()
 
     def transfer_chips(self, sender, receiver, amount):
         if amount < 0:
@@ -201,11 +193,11 @@ class CasinoBank:
         if self.membership_exists(sender) and self.membership_exists(receiver):
             sender_acc = self.get_membership(sender)
             if sender_acc["Chips"] < amount:
-                raise InsufficientChips('You cannot cover this amount.')
+                raise InsufficientChips()
             self.withdraw_chips(sender, amount)
             self.deposit_chips(receiver, amount)
         else:
-            raise UserNotRegistered('{} is not registered.'.format(receiver.name))
+            raise UserNotRegistered()
 
     def wipe_caisno_server(self, server):
         self.memberships["Servers"].pop(server.id)
@@ -448,7 +440,7 @@ class Casino:
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
         self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.7"
+        self.version = "1.7.01"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -521,12 +513,15 @@ class Casino:
         """Grants you membership access to the casino"""
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
-        self.casino_bank.create_account(user)
-        name = settings["System Config"]["Casino Name"]
-        msg = ("Your membership has been approved! Welcome to {} Casino!\nAs a first time "
-               "member we have credited your account with 100 free chips. "
-               "\nHave fun!".format(name))
-        await self.bot.say(msg)
+        try:
+            self.casino_bank.create_account(user)
+        except UserAlreadyRegistered:
+            return await self.bot.say("{} already has a casino membership".format(user.name))
+        else:
+            name = settings["System Config"]["Casino Name"]
+            await self.bot.say("Your membership has been approved! Welcome to {} Casino!\nAs a "
+                               "first time member we have credited your account with 100 free "
+                               "chips.\nHave fun!".format(name))
 
     @casino.command(name="transfer", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -537,11 +532,15 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
         limit = settings["System Config"]["Transfer Limit"]
 
-        if not self.casino_bank.membership_exists(author):
-            raise UserNotRegistered("{} is not registered to the casino.".format(author.name))
+        try:
+            self.casino_bank.membership_exists(author)
+        except UserNotRegistered:
+            return await self.bot.say("{} is not registered to the casino.".format(author.name))
 
-        if not self.casino_bank.membership_exists(user):
-            raise UserNotRegistered("{} is not registered to the casino.".format(user.name))
+        try:
+            self.casino_bank.membership_exists(user)
+        except UserNotRegistered:
+            return await self.bot.say("{} is not registered to the casino.".format(user.name))
 
         if chips > limit:
             return await self.bot.say("Your transfer cannot exceed the server limit of {} {} "
@@ -551,14 +550,24 @@ class Casino:
         cooldown = self.check_cooldowns(user, "Transfer", settings)
 
         if not cooldown:
-            self.casino_bank.transfer_chips(author, user, chips)
-            logger.info("{}({}) transferred {} {} to {}({}).".format(author.name, author.id,
-                                                                     chip_name, chips, user.name,
-                                                                     user.id))
-            msg = ("{} transferred {} {} to {}.".format(author.name, chip_name, chips, user.name))
+            try:
+                self.casino_bank.transfer_chips(author, user, chips)
+            except NegativeChips:
+                return await self.bot.say("An amount cannot be negative.")
+            except SameSenderAndReceiver:
+                return await self.bot.say("Sender and Reciever cannot be the same.")
+            except BotNotAUser:
+                return await self.bot.say("You can send chips to a bot.")
+            except InsufficientChips:
+                return await self.bot.say("Not enough chips to transfer.")
+            else:
+                logger.info("{}({}) transferred {} {} to {}({}).".format(author.name, author.id,
+                                                                         chip_name, chips,
+                                                                         user.name, user.id))
+            await self.bot.say("{} transferred {} {} to {}.".format(author.name, chip_name, chips,
+                                                                    user.name))
         else:
-            msg = cooldown
-        await self.bot.say(msg)
+            await self.bot.say(cooldown)
 
     @casino.command(name="acctransfer", pass_context=True)
     async def _acctransfer_casino(self, ctx):
@@ -651,40 +660,45 @@ class Casino:
         casino_name = settings["System Config"]["Casino Name"]
 
         # Logic checks
-        if not self.casino_bank.membership_exists(user):
-            msg = ("You need to register to the {} Casino. To register type `{}casino "
-                   "join`.".format(casino_name, ctx.prefix))
-        elif currency not in ["Chips", "Credits"]:
-            msg = "I can only exchange chips or credits, please specify one."
+        try:
+            self.casino_bank.membership_exists(user)
+        except UserNotRegistered:
+            return await self.bot.say("You need to register to the {} Casino. To register type "
+                                      "`{}casino join`.".format(casino_name, ctx.prefix))
+        if currency not in ["Chips", "Credits"]:
+            return await self.bot.say("I can only exchange chips or credits, please specify one.")
 
         # Logic for choosing chips
         elif currency == "Chips":
             if amount <= 0 and amount % credit_multiple != 0:
-                msg = ("The amount must be higher than 0 and "
-                       "a multiple of {}.".format(credit_multiple))
-            elif self.casino_bank.can_bet(user, amount):
+                return await self.bot.say("The amount must be higher than 0 and "
+                                          "a multiple of {}.".format(credit_multiple))
+            try:
+                self.casino_bank.can_bet(user, amount)
+            except InsufficientChips:
+                return await self.bot.say("You don't have that many chips to exchange.")
+            else:
                 self.casino_bank.withdraw_chips(user, amount)
                 credits = int(amount * credit_rate)
                 bank.deposit_credits(user, credits)
-                msg = ("I have exchanged {} {} chips into {} credits.\nThank you for playing at "
-                       "{} Casino.".format(amount, chip_name, credits, casino_name))
-            else:
-                msg = "You don't have that many chips to exchange."
+                return await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank "
+                                          "you for playing at {} "
+                                          "Casino.".format(amount, chip_name, credits, casino_name))
 
         # Logic for choosing Credits
         elif currency == "Credits":
             if amount <= 0 and amount % chip_multiple != 0:
-                msg = "The amount must be higher than 0 and a multiple of {}.".format(chip_multiple)
+                return await self.bot.say("The amount must be higher than 0 and a multiple "
+                                          "of {}.".format(chip_multiple))
             elif bank.can_spend(user, amount):
                 bank.withdraw_credits(user, amount)
                 chip_amount = int(amount * chip_rate)
                 self.casino_bank.deposit_chips(user, chip_amount)
-                msg = ("I have exchanged {} credits for {} {} chips.\nEnjoy your time at "
-                       "{} Casino!".format(amount, chip_amount, chip_name, casino_name))
+                await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time "
+                                   "at {} Casino!".format(amount, chip_amount, chip_name,
+                                                          casino_name))
             else:
-                msg = "You don't have that many credits to exchange."
-
-        await self.bot.say(msg)
+                await self.bot.say("You don't have that many credits to exchange.")
 
     @casino.command(name="stats", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -696,11 +710,15 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
         chip_name = settings["System Config"]["Chip Name"]
         casino_name = settings["System Config"]["Casino Name"]
-        chip_balance = self.casino_bank.chip_balance(author)
-        pending_chips = settings["Players"][author.id]["Pending"]
 
         # Check for a membership and build the table.
-        if self.casino_bank.membership_exists(author):
+        try:
+            chip_balance = self.casino_bank.chip_balance(author)
+        except UserNotRegistered:
+            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
+                               "join`.".format(casino_name, ctx.prefix))
+        else:
+            pending_chips = settings["Players"][author.id]["Pending"]
             player = settings["Players"][author.id]
             wiki = "[Wiki](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino)"
             membership, benefits = self.get_benefits(settings, author.id)
@@ -733,9 +751,6 @@ class Casino:
                             value="```xl\n{}```".format("\n".join(cooldowns)))
 
             await self.bot.say(embed=embed)
-        else:
-            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
-                               "join`.".format(casino_name, ctx.prefix))
 
     @casino.command(name="info", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -794,7 +809,12 @@ class Casino:
         settings = self.casino_bank.check_server_settings(user.server)
         casino_name = settings["System Config"]["Casino Name"]
         chip_name = settings["System Config"]["Chip Name"]
-        if self.casino_bank.membership_exists(user):
+        try:
+            self.casino_bank.membership_exists(user)
+        except UserNotRegistered:
+            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
+                               "join`.".format(casino_name, ctx.prefix))
+        else:
             cooldown = self.check_cooldowns(user, "Payday", settings)
             if not cooldown:
                 if settings["Players"][user.id]["Membership"]:
@@ -808,10 +828,7 @@ class Casino:
                     msg = "You received {} {} chips. Enjoy!".format(payday, chip_name)
             else:
                 msg = cooldown
-        else:
-            msg = ("You need to register to the {} Casino. To register type `{}casino "
-                   "join`.".format(casino_name, ctx.prefix))
-        await self.bot.say(msg)
+            await self.bot.say(msg)
 
     @casino.command(name="balance", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -820,8 +837,14 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         chip_name = settings["System Config"]["Chip Name"]
-        balance = self.casino_bank.chip_balance(user)
-        await self.bot.say("```Python\nYou have {} {} chips.```".format(balance, chip_name))
+        casino_name = settings["System Config"]["Casino Name"]
+        try:
+            balance = self.casino_bank.chip_balance(user)
+        except UserNotRegistered:
+            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
+                               "join`.".format(casino_name, ctx.prefix))
+        else:
+            await self.bot.say("```Python\nYou have {} {} chips.```".format(balance, chip_name))
 
     @commands.command(pass_context=True, no_pm=True, aliases=["hl", "hi-lo"])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -1107,10 +1130,13 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         chip_name = settings["System Config"]["Chip Name"]
-        if self.casino_bank.membership_exists(user):
-            bet = int(settings["Players"][user.id]["Chips"])
+        try:
+            self.casino_bank.membership_exists(user)
+        except UserNotRegistered:
+            return await self.bot.say("You need to register. Type "
+                                      "{}casino join.".format(ctx.prefix))
         else:
-            raise UserNotRegistered("You need to register. Type {}casino join.".format(ctx.prefix))
+            bet = int(settings["Players"][user.id]["Chips"])
         # Run a logic check to determine if the user can play the game.
         check = self.game_checks(settings, ctx.prefix, user, bet, "Allin", 1, [1])
         if check:
@@ -1471,7 +1497,7 @@ class Casino:
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
             self.casino_bank.save_system()
         else:
-            raise NegativeValue()
+            msg = "Limit must be higher than 0."
 
         await self.bot.say(msg)
 
@@ -1495,7 +1521,7 @@ class Casino:
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
             self.casino_bank.save_system()
         else:
-            raise NegativeValue()
+            msg = "Seconds must be higher than 0."
 
         await self.bot.say(msg)
 
@@ -1732,11 +1758,19 @@ class Casino:
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
         chip_name = settings["System Config"]["Chip Name"]
-        self.casino_bank.set_chips(user, chips)
-        logger.info("SETTINGS CHANGED {}({}) set {}({}) chip balance to "
-                    "{}".format(author.name, author.id, user.name, user.id, chips))
-        await self.bot.say("```Python\nSetting the chip balance of {} to "
-                           "{} {} chips.```".format(user.name, chips, chip_name))
+        casino_name = settings["System Config"]["Casino Name"]
+        try:
+            self.casino_bank.set_chips(user, chips)
+        except NegativeChips:
+            return await self.bot.say("Chips must be higher than 0.")
+        except UserNotRegistered:
+            return await self.bot.say("You need to register to the {} Casino. To register type "
+                                      "`{}casino join`.".format(casino_name, ctx.prefix))
+        else:
+            logger.info("SETTINGS CHANGED {}({}) set {}({}) chip balance to "
+                        "{}".format(author.name, author.id, user.name, user.id, chips))
+            await self.bot.say("```Python\nSetting the chip balance of {} to "
+                               "{} {} chips.```".format(user.name, chips, chip_name))
 
     @setcasino.command(name="exchange", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -2377,9 +2411,14 @@ class Casino:
         else:
             minmax_fail = None
         # Check for membership first.
-        if not self.casino_bank.membership_exists(user):
+        try:
+            self.casino_bank.can_bet(user, bet)
+        except UserNotRegistered:
             msg = ("You need to register to the {} Casino. To register type `{}casino "
                    "join`.".format(casino_name, prefix))
+            return msg
+        except InsufficientChips:
+            msg = "You do not have enough chips to cover the bet."
             return msg
 
         user_access = self.access_calculator(settings, user)
@@ -2395,9 +2434,6 @@ class Casino:
                    "higher membership to play this game.")
         elif minmax_fail:
             msg = minmax_fail
-            return msg
-        elif not self.casino_bank.can_bet(user, bet):
-            msg = "You do not have enough chips to cover the bet."
             return msg
         else:
             cd_check = self.check_cooldowns(user, game, settings)
