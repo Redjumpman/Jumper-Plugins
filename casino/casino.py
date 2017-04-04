@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.701
+                                    "Transfer Cooldown": 30, "Version": 1.702
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -85,6 +85,8 @@ hilo_data = {"Played": {"Hi-Lo Played": 0}, "Won": {"Hi-Lo Won": 0}, "Cooldown":
 
 war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0}, "Cooldown": {"War": 0}}
 
+c_games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
+
 
 class CasinoError(Exception):
     pass
@@ -120,7 +122,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.701
+        self.patch = 1.702
 
     def create_account(self, user):
         server = user.server
@@ -277,7 +279,7 @@ class CasinoBank:
     def name_fix(self):
         servers = self.get_all_servers()
         removal = []
-        for server in servers.keys():
+        for server in servers:
             try:
                 server_obj = self.bot.get_server(server)
                 self.name_bug_fix(server_obj)
@@ -292,7 +294,7 @@ class CasinoBank:
 
     def name_bug_fix(self, server):
         players = self.get_server_memberships(server)
-        for player in players.keys():
+        for player in players:
             mobj = server.get_member(player)
             try:
                 if players[player]["Name"] != mobj.name:
@@ -428,6 +430,8 @@ class Casino:
     check out the wiki on my github.
 
     """
+    __slots__ = ['bot', 'file_path', 'version', 'legacy_available', 'legacy_path', 'legacy_system',
+                 'casino_bank', 'cycle_task']
 
     def __init__(self, bot):
         self.bot = bot
@@ -439,8 +443,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
-        self.version = "1.7.01"
+        self.version = "1.7.02"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1224,7 +1227,7 @@ class Casino:
             await self.bot.say("Membership creation cancelled.")
             return
 
-        if name.content.title() in list(settings["Memberships"].keys()):
+        if name.content.title() in settings["Memberships"]:
             await self.bot.say("A membership with that name already exists. Cancelling creation.")
             return
 
@@ -1620,8 +1623,8 @@ class Casino:
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
 
-        if game.title() not in self.games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(self.games))
+        if game.title() not in c_games:
+            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
         elif multiplier > 0:
             multiplier = float(abs(multiplier))
             settings["Games"][game.title()]["Multiplier"] = multiplier
@@ -1642,8 +1645,8 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
         game = game.title()
 
-        if game not in self.games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(self.games))
+        if game not in c_games:
+            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
         elif access >= 0:
             settings["Games"][game.title()]["Access Level"] = access
             self.casino_bank.save_system()
@@ -1831,8 +1834,8 @@ class Casino:
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
 
-        if game.title() not in self.games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(self.games))
+        if game.title() not in c_games:
+            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
         else:
             settings["Games"][game.title()]["Cooldown"] = seconds
             time_set = self.time_format(seconds)
@@ -1848,7 +1851,7 @@ class Casino:
         """Set the minimum bet to play a game"""
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
-        min_games = [x for x in self.games if x != "Allin"]
+        min_games = [x for x in c_games if x != "Allin"]
 
         if game.title() not in min_games:
             msg = "This game does not exist. Please pick from: {}".format(", ".join(min_games))
@@ -1874,7 +1877,7 @@ class Casino:
         """Set the maximum bet to play a game"""
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
-        max_games = [x for x in self.games if x != "Allin"]
+        max_games = [x for x in c_games if x != "Allin"]
 
         if game.title() not in max_games:
             msg = "This game does not exist. Please pick from: {}".format(", ".join(max_games))
@@ -1937,25 +1940,27 @@ class Casino:
         """Updates user membership based on requirements every 5 minutes"""
         await self.bot.wait_until_ready()
         try:
-            await asyncio.sleep(10)
+            await asyncio.sleep(15)
+            bank = self.bot.get_cog('Economy').bank
             while True:
                 servers = self.casino_bank.get_all_servers()
-                for server in servers.keys():
-                    server = self.bot.get_server(server)
-                    if server is not None:
-                        settings = self.casino_bank.check_server_settings(server)
-                        user_path = self.casino_bank.get_server_memberships(server)
-                        users = [server.get_member(user) for user in user_path
-                                 if server.get_member(user) is not None]  # Check for None
+                for server in servers:
+                    try:
+                        server_obj = self.bot.get_server(server)
+                        settings = self.casino_bank.check_server_settings(server_obj)
+                    except AttributeError:
+                        continue
                     else:
-                        users = None
+                        user_path = self.casino_bank.get_server_memberships(server_obj)
+                        users = [server_obj.get_member(user) for user in user_path
+                                 if server_obj.get_member(user) is not None]  # Check for None
                     if users:
                         for user in users:
-                            membership = self.gather_requirements(settings, user)
+                            membership = self.gather_requirements(settings, user, bank)
                             settings["Players"][user.id]["Membership"] = membership
-                        self.casino_bank.save_system()
                     else:
-                        pass
+                        continue
+                self.casino_bank.save_system()
                 await asyncio.sleep(300)  # Wait 5 minutes
         except asyncio.CancelledError:
             pass
@@ -2211,55 +2216,53 @@ class Casino:
 
         return player_card, dealer_card, pc, dc
 
-    def gather_requirements(self, settings, user):
+    def gather_requirements(self, settings, user, bank):
         # Declare variables
-        bank = self.bot.get_cog('Economy').bank
         path = settings["Memberships"]
-        memberships = settings["Memberships"].keys()
+        memberships = settings["Memberships"]
         memberships_met = []
         # Loop through the memberships and their requirements
         for membership in memberships:
-            requirements = []
-            for req in path[membership]["Requirements"].keys():
+            req_switch = False
+            for req in path[membership]["Requirements"]:
 
                 # If the requirement is a role, run role logic
                 if req == "Role":
                     role = path[membership]["Requirements"]["Role"]
                     if role in [r.name for r in user.roles]:
-                        requirements.append(True)
+                        req_switch = True
                     else:
-                        requirements.append(False)
+                        req_switch = False
                 # If the requirement is a credits, run credit logic
-                if req == "Credits":
+                elif req == "Credits":
                     if bank.account_exists(user):
                         user_credits = bank.get_balance(user)
                         if user_credits >= int(path[membership]["Requirements"]["Credits"]):
-                            requirements.append(True)
+                            req_switch = True
                         else:
-                            requirements.append(False)
+                            req_switch = False
                     else:
-                        requirements.append(False)
+                        req_switch = False
 
                 # If the requirement is a chips, run chip logic
-                if req == "Chips":
+                elif req == "Chips":
                     balance = self.casino_bank.chip_balance(user)
                     if balance >= int(path[membership]["Requirements"][req]):
-                        requirements.append(True)
+                        req_switch = True
                     else:
-                        requirements.append(False)
+                        req_switch = False
 
                 # If the requirement is a DoS, run DoS logic
-                if req == "Days On Server":
+                elif req == "Days On Server":
                     dos = (datetime.utcnow() - user.joined_at).days
                     if dos >= path[membership]["Requirements"]["Days On Server"]:
-                        requirements.append(True)
+                        req_switch = True
                     else:
-                        requirements.append(False)
+                        req_switch = False
 
             # You have to meet all the requirements to qualify for the membership
-            if all(requirements):
+            if req_switch:
                 memberships_met.append((membership, path[membership]["Access"]))
-            requirements.clear()
 
         # Returns the membership with the highest access value
         if memberships_met:
@@ -2267,10 +2270,10 @@ class Casino:
                 membership = max(memberships_met, key=itemgetter(1))[0]
                 return membership
             except (ValueError, TypeError):
-                return None
+                return
 
         else:  # Returns none if the user has not qualified for any memberships
-            return None
+            return
 
     def get_benefits(self, settings, player):
         payday = settings["System Config"]["Default Payday"]
@@ -2335,7 +2338,7 @@ class Casino:
             user_time = settings["Players"][user.id]["Cooldowns"][method]
 
             # Check if method is for a game or for payday
-            if method in self.games:
+            if method in c_games:
                 base = settings["Games"][method]["Cooldown"]
             else:
                 reduction = 0
@@ -2366,7 +2369,7 @@ class Casino:
             settings["Players"][user.id]["Membership"] = None
             self.casino_bank.save_system()
         # Check if method is for a game or for payday
-        if method in self.games:
+        if method in c_games:
             base = settings["Games"][method]["Cooldown"]
         elif method == "Payday":
             base = settings["System Config"]["Payday Timer"]
