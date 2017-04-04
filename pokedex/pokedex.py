@@ -43,7 +43,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.0.2"
+        self.version = "2.0.3"
 
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
@@ -384,7 +384,7 @@ class Pokedex:
                  "Fire", "Water", "Ice", "Dark", "None"]
 
         for x in types:
-            match = re.search(r'\{} (\w+)'.format(x), raw)
+            match = re.search(r'{} (\w+)'.format(x), raw)
             if match:
                 item = match.group(0)
                 if item.startswith('ug'):
