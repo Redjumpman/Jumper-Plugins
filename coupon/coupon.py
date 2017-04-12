@@ -28,9 +28,11 @@ class Coupon:
         settings = self.check_server_settings(server)
         code = str(uuid.uuid4())
         self.coupon_add(settings, code, credits)
-        await self.bot.whisper("I have created a coupon for {} credits.\nThe code is: {}".format(credits, code))
+        await self.bot.whisper("I have created a coupon for {} credits.\nThe code is: "
+                               "{}".format(credits, code))
 
     @coupon.command(name="clearall", pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
     async def _clearall_coupon(self, ctx):
         """Clears all unclaimed coupons"""
         server = ctx.message.server
@@ -54,7 +56,8 @@ class Coupon:
                 dataIO.save_json(self.file_path, self.system)
                 await self.bot.say("I have added {} credits to your account".format(credits))
             else:
-                await self.bot.say("This coupon either does not exist or has already been redeemed.")
+                await self.bot.say("This coupon either does not exist or has already been "
+                                   "redeemed.")
         else:
             await self.bot.say("This is not a valid coupon code.")
 
