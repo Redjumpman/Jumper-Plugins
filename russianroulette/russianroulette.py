@@ -58,7 +58,7 @@ class Russianroulette:
         self.bot = bot
         self.file_path = "data/JumperCogs/roulette/russian.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2"
+        self.version = "2.2.01"
 
     @commands.group(pass_context=True, no_pm=True)
     async def setrussian(self, ctx):
@@ -137,7 +137,7 @@ class Russianroulette:
                 else:
                     settings["System"]["Active"] = not settings["System"]["Active"]
                     await self.bot.say("Gather around! The game of russian roulette is starting.\n"
-                                       "I'm going to load a round into this six shot **revovler**, "
+                                       "I'm going to load a round into this six shot **revolver**, "
                                        "give it a good spin, and pass it off to someone at random. "
                                        "**If** everyone is lucky enough to have a turn, I\'ll "
                                        "start all over. Good luck!")
