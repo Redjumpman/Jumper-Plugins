@@ -1,12 +1,12 @@
 # DiceTable was created by Redjumpman for Red Bot
 
 # Standard Library
-import random
 import re
 
 # Discord
 from discord.ext import commands
 from __main__ import send_cmd_help
+import random
 
 # Third Party Libraries
 try:
@@ -34,7 +34,7 @@ class DiceTable:
     def __init__(self, bot):
         self.bot = bot
         self.group = []
-        self.version = 2.0
+        self.version = 2.01
 
     @commands.group(pass_context=True)
     async def dtable(self, ctx):
@@ -54,9 +54,6 @@ class DiceTable:
         modifier. Example 3d20 5 1 will roll three 1d20 dice for
         five seperate instances, with a +1 modifier added to the total."""
 
-        if modifier < 0:
-            raise NegativeValue("Modifier can't be less than 0.")
-
         if times < 1:
             raise RollError("You need to have at least one roll instance.")
         elif times > 20:
@@ -64,9 +61,14 @@ class DiceTable:
 
         die, maximum = self.parse_dice(dice)
         rolls_raw = list(range(times))
-        rolls = [(str("Roll {}".format(x + 1)), self.roll_dice(die, maximum), "+" + str(modifier))
+
+        if modifier < 0:
+            sign = ""
+        else:
+            sign = "+"
+
+        rolls = [(str("Roll {}".format(x + 1)), self.roll_dice(die, maximum), sign + str(modifier))
                  for x in rolls_raw]
-        print(rolls)
         final = [x + (str(x[1] + modifier),) for x in rolls]
         headers = ["Roll", "Result", "Modifier", "Total"]
         t = tabulate(final, headers=headers)
