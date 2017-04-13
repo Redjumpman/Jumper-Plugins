@@ -56,7 +56,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.13"
+        self.version = "2.2.14"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -516,14 +516,15 @@ class Heist:
                 crew = len(settings["Crew"])
                 target = self.heist_target(settings, crew)
                 settings["Config"]["Heist Start"] = True
-                players = [server.get_member(x) for x in list(settings["Crew"])]
+                players = [server.get_member(x) for x in settings["Crew"]]
                 results = self.game_outcomes(settings, players, target)
-                await self.bot.say("Get ready! The {} is starting\nThe {} has decided "
-                                   "to hit **{}**.".format(t_heist, t_crew, target))
+                start_output = self.message_handler(settings, crew, players)
+                await self.bot.say("Get ready! The {} is starting with {}\nThe {} has decided to "
+                                   "hit **{}**.".format(t_heist, start_output, t_crew, target))
                 await asyncio.sleep(3)
                 await self.show_results(settings, server, results, target)
                 if settings["Crew"]:
-                    players = [server.get_member(x) for x in list(settings["Crew"])]
+                    players = [server.get_member(x) for x in settings["Crew"]]
                     data = self.calculate_credits(settings, players, target)
                     headers = ["Players", "Credits Obtained", "Bonuses", "Total"]
                     t = tabulate(data, headers=headers)
@@ -569,6 +570,38 @@ class Heist:
             msg = "{} theme found. Heist will now use this for future games.".format(theme)
 
         await self.bot.say(msg)
+
+    @setheist.command(name="output", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _output_setheist(self, ctx, output: str):
+        """Change how detailed the starting output is.
+        None: Displays just the number of crew members.
+
+        Short: Displays five participants and truncates the rest.
+
+        Long: Shows entire crew list. WARNING Not suitable for
+              really big crews.
+        """
+        server = ctx.message.server
+        settings = self.check_server_settings(server)
+        if output.title() not in ["None", "Short", "Long"]:
+            return await self.bot.say("You must choose \'None\', \'Short\', or \'Long\'.")
+
+        settings["Config"]["Crew Output"] = output.title()
+        dataIO.save_json(self.file_path, self.system)
+        await self.bot.say("Now setting the message output type to {}.".format(output))
+
+    def message_handler(self, settings, crew, players):
+        message_type = settings["Config"]["Crew Output"]
+        if message_type == "None":
+            message = "{} crew members".format(crew)
+        elif message_type == "Short":
+            name_list = '\n'.join(player.name for player in players[:5])
+            message = "{} crew members, including:```\n{}```".format(crew, name_list)
+        elif message_type == "Long":
+            name_list = '\n'.join(player.name for player in players)
+            message = "{} crew members, including:```\n{}```".format(crew, name_list)
+        return message
 
     @setheist.command(name="sentence", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -703,7 +736,7 @@ class Heist:
                         vault = self.system["Servers"][server]["Targets"][target]["Vault"]
                         vault_max = self.system["Servers"][server]["Targets"][target]["Vault Max"]
                         if vault < vault_max:
-                            increment = min(vault + 45, vault_max)
+                            increment = min(vault + int(vault_max * 0.04), vault_max)
                             self.system["Servers"][server]["Targets"][target]["Vault"] = increment
                         else:
                             pass
@@ -1024,7 +1057,7 @@ class Heist:
             default = {"Config": {"Heist Start": False, "Heist Planned": False, "Heist Cost": 100,
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
-                                  "Death Timer": 86400, "Theme": "Heist"},
+                                  "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None"},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
@@ -1047,6 +1080,8 @@ class Heist:
                 path["Targets"] = path.pop("Banks")
             if "Theme" not in path["Config"]:
                 path['Config']["Theme"] = "Heist"
+            if "Crew Ouput" not in path["Config"]:
+                path['Config']["Crew Ouput"] = "None"
             dataIO.save_json(self.file_path, self.system)
             return path
 
