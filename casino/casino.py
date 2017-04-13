@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.702
+                                    "Transfer Cooldown": 30, "Version": 1.703
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -122,7 +122,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.702
+        self.patch = 1.703
 
     def create_account(self, user):
         server = user.server
@@ -443,7 +443,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.02"
+        self.version = "1.7.03"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1172,6 +1172,21 @@ class Casino:
     async def _version_casino(self, ctx):
         """Shows current Casino version"""
         await self.bot.say("You are currently running Casino version {}.".format(self.version))
+
+    @casino.command(name="cdreset", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _cdreset_casino(self, ctx):
+        """Resets all cooldowns on the server"""
+        server = ctx.message.server
+        settings = self.casino_bank.check_server_settings(server)
+        cd_dict = {"Dice": 0, "Cups": 0, "Coin": 0, "Allin": 0, "Hi-Lo": 0, "War": 0,
+                   "Blackjack": 0, "Payday": 0}
+
+        for player in settings["Players"]:
+            settings["Players"][player]["Cooldowns"] = cd_dict
+
+        self.casino_bank.save_system()
+        await self.bot.say("Cooldowns have been reset for all users on this server.")
 
     @casino.command(name="removemembership", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -2473,7 +2488,6 @@ class Casino:
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
         data = PluralDict({'hour': h, 'minute': m, 'second': s})
-        print(h, m, s)
 
         # Determine the remaining time.
         if not brief:
