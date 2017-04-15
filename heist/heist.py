@@ -56,7 +56,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.14"
+        self.version = "2.2.15"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -393,10 +393,7 @@ class Heist:
 
         if settings["Players"][author.id]["Status"] == "Apprehended" or OOB:
             remaining = self.cooldown_calculator(settings, player_time, base_time)
-            if remaining:
-                msg = ("You still have time on your {}. You still need to wait:\n"
-                       "```{}```".format(t_sentence, remaining))
-            else:
+            if remaining == "No Cooldown":
                 msg = "You served your time. Enjoy the fresh air of freedom while you can."
                 if OOB:
                     msg = "You have been set free!"
@@ -405,6 +402,9 @@ class Heist:
                 settings["Players"][author.id]["Time Served"] = 0
                 settings["Players"][author.id]["Status"] = "Free"
                 dataIO.save_json(self.file_path, self.system)
+            else:
+                msg = ("You still have time on your {}. You still need to wait:\n"
+                       "```{}```".format(t_sentence, remaining))
         else:
             msg = "I can't remove you from {0} if you're not *in* {0}.".format(t_jail)
         await self.bot.say(msg)
@@ -498,9 +498,10 @@ class Heist:
         self.account_check(settings, author)
         outcome, msg = self.requirement_check(settings, prefix, author, cost)
 
-        if not outcome:
-            await self.bot.say(msg)
-        elif not settings["Config"]["Heist Planned"]:
+        if not outcome == "Failed":
+            return await self.bot.say(msg)
+
+        if not settings["Config"]["Heist Planned"]:
             self.subtract_costs(settings, author, cost)
             settings["Config"]["Heist Planned"] = True
             settings["Crew"][author.id] = {}
@@ -661,7 +662,7 @@ class Heist:
         settings = self.check_server_settings(server)
         t_bail = settings["Theme"]["Bail"]
         if cost >= 0:
-            settings["Config"]["Bail Cost"] = cost
+            settings["Config"]["Bail Base"] = cost
             dataIO.save_json(self.file_path, self.system)
             msg = "Setting base {} cost to {}.".format(t_bail, cost)
         else:
@@ -910,69 +911,69 @@ class Heist:
         t_crew = settings["Theme"]["Crew"]
         t_heist = settings["Theme"]["Heist"]
 
-        (alert, remaining) = self.police_alert(settings)
+        alert, patrol_time = self.police_alert(settings)
         if not list(settings["Targets"]):
             msg = ("Oh no! There are no targets! To start creating a target, use "
                    "{}heist createtarget.".format(prefix))
-            return None, msg
+            return "Failed", msg
         elif settings["Config"]["Heist Start"]:
             msg = ("A {0} is already underway. Wait for the current one to "
                    "end to plan another {0}.".format(t_heist))
-            return None, msg
+            return "Failed", msg
         elif author.id in settings["Crew"]:
             msg = "You are already in the {}.".format(t_crew)
-            return None, msg
+            return "Failed", msg
         elif settings["Players"][author.id]["Status"] == "Apprehended":
             bail = settings["Players"][author.id]["Bail Cost"]
             sentence_raw = settings["Players"][author.id]["Sentence"]
             time_served = settings["Players"][author.id]["Time Served"]
             remaining = self.cooldown_calculator(settings, sentence_raw, time_served)
             sentence = self.time_format(sentence_raw)
-            if remaining:
+            if remaining == "No Cooldown":
+                msg = ("Looks like your {} is over, but you're still in {}! Get released "
+                       "released by typing {}heist release .".format(t_sentence, t_jail, prefix))
+            else:
                 msg = ("You are in {0}. You are serving a {1} of {2}.\nYou can wait out "
                        "your remaining {1} of: {3} or pay {4} credits to finish your"
                        "{5}.".format(t_jail, t_sentence, sentence, remaining, bail, t_bail))
-            else:
-                msg = ("Looks like your {} is over, but you're still in {}! Get released "
-                       "released by typing {}heist release .".format(t_sentence, t_jail, prefix))
-            return None, msg
+            return "Failed", msg
         elif settings["Players"][author.id]["Status"] == "Dead":
             death_time = settings["Players"][author.id]["Death Timer"]
             base_timer = settings["Config"]["Death Timer"]
             remaining = self.cooldown_calculator(settings, death_time, base_timer)
-            if remaining:
-                msg = ("You are dead. You can revive in:\n{}\nUse the command {}heist revive when "
-                       "the timer has expired.".format(remaining, prefix))
-            else:
+            if remaining == "No Cooldown":
                 msg = ("Looks like you are still dead, but you can revive at anytime by using the "
                        "command {}heist revive .".format(prefix))
-            return None, msg
+            else:
+                msg = ("You are dead. You can revive in:\n{}\nUse the command {}heist revive when "
+                       "the timer has expired.".format(remaining, prefix))
+            return "Failed", msg
         elif not self.bank_check(settings, author, cost):
             msg = ("You do not have enough credits to cover the costs of "
                    "entry. You need {} credits to participate.".format(cost))
-            return None, msg
-        elif not (alert):
+            return "Failed", msg
+        elif alert == "Hot":
             msg = ("The {} are on high alert after the last target. We should "
                    "wait for things to cool off before hitting another target.\n"
-                   "Time Remaining: {}".format(t_police, remaining))
-            return None, msg
+                   "Time Remaining: {}".format(t_police, patrol_time))
+            return "Failed", msg
         else:
-            return "True", ""
+            return "Success", "Success"
 
     def police_alert(self, settings):
         police_time = settings["Config"]["Police Alert"]
         alert_time = settings["Config"]["Alert Time"]
         if settings["Config"]["Alert Time"] == 0:
-            return "True", None
+            return "Clear", None
         elif abs(alert_time - int(time.perf_counter())) >= police_time:
             settings["Config"]["Alert Time"] == 0
             dataIO.save_json(self.file_path, self.system)
-            return "True", None
+            return "Clear", None
         else:
             s = abs(alert_time - int(time.perf_counter()))
             seconds = abs(s - police_time)
-            amount = self.time_format(seconds)
-            return None, amount
+            remaining = self.time_format(seconds)
+            return "Hot", remaining
 
     def shutdown_save(self):
         for server in self.system["Servers"]:
@@ -994,7 +995,7 @@ class Heist:
 
     def cooldown_calculator(self, settings, player_time, base_time):
         if abs(player_time - int(time.perf_counter())) >= base_time:
-            return None
+            return "No Cooldown"
         else:
             s = abs(player_time - int(time.perf_counter()))
             seconds = abs(s - base_time)
@@ -1022,7 +1023,7 @@ class Heist:
             fmt = "{second} second{second(s)}"
             msg = fmt.format_map(data)
         elif m == 0 and h == 0 and s == 0:
-            msg = "No cooldown"
+            msg = "No Cooldown"
         return msg
 
     def bank_check(self, settings, user, amount):
@@ -1079,9 +1080,11 @@ class Heist:
             if "Banks" in path:
                 path["Targets"] = path.pop("Banks")
             if "Theme" not in path["Config"]:
-                path['Config']["Theme"] = "Heist"
-            if "Crew Ouput" not in path["Config"]:
-                path['Config']["Crew Ouput"] = "None"
+                path["Config"]["Theme"] = "Heist"
+            if "Crew Output" not in path["Config"]:
+                path["Config"]["Crew Ouput"] = "None"
+            if "Bail Cost" in path["Config"]:
+                path["Config"].pop("Bail Cost")
             dataIO.save_json(self.file_path, self.system)
             return path
 
