@@ -56,7 +56,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.16"
+        self.version = "2.2.17"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -421,7 +421,7 @@ class Heist:
 
         if settings["Players"][author.id]["Status"] == "Dead":
             remainder = self.cooldown_calculator(settings, player_time, base_time)
-            if not remainder:
+            if remainder == "No Cooldown":
                 settings["Players"][author.id]["Death Timer"] = 0
                 settings["Players"][author.id]["Status"] = "Free"
                 dataIO.save_json(self.file_path, self.system)
