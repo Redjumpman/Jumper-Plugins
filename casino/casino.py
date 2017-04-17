@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.704
+                                    "Transfer Cooldown": 30, "Version": 1.705
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -68,7 +68,7 @@ new_user = {"Chips": 100,
             "Won": {"Dice Won": 0, "Cups Won": 0, "BJ Won": 0, "Coin Won": 0, "Allin Won": 0,
                     "Hi-Lo Won": 0, "War Won": 0},
             "Cooldowns": {"Dice": 0, "Cups": 0, "Coin": 0, "Allin": 0, "Hi-Lo": 0, "War": 0,
-                          "Blackjack": 0, "Payday": 0}
+                          "Blackjack": 0, "Payday": 0, "Transfer": 0}
             }
 
 # Deck used for blackjack, and a dictionary to correspond values of the cards.
@@ -122,7 +122,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.704
+        self.patch = 1.705
 
     def create_account(self, user):
         server = user.server
@@ -264,14 +264,14 @@ class CasinoBank:
         if path["System Config"]["Version"] < 1.581:
             self.DICT_PATCH_1581(path)
 
-        if path["System Config"]["Version"] < 1.6:
-            self.DICT_PATCH_16(path)
-
         if path["System Config"]["Version"] < 1.692:
             self.DICT_PATCH_1692(path)
 
         if path["System Config"]["Version"] < 1.694:
             self.DICT_PATCH_1694(path)
+
+        if path["System Config"]["Version"] < 1.705:
+            self.DICT_PATCH_16(path)
 
             # Save changes and return updated dictionary.
         self.save_system()
@@ -443,7 +443,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.04"
+        self.version = "1.7.05"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
