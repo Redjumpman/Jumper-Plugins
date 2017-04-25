@@ -278,7 +278,7 @@ class Shop:
         self.user_check(settings, user)
         if settings["Users"][user.id]["Block Trades"] is False:
             settings["Users"][user.id]["Block Trades"] = True
-            msg = "You can no longer recieve trade requests."
+            msg = "You can no longer receive trade requests."
         else:
             settings["Users"][user.id]["Block Trades"] = False
             msg = "You can now accept trade requests."
@@ -355,7 +355,7 @@ class Shop:
         if item not in settings["Shop List"]:
             msg = "That item is not in the shop."
         elif len(settings["Shop List"][item]["Buy Msg"]) < int(settings["Shop List"][item]["Quantity"]):
-            await self.bot.whisper("What msg do you want users to recieve when purchasing, "
+            await self.bot.whisper("What msg do you want users to receive when purchasing, "
                                    "{}?".format(item))
             response = await self.bot.wait_for_message(timeout=25, author=user)
             if response is None:
@@ -391,7 +391,7 @@ class Shop:
     @setshop.command(name="role", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _role_sethop(self, ctx, *, rolename: str):
-        """Set the server role that will recieve pending notifications"""
+        """Set the server role that will receive pending notifications"""
         server = ctx.message.server
         settings = self.check_server_settings(server)
         server_roles = [x.name for x in server.roles]
@@ -832,7 +832,7 @@ class Shop:
                                "{}.\nTo check the status of your pending items, use the command "
                                "{}pending check```".format(itemname, confirmation, ctx.prefix))
         else:
-            await self.bot.say("{} just recieved the {} role!".format(user.name, itemname))
+            await self.bot.say("{} just received the {} role!".format(user.name, itemname))
         self.user_remove_item(settings, user, itemname)
 
     async def user_trading(self, settings, user, author, itemname):
@@ -886,7 +886,7 @@ class Shop:
             self.user_gt_item(settings, user, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, itemname)
             self.user_remove_item(settings, author, quantity, tradeoffer)
-            await self.bot.say("Trading items... {} recieved {}, and {} recieved "
+            await self.bot.say("Trading items... {} received {}, and {} received "
                                "{}.".format(author.mention, tradeoffer, user.mention, tradeoffer))
             await self.bot.say("Trade complete.")
 
