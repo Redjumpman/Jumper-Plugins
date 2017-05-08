@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.705
+                                    "Transfer Cooldown": 30, "Version": 1.707
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -122,7 +122,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.705
+        self.patch = 1.707
 
     def create_account(self, user):
         server = user.server
@@ -272,6 +272,9 @@ class CasinoBank:
 
         if path["System Config"]["Version"] < 1.705:
             self.DICT_PATCH_16(path)
+
+        if path["System Config"]["Version"] < 1.706:
+            self.DICT_PATCH_1694(path)  # Fix for unix cd update failure
 
             # Save changes and return updated dictionary.
         self.save_system()
@@ -443,7 +446,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.05"
+        self.version = "1.7.07"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -485,7 +488,7 @@ class Casino:
     @casino.command(name="forceupdate", pass_context=True)
     @checks.is_owner()
     async def _forceupdate_casino(self, ctx):
-        """Force update old dictionary patches
+        """Force applies older patches
         This command will attempt to update your JSON with the
         new dictionary keys. If you are having issues with your JSON
         having a lot of key errors, namely Cooldown, then try using
@@ -497,6 +500,7 @@ class Casino:
         self.casino_bank.DICT_PATCH_1581(settings)
         self.casino_bank.DICT_PATCH_16(settings)
         self.casino_bank.DICT_PATCH_GAMES(settings)
+        self.DICT_PATCH_1694(settings)
         await self.bot.say("Force applied three previous JSON updates. Please reload casino.")
 
     @casino.command(name="memberships", pass_context=True)
@@ -535,14 +539,10 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
         limit = settings["System Config"]["Transfer Limit"]
 
-        try:
-            self.casino_bank.membership_exists(author)
-        except UserNotRegistered:
+        if not self.casino_bank.membership_exists(author):
             return await self.bot.say("{} is not registered to the casino.".format(author.name))
 
-        try:
-            self.casino_bank.membership_exists(user)
-        except UserNotRegistered:
+        if not self.casino_bank.membership_exists(user):
             return await self.bot.say("{} is not registered to the casino.".format(user.name))
 
         if chips > limit:
@@ -663,9 +663,7 @@ class Casino:
         casino_name = settings["System Config"]["Casino Name"]
 
         # Logic checks
-        try:
-            self.casino_bank.membership_exists(user)
-        except UserNotRegistered:
+        if not self.casino_bank.membership_exists(user):
             return await self.bot.say("You need to register to the {} Casino. To register type "
                                       "`{}casino join`.".format(casino_name, ctx.prefix))
         if currency not in ["Chips", "Credits"]:
@@ -812,9 +810,8 @@ class Casino:
         settings = self.casino_bank.check_server_settings(user.server)
         casino_name = settings["System Config"]["Casino Name"]
         chip_name = settings["System Config"]["Chip Name"]
-        try:
-            self.casino_bank.membership_exists(user)
-        except UserNotRegistered:
+
+        if not self.casino_bank.membership_exists(user):
             await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
                                "join`.".format(casino_name, ctx.prefix))
         else:
@@ -860,10 +857,6 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
         choice = choice.title()
         choices = ["Hi", "High", "Low", "Lo", "Seven", "7"]
-
-        # Check if casino json file has the hi-lo game, and if not add it.
-        if "Hi-Lo Played" not in settings["Players"][user.id]["Played"]:
-            self.player_update(settings["Players"][user.id], hilo_data)
 
         # Run a logic check to determine if the user can play the game
         check = self.game_checks(settings, ctx.prefix, user, bet, "Hi-Lo", choice, choices)
@@ -1084,10 +1077,6 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
 
-        # Check if casino json file has the hi-lo game, and if not add it.
-        if "War Played" not in settings["Players"][user.id]["Played"]:
-            self.player_update(settings["Players"][user.id], war_data)
-
         # Run a logic check to determine if the user can play the game
         check = self.game_checks(settings, ctx.prefix, user, bet, "War", 1, [1])
         if check:
@@ -1133,15 +1122,13 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         chip_name = settings["System Config"]["Chip Name"]
-        try:
-            self.casino_bank.membership_exists(user)
-        except UserNotRegistered:
+
+        if not self.casino_bank.membership_exists(user):
             return await self.bot.say("You need to register. Type "
                                       "{}casino join.".format(ctx.prefix))
-        else:
-            bet = int(settings["Players"][user.id]["Chips"])
+
         # Run a logic check to determine if the user can play the game.
-        check = self.game_checks(settings, ctx.prefix, user, bet, "Allin", 1, [1])
+        check = self.game_checks(settings, ctx.prefix, user, 0, "Allin", 1, [1])
         if check:
             msg = check
         else:  # Run the game when the checks return None.
@@ -1161,7 +1148,7 @@ class Casino:
                 settings["Players"][user.id]["Won"]["Allin Won"] += 1
             else:
                 msg = ("Sorry! Your all or nothing gamble failed and you lost "
-                       "{} {} chips.".format(bet, chip_name))
+                       "all your {} chips.".format(chip_name))
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1214,7 +1201,7 @@ class Casino:
         cancel = ctx.prefix + "cancel"
         requirement_list = ["Days On Server", "Credits", "Chips", "Role"]
         colors = ["blue", "red", "green", "orange", "purple", "yellow", "turquoise", "teal",
-                  "magenta"]
+                  "magenta", "pink", "white"]
         server_roles = [r.name for r in ctx.message.server.roles if r.name != "Bot"]
 
         # Various checks for the different questions
@@ -2430,6 +2417,7 @@ class Casino:
             minmax_fail = self.minmax_check(bet, game, settings)
         else:
             minmax_fail = None
+            bet = int(settings["Players"][user.id]["Chips"])
         # Check for membership first.
         try:
             self.casino_bank.can_bet(user, bet)
@@ -2440,6 +2428,13 @@ class Casino:
         except InsufficientChips:
             msg = "You do not have enough chips to cover the bet."
             return msg
+
+        # Check if casino json file has the hi-lo game, and if not add it.
+        if "Hi-Lo Played" not in settings["Players"][user.id]["Played"]:
+            self.player_update(settings["Players"][user.id], hilo_data)
+
+        if "War Played" not in settings["Players"][user.id]["Played"]:
+            self.player_update(settings["Players"][user.id], war_data)
 
         user_access = self.access_calculator(settings, user)
         # Begin logic to determine if the game can be played.
@@ -2463,8 +2458,8 @@ class Casino:
     def color_lookup(self, color):
         color = color.lower()
         colors = {"blue": 0x3366FF, "red": 0xFF0000, "green": 0x00CC33, "orange": 0xFF6600,
-                  "purple": 0x663399, "yellow": 0xFFFF00, "teal": 0x009999, "magenta": 0xFF33CC,
-                  "turquoise": 0x00FFFF, "grey": 0x666666}
+                  "purple": 0xA220BD, "yellow": 0xFFFF00, "teal": 0x009999, "magenta": 0xBA2586,
+                  "turquoise": 0x00FFFF, "grey": 0x666666, "pink": 0xFE01D1, "white": 0xFFFFFF}
         color = colors[color]
         return color
 
