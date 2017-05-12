@@ -39,7 +39,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.707
+                                    "Transfer Cooldown": 30, "Version": 1.708
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -122,7 +122,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.707
+        self.patch = 1.708
 
     def create_account(self, user):
         server = user.server
@@ -446,7 +446,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.07"
+        self.version = "1.7.08"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -500,7 +500,7 @@ class Casino:
         self.casino_bank.DICT_PATCH_1581(settings)
         self.casino_bank.DICT_PATCH_16(settings)
         self.casino_bank.DICT_PATCH_GAMES(settings)
-        self.DICT_PATCH_1694(settings)
+        self.casino_bank.DICT_PATCH_1694(settings)
         await self.bot.say("Force applied three previous JSON updates. Please reload casino.")
 
     @casino.command(name="memberships", pass_context=True)
