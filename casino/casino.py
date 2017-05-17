@@ -2447,6 +2447,7 @@ class Casino:
         elif game_access > user_access:
             msg = ("{} requires an access level of {}. Your current access level is {}. Obtain a "
                    "higher membership to play this game.")
+            return msg
         elif minmax_fail:
             msg = minmax_fail
             return msg
