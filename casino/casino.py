@@ -15,8 +15,8 @@ from datetime import datetime, timedelta
 
 # Discord imports
 import discord
-from .utils.dataIO import dataIO
 from .utils import checks
+from .utils.dataIO import dataIO
 from discord.ext import commands
 from __main__ import send_cmd_help
 
@@ -26,6 +26,7 @@ try:
     tabulateAvailable = True
 except ImportError:
     tabulateAvailable = False
+
 
 try:
     from dateutil import parser
@@ -203,7 +204,7 @@ class CasinoBank:
 
     def wipe_caisno_server(self, server):
         self.memberships["Servers"].pop(server.id)
-        self.save_system
+        self.save_system()
 
     def wipe_casino_members(self, server):
         self.memberships["Servers"][server.id]["Players"] = {}
@@ -227,7 +228,7 @@ class CasinoBank:
         return self.memberships["Servers"]
 
     def get_casino_server(self, server):
-        return self.membership["Servers"][server.id]
+        return self.memberships["Servers"][server.id]
 
     def get_server_memberships(self, server):
         if server.id in self.memberships["Servers"]:
@@ -624,11 +625,7 @@ class Casino:
         if members:
             players = [(x["Name"], x["Chips"]) for x in members.values()]
             pos = [x + 1 for x, y in enumerate(players)]
-            if sort == "top":
-                style = sorted(players, key=itemgetter(1), reverse=True)
-                players, chips = zip(*style)
-                data = list(zip(pos, players, chips))
-            elif sort == "bottom":
+            if sort == "bottom":
                 style = sorted(players, key=itemgetter(1))
                 rev_pos = list(reversed(pos))
                 players, chips = zip(*style)
@@ -637,6 +634,10 @@ class Casino:
                 style = sorted([[x["Name"], x["Chips"]] if x["Name"] != user.name
                                else ["[" + x["Name"] + "]", x["Chips"]]
                                for x in members.values()], key=itemgetter(1), reverse=True)
+                players, chips = zip(*style)
+                data = list(zip(pos, players, chips))
+            else:
+                style = sorted(players, key=itemgetter(1), reverse=True)
                 players, chips = zip(*style)
                 data = list(zip(pos, players, chips))
             headers = ["Rank", "Names", "Chips"]
@@ -1108,7 +1109,7 @@ class Casino:
             settings["Players"][user.id]["Played"]["BJ Played"] += 1
             deck = main_deck[:]  # Make a copy of the deck so we can remove cards that are drawn
             dhand = self.dealer(deck)
-            ph, dh, amt = await self.blackjack_game(dhand, user, bet, ctx, settings, deck)
+            ph, dh, amt = await self.blackjack_game(dhand, user, bet, deck)
             msg = self.blackjack_results(settings, user, amt, ph, dh)
         # Send a message telling the user the outcome of this command
         await self.bot.say(msg)
@@ -1154,9 +1155,9 @@ class Casino:
         # Send a message telling the user the outcome of this command
         await self.bot.say(msg)
 
-    @casino.command(name="version", pass_context=True)
+    @casino.command(name="version")
     @checks.admin_or_permissions(manage_server=True)
-    async def _version_casino(self, ctx):
+    async def _version_casino(self):
         """Shows current Casino version"""
         await self.bot.say("You are currently running Casino version {}.".format(self.version))
 
@@ -1721,7 +1722,6 @@ class Casino:
 
                 # Add and save the requirement
                 key = rsp.content.title()
-                reply
                 settings["Memberships"][membership]["Requirements"][key] = reply
                 self.casino_bank.save_system()
 
@@ -1918,11 +1918,15 @@ class Casino:
                    "{} casino members```".format(table, pages, len(data)))
             return msg
 
-        await self.bot.say("There are {} pages of highscores. "
+        await self.bot.say("There are {} pages of high scores. "
                            "Which page would you like to display?".format(pages))
         response = await self.bot.wait_for_message(timeout=15, author=user)
         if response is None:
             page = 0
+            table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
+            msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                   "{} casino members.```".format(table, page + 1, pages, len(data)))
+            return msg
         else:
             try:
                 page = int(response.content) - 1
@@ -1985,7 +1989,7 @@ class Casino:
         else:
             check = lambda m: m.content.title() in ["War", "Surrender", "Ffs"]
             await self.bot.say("The player and dealer are both showing a **{}**!\nTHIS MEANS WAR! "
-                               "You may choose to surrender and forfiet half your bet, or you can "
+                               "You may choose to surrender and forfeit half your bet, or you can "
                                "go to war.\nYour bet will be doubled, but you will only win on "
                                "half the bet, the rest will be pushed.".format(player_card))
             choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
@@ -2007,13 +2011,13 @@ class Casino:
                 else:
                     outcome = "Loss"
             else:
-                await self.bot.say("Improper response. You are being forced to forfiet.")
+                await self.bot.say("Improper response. You are being forced to forfeit.")
                 outcome = "Surrender"
                 amount = int(amount / 2)
 
         return outcome, player_card, dealer_card, amount
 
-    async def blackjack_game(self, dh, user, amount, ctx, settings, deck):
+    async def blackjack_game(self, dh, user, amount, deck):
         # Setup dealer and player starting hands
         ph = self.draw_two(deck)
         count = self.count_hand(ph)
@@ -2446,8 +2450,7 @@ class Casino:
             return msg
         elif game_access > user_access:
             msg = ("{} requires an access level of {}. Your current access level is {}. Obtain a "
-                   "higher membership to play this game.".format(
-                       game, game_access, user_access))
+                   "higher membership to play this game.")
             return msg
         elif minmax_fail:
             msg = minmax_fail
@@ -2506,7 +2509,7 @@ class Casino:
             elif m == 0 and h == 0 and s > 0:
                 fmt = "{second} second{second(s)}"
                 msg = fmt.format_map(data)
-            elif m == 0 and h == 0 and s == 0:
+            else:
                 msg = "None"
             # Return remaining time.
         else:
@@ -2525,7 +2528,7 @@ class Casino:
                     msg = "{1}m and {2}s"
             elif m == 0 and h == 0 and s > 0:
                 msg = "{2}s"
-            elif m == 0 and h == 0 and s == 0:
+            else:
                 msg = "None"
         return msg.format(h, m, s)
 
