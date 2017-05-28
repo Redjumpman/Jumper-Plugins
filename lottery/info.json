@@ -1,9 +1,10 @@
 {
     "AUTHOR" : "Redjumpman",
-    "SHORT" : "Can host lotteries for server users",
-    "DESCRIPTION" : "Enables an admin to host lotteries.\nPlayers will need to signup to be eligible to participate.\nIncludes lottery stats and a fun command for picking winners.",
+    "SHORT" : "Can host lotteries on your server",
+    "DESCRIPTION" : "Allows admins to host lotteries, users can track their stats (entries/won), set multiple entry requirements, and allows for integration with economy's bank.",
     "DISABLED" : false,
     "NAME" : "Lottery",
+    "REQUIREMENTS" : ["python-dateutil"],
     "TAGS" : ["lottery", "giveaway", "economy"],
-    "INSTALL_MSG" : "Thank you for installing Lottery from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
+    "INSTALL_MSG" : "Thank you for installing Lottery from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs\nFor more information on lottery visit the wiki here:\nhttps://github.com/Redjumpman/Jumper-Cogs/wiki/Lottery"
 }
