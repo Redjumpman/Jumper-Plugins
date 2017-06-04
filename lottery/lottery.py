@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0"
+        self.version = "3.0.1"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -916,7 +916,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.0
+                    "Version": 3.01
                 },
                 "Members": {},
                 "Players": {},
@@ -1002,8 +1002,8 @@ class Lottery:
         winners = load_pref["Winners"]
         sample = min(len(players), winners)
         selected_winners = random.sample(players.keys(), sample)
-        winners_names = [server.get_member(x).name for x in selected_winners]
-        params = {"Prize": prize, "Creator": creator, "Winners": ",".join(winners_names)}
+        winners_names = [server.get_member(x).mention for x in selected_winners]
+        params = {"Prize": prize, "Creator": creator, "Winners": ", ".join(winners_names)}
 
         if prize.isdigit():
             self.distribute_prize(selected_winners, server, int(prize))
