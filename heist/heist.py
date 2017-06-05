@@ -57,8 +57,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.23"
-        self.patch = 2.223
+        self.version = "2.2.24"
+        self.patch = 2.224
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -134,45 +134,49 @@ class Heist:
         t_sentence = settings["Theme"]["Sentence"]
         self.account_check(settings, author)
 
-        if not user:
-            user = author
+        if user is None:
+            player = author
+        else:
+            self.account_check(settings, user)
+            player = user
 
-        if settings["Players"][user.id]["Status"] == "Apprehended":
-            cost = settings["Players"][user.id]["Bail Cost"]
+        if settings["Players"][player.id]["Status"] != "Apprehended":
+            return await self.bot.say("{} is not in jail.".format(player.name))
 
-            if not self.bank_check(settings, user):
-                await self.bot.say("You do not have enough to afford the {} amount.".format(t_bail))
-                return
+        cost = settings["Players"][player.id]["Bail Cost"]
 
-            if user.id == author.id:
-                msg = ("Do you want to make a {0} amount? It will cost {1} credits. If you are "
-                       "caught again, your next {2} and {0} amount will triple. "
-                       "Do you still wish to pay the {0} amount?".format(t_bail, cost, t_sentence))
-            else:
-                msg = ("You are about pay a {2} amount for {0} and it will cost you {1} credits. "
-                       "Are you sure you wish to pay {1} for {0}?".format(user.name, cost, t_bail))
+        if not self.bank_check(settings, author):
+            await self.bot.say("You do not have enough to afford the {} amount.".format(t_bail))
+            return
 
-            await self.bot.say(msg)
-            response = await self.bot.wait_for_message(timeout=15, author=author)
+        if player.id == author.id:
+            msg = ("Do you want to make a {0} amount? It will cost {1} credits. If you are "
+                   "caught again, your next {2} and {0} amount will triple. "
+                   "Do you still wish to pay the {0} amount?".format(t_bail, cost, t_sentence))
+        else:
+            msg = ("You are about pay a {2} amount for {0} and it will cost you {1} credits. "
+                   "Are you sure you wish to pay {1} for {0}?".format(player.name, cost, t_bail))
 
-            if response is None:
-                await self.bot.say("You took too long. canceling transaction.")
-                return
+        await self.bot.say(msg)
+        response = await self.bot.wait_for_message(timeout=15, author=author)
 
-            if response.content.title() == "Yes":
-                msg = ("Congratulations {}, you are free! Enjoy your freedom while it "
-                       "lasts...".format(user.name))
-                self.subtract_costs(author, cost)
-                print("Author ID :{}\nUser ID :{}".format(author.id, user.id))
-                settings["Players"][user.id]["Status"] = "Free"
-                settings["Players"][user.id]["OOB"] = True
-                dataIO.save_json(self.file_path, self.system)
-            elif response.content.title() == "No":
-                msg = "canceling transaction."
-            else:
-                msg = "Incorrect response, canceling transaction."
+        if response is None:
+            await self.bot.say("You took too long. canceling transaction.")
+            return
 
-            await self.bot.say(msg)
+        if response.content.title() == "Yes":
+            msg = ("Congratulations {}, you are free! Enjoy your freedom while it "
+                   "lasts...".format(player.name))
+            self.subtract_costs(author, cost)
+            settings["Players"][player.id]["Status"] = "Free"
+            settings["Players"][player.id]["OOB"] = True
+            dataIO.save_json(self.file_path, self.system)
+        elif response.content.title() == "No":
+            msg = "Canceling transaction."
+        else:
+            msg = "Incorrect response, canceling transaction."
+
+        await self.bot.say(msg)
 
     @heist.command(name="createtarget", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1092,7 +1096,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.223},
+                                  "Version": 2.224},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
