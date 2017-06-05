@@ -57,7 +57,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.18"
+        self.version = "2.2.19"
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -255,13 +255,13 @@ class Heist:
             return
         else:
             msg = ("Target Created.\n```Name:       {}\nGroup:      {}\nVault:      {}\nVault Max: "
-                   " {}\nSuccess:    {}%```".format(name.content.title(), crew.content,
+                   " {}\nSuccess:    {}%```".format(string.capwords(name.content), crew.content,
                                                     vault.content, vault_max.content,
                                                     success.content)
                    )
             target_fmt = {"Crew": int(crew.content), "Vault": int(vault.content),
                           "Vault Max": int(vault_max.content), "Success": int(success.content)}
-            settings["Targets"][name.content.title()] = target_fmt
+            settings["Targets"][string.capwords(name.content)] = target_fmt
             dataIO.save_json(self.file_path, self.system)
             await self.bot.say(msg)
 
@@ -271,7 +271,7 @@ class Heist:
         """Edits a heist target"""
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        target = target.title()
+        target = string.capwords(target)
 
         if target not in settings["Targets"]:
             return await self.bot.say("That target does not exist.")
@@ -291,7 +291,7 @@ class Heist:
         if response.content.title() == "Name":
             await self.bot.say("What would you like to rename the target to?\n*Cannot be a name "
                                "currently in use.*")
-            check2 = lambda m: m.content.title() not in settings["Targets"]
+            check2 = lambda m: string.capwords(m.content) not in settings["Targets"]
 
         elif response.content.title() in ["Vault", "Vault Max"]:
             await self.bot.say("What would you like to set the {} "
