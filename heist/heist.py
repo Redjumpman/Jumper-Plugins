@@ -57,8 +57,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.21"
-        self.patch = 2.221
+        self.version = "2.2.22"
+        self.patch = 2.222
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -199,7 +199,7 @@ class Heist:
             await self.bot.say("Target creation cancelled.")
             return
 
-        if name.content.title() in settings["Targets"]:
+        if string.capwords(name.content) in settings["Targets"]:
             await self.bot.say("A target with that name already exists. canceling target "
                                "creation.")
             return
@@ -331,16 +331,16 @@ class Heist:
         """Remove a target from the heist list"""
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        if target.title() in settings["Targets"].keys():
+        if string.capwords(target) in settings["Targets"]:
             await self.bot.say("Are you sure you want to remove {} from the list of "
-                               "targets?".format(target.title()))
+                               "targets?".format(string.capwords(target)))
             response = await self.bot.wait_for_message(timeout=15, author=author)
             if response is None:
                 msg = "Canceling removal. You took too long."
             elif response.content.title() == "Yes":
-                settings["Targets"].pop(target.title())
+                settings["Targets"].pop(string.capwords(target))
                 dataIO.save_json(self.file_path, self.system)
-                msg = "{} was removed from the list of targets.".format(target.title())
+                msg = "{} was removed from the list of targets.".format(string.capwords(target))
             else:
                 msg = "Canceling target removal."
         else:
@@ -429,7 +429,7 @@ class Heist:
 
         if settings["Players"][author.id]["Status"] == "Dead":
             remainder = self.cooldown_calculator(player_time, base_time)
-            if not remainder:
+            if remainder == "No Cooldown":
                 settings["Players"][author.id]["Death Timer"] = 0
                 settings["Players"][author.id]["Status"] = "Free"
                 dataIO.save_json(self.file_path, self.system)
@@ -942,7 +942,7 @@ class Heist:
                        "released by typing {}heist release .".format(t_sentence, t_jail, prefix))
             else:
                 msg = ("You are in {0}. You are serving a {1} of {2}.\nYou can wait out "
-                       "your remaining {1} of: {3} or pay {4} credits to finish your"
+                       "your remaining {1} of: {3} or pay {4} credits to finish your "
                        "{5}.".format(t_jail, t_sentence, sentence, remaining, bail, t_bail))
             return "Failed", msg
         elif settings["Players"][author.id]["Status"] == "Dead":
@@ -1092,7 +1092,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.221},
+                                  "Version": 2.222},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
