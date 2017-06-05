@@ -57,7 +57,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.19"
+        self.version = "2.2.21"
+        self.patch = 2.221
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1060,12 +1061,38 @@ class Heist:
         else:
             pass
 
+    def patch_2220(self, path):
+        # Check if player data has the war game, and if not add it.
+        if "Theme" not in path or not path["Theme"]:
+            path["Theme"] = {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
+                             "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
+                             "Heist": "heist", "Vault": "vault"},
+        if "Banks" in path:
+            path["Targets"] = path.pop("Banks")
+        if "Theme" not in path["Config"]:
+            path["Config"]["Theme"] = "Heist"
+        if "Crew Output" not in path["Config"]:
+            path["Config"]["Crew Ouput"] = "None"
+        if "Bail Cost" in path["Config"]:
+            path["Config"].pop("Bail Cost")
+
+        for target in path["Targets"]:
+            path["Targets"][string.capwords(target)] = path["Targets"].pop(target)
+
+        dataIO.save_json(self.file_path, self.system)
+
+    def heist_patcher(self, path):
+
+        if path["Config"]["Version"] < 2.221:
+            self.patch_2220(path)
+
     def check_server_settings(self, server):
         if server.id not in self.system["Servers"]:
             default = {"Config": {"Heist Start": False, "Heist Planned": False, "Heist Cost": 100,
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
-                                  "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None"},
+                                  "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
+                                  "Version": 2.221},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
@@ -1080,19 +1107,15 @@ class Heist:
             return path
         else:
             path = self.system["Servers"][server.id]
-            if "Theme" not in path or not path["Theme"]:
-                path["Theme"] = {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
-                                 "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
-                                 "Heist": "heist", "Vault": "vault"},
-            if "Banks" in path:
-                path["Targets"] = path.pop("Banks")
-            if "Theme" not in path["Config"]:
-                path["Config"]["Theme"] = "Heist"
-            if "Crew Output" not in path["Config"]:
-                path["Config"]["Crew Ouput"] = "None"
-            if "Bail Cost" in path["Config"]:
-                path["Config"].pop("Bail Cost")
-            dataIO.save_json(self.file_path, self.system)
+
+            try:
+                if path["Config"]["Version"] < self.patch:
+                    self.heist_patcher(path)
+                    path["Config"]["Version"] = self.patch
+            except KeyError:
+                self.heist_patcher(path)
+                path["Config"]["Version"] = self.patch
+
             return path
 
     # =========== Commission hooks =====================
