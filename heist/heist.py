@@ -57,8 +57,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.22"
-        self.patch = 2.222
+        self.version = "2.2.23"
+        self.patch = 2.223
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -737,7 +737,7 @@ class Heist:
     async def vault_updater(self):
         await self.bot.wait_until_ready()
         try:
-            await asyncio.sleep(15)  # Start-up Time
+            await asyncio.sleep(20)  # Start-up Time
             while True:
                 servers = [x.id for x in self.bot.servers if x.id in self.system["Servers"]]
                 for server in servers:
@@ -1092,7 +1092,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.222},
+                                  "Version": 2.223},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
@@ -1113,6 +1113,7 @@ class Heist:
                     self.heist_patcher(path)
                     path["Config"]["Version"] = self.patch
             except KeyError:
+                path["Config"]["Version"] = 0
                 self.heist_patcher(path)
                 path["Config"]["Version"] = self.patch
 
