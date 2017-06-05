@@ -69,7 +69,7 @@ class Heist:
     @heist.command(name="themes", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _themelist_heist(self, ctx):
-        """Sets the theme for heist
+        """Lists available themes for heist.
         Only displays the first 30 themes found.
         """
         themes = [os.path.join(x).replace('.txt', '')
