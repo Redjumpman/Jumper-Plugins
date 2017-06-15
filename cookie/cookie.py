@@ -38,6 +38,7 @@ class Cookie:
         self.bot = bot
         self.file_path = "data/JumperCogs/cookie/cookie.json"
         self.system = dataIO.load_json(self.file_path)
+        self.econ = self.bot.get_cog('Economy')
 
     @commands.group(pass_context=True, no_pm=True)
     async def setcookie(self, ctx):
@@ -96,6 +97,55 @@ class Cookie:
 
         await self.bot.say(msg)
 
+    @commands.command(pass_context=True, no_pm=True)
+    async def xfer(self, ctx, cookies: int):
+        """Transfers cookies to your bank"""
+        author = ctx.message.author
+        settings = self.check_server_settings(author.server)
+        rate = settings["Config"]["XferValue"]
+        giveamount = cookies*rate
+        self.account_check(settings, author)
+        if self.econ is None:
+            self.econ = self.bot.get_cog('Economy')
+        if self.econ.bank.account_exists(author):
+            if cookies > settings["Players"][author.id]["Cookies"]:
+                msg = "You do not have that many cookies"
+            elif cookies < 1:
+                msg = "I can't transfer zero or negitive cookies!"
+            else:
+                settings["Players"][author.id]["Cookies"] -= cookies
+                self.econ.bank.deposit_credits(author, giveamount)
+                dataIO.save_json(self.file_path, self.system)
+                if cookies == 1:
+                    cookword = "cookie"
+                else:
+                    cookword = "cookies"
+                msg = "You requested a transfer of **{}** {}. This is muliplied by {} to add **{}** credits to your bank.".format(cookies, cookword, rate, giveamount)
+        else:
+            msg = "You need a bank account... !bank register"
+
+        await self.bot.say(msg)
+    
+    @commands.command(pass_context=True, no_pm=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def xferrate(self, ctx, rate: int):
+        """Changes the exchange rate of cookie transfer"""
+        author = ctx.message.author
+        settings = self.check_server_settings(author.server)
+        settings["Config"]["XferValue"] = rate
+        dataIO.save_json(self.file_path, self.system)
+        msg = "Job Done. Exchange Rate Changed To {} credits for every cookie".format(rate)
+        await self.bot.say(msg)
+        
+    @commands.command(pass_context=True, no_pm=True)
+    async def currentrate(self, ctx):
+        """Gets the exchange rate of cookie transfer"""
+        author = ctx.message.author
+        settings = self.check_server_settings(author.server)
+        rate = settings["Config"]["XferValue"]
+        msg = "Current Exchange Rate Is {} Credits For Every Cookie".format(rate)
+        await self.bot.say(msg)
+    
     @commands.command(pass_context=True, no_pm=True)
     async def cookie(self, ctx):
         """Obtain a random number of cookies. 12h cooldown"""
