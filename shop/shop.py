@@ -963,9 +963,7 @@ class Shop:
         if "Role" in settings["Users"][user.id]["Inventory"][itemname].keys():
             if "Buyrole" in self.bot.cogs:
                 roleid = settings["Users"][user.id]["Inventory"][itemname]["Role"]
-                role = [role for role in ctx.message.server.roles
-                        if roleid in [role.id for role in ctx.message.server.roles] and
-                        roleid == role.id][0]
+                role = [role for role in ctx.message.server.roles if roleid == role.id][0]
                 await self.bot.add_roles(user, role)
                 return True
             else:
@@ -1122,7 +1120,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.52"
+               "Version": "2.2.53"
                }
 
     f = "data/JumperCogs/shop/system.json"
