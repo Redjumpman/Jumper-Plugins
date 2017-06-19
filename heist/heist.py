@@ -57,8 +57,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.24"
-        self.patch = 2.224
+        self.version = "2.2.25"
+        self.patch = 2.225
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -408,7 +408,7 @@ class Heist:
             if remaining == "No Cooldown":
                 msg = "You served your time. Enjoy the fresh air of freedom while you can."
                 if OOB:
-                    msg = "You have been set free!"
+                    msg = "You are no longer on probabtion! 3x penalty removed."
                     settings["Players"][author.id]["OOB"] = False
                 settings["Players"][author.id]["Sentence"] = 0
                 settings["Players"][author.id]["Time Served"] = 0
@@ -425,8 +425,7 @@ class Heist:
     async def _revive_heist(self, ctx):
         """Revive from the dead!"""
         author = ctx.message.author
-        server = ctx.message.server
-        settings = self.check_server_settings(server)
+        settings = self.check_server_settings(author.server)
         self.account_check(settings, author)
         player_time = settings["Players"][author.id]["Death Timer"]
         base_time = settings["Config"]["Death Timer"]
@@ -756,7 +755,7 @@ class Heist:
                 dataIO.save_json(self.file_path, self.system)
                 await asyncio.sleep(120)  # task runs every 120 seconds
         except asyncio.CancelledError:
-            raise VaultUpdaterStopped("The vault has unexpectedly stopped updating.")
+            pass
 
     def __unload(self):
         self.cycle_task.cancel()
@@ -853,6 +852,9 @@ class Heist:
             bail_base = settings["Config"]["Bail Base"]
             offenses = settings["Players"][user.id]["Jail Counter"]
             sentence_base = settings["Config"]["Bail Base"]
+
+            if offenses > 1:
+                offenses = offenses - 1
 
             sentence = sentence_base * offenses
             bail = bail_base * offenses
@@ -1096,7 +1098,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.224},
+                                  "Version": 2.225},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
