@@ -58,7 +58,7 @@ class Russianroulette:
         self.bot = bot
         self.file_path = "data/JumperCogs/roulette/russian.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.2.01"
+        self.version = "2.2.02"
 
     @commands.group(pass_context=True, no_pm=True)
     async def setrussian(self, ctx):
@@ -135,7 +135,7 @@ class Russianroulette:
                     bank.deposit_credits(mobj, initial_bet)
                     self.reset_game(settings)
                 else:
-                    settings["System"]["Active"] = not settings["System"]["Active"]
+                    settings["System"]["Active"] = True
                     await self.bot.say("Gather around! The game of russian roulette is starting.\n"
                                        "I'm going to load a round into this six shot **revolver**, "
                                        "give it a good spin, and pass it off to someone at random. "
