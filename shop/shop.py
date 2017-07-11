@@ -41,24 +41,25 @@ class Shop:
         user = ctx.message.author
         settings = self.check_server_settings(user.server)
         self.user_check(settings, user)
-        header = "```{}```".format(self.bordered("{}'s\nI N V E N T O R Y".format(user.name)))
-        if settings["Users"][user.id]["Inventory"]:
-            column1 = ["[{}]".format(subdict["Item Name"].title())
-                       if "Role" in subdict else subdict["Item Name"].title()
-                       for subdict in settings["Users"][user.id]["Inventory"].values()
-                       ]
-            column2 = [subdict["Item Quantity"]
-                       for subdict in settings["Users"][user.id]["Inventory"].values()
-                       ]
-            m = sorted(list(zip(column1, column2)))
-            t = tabulate(m, headers=["Item Name", "Item Quantity"])
-            if settings["Config"]["Inventory Output Method"] == "Whisper":
-                msg = "{}```ini\n{}```".format(header, t)
-            else:
-                msg = "{}```ini\n{}```".format(header, t)
+        title = "```{}```".format(self.bordered("{}'s\nI N V E N T O R Y".format(user.name)))
+        if not settings["Users"][user.id]["Inventory"]:
+            await self.bot.say("Your inventory is empty.")
+
+        column1 = ["[{}]".format(subdict["Item Name"].title())
+                   if "Role" in subdict else subdict["Item Name"].title()
+                   for subdict in settings["Users"][user.id]["Inventory"].values()
+                   ]
+        column2 = [subdict["Item Quantity"]
+                   for subdict in settings["Users"][user.id]["Inventory"].values()
+                   ]
+        headers = ["Item Name", "Item Quantity"]
+        data = sorted(list(zip(column1, column2)))
+        method = settings["Config"]["Inventory Output Method"]
+        msg = await self.inventory_split(user, title, headers, data, method)
+        if method == "Chat":
+            await self.bot.say(msg)
         else:
-            msg = "Your inventory is empty."
-        await self.bot.say(msg)
+            await self.bot.whisper(msg)
 
     @commands.group(pass_context=True, no_pm=True)
     async def shop(self, ctx):
@@ -166,33 +167,35 @@ class Shop:
         shop_name = settings["Config"]["Shop Name"]
         itemname = itemname.title()
         self.user_check(settings, user)
+
         if quantity < 1:
-            await self.bot.say("You can't buy 0...")
-        elif settings["Config"]["Shop Open"]:
-            if await self.shop_check(user, settings, quantity, itemname):
-                if settings["Config"]["Pending Type"] == "Manual":
-                    self.user_add_item(settings, user, quantity, itemname)
+            return await self.bot.say("You can't buy 0...")
+
+        if not settings["Config"]["Shop Open"]:
+            return await self.bot.say("The {} shop is currently closed.".format(shop_name))
+
+        if await self.shop_check(user, settings, quantity, itemname):
+            if settings["Config"]["Pending Type"] == "Manual":
+                self.user_add_item(settings, user, quantity, itemname)
+                cost = self.discount_calc(settings, itemname, quantity)
+                self.shop_item_remove(settings, quantity, itemname)
+                await self.bot.say("```You have purchased {} {}(s) for {} credits.\n"
+                                   "{} has been added to your "
+                                   "inventory.```".format(quantity, itemname, cost, itemname))
+            else:
+                msgs = settings["Shop List"][itemname]["Buy Msg"]
+                if not msgs:
+                    msg = ("Oops! The admin forgot to set enough msgs for this item. "
+                           "Please contact them immediately.")
+                    await self.bot.say(msg)
+                else:
+                    msg = random.choice(msgs)
+                    msgs.remove(msg)
                     cost = self.discount_calc(settings, itemname, quantity)
                     self.shop_item_remove(settings, quantity, itemname)
-                    await self.bot.say("```You have purchased {} {}(s) for {} credits.\n"
-                                       "{} has been added to your "
-                                       "inventory.```".format(quantity, itemname, cost, itemname))
-                else:
-                    msgs = settings["Shop List"][itemname]["Buy Msg"]
-                    if not msgs:
-                        msg = ("Oops! The admin forgot to set enough msgs for this item. "
-                               "Please contact them immediately.")
-                        await self.bot.say(msg)
-                    else:
-                        msg = random.choice(msgs)
-                        msgs.remove(msg)
-                        cost = self.discount_calc(settings, itemname, quantity)
-                        self.shop_item_remove(settings, quantity, itemname)
-                        await self.bot.whisper("You purchased {} {}(s) for {} credits. "
-                                               "Details for this item are:\n"
-                                               "```{}```".format(quantity, itemname, cost, msg))
-        else:
-            await self.bot.say("The {} shop is currently closed.".format(shop_name))
+                    await self.bot.whisper("You purchased {} {}(s) for {} credits. "
+                                           "Details for this item are:\n"
+                                           "```{}```".format(quantity, itemname, cost, msg))
 
     @shop.command(name="give", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -644,6 +647,44 @@ class Shop:
         else:
             msg = "Status must be 10 characters or less."
         await self.bot.say(msg)
+
+    async def inventory_split(self, user, title, headers, data, method):
+        groups = [data[i:i + 10] for i in range(0, len(data), 10)]
+        pages = len(groups)
+
+        if pages == 1:
+            page = 0
+            table = tabulate(groups[page], headers=headers)
+            msg = ("{}```ini\n{}\n\nYou are viewing page 1 of {}.```"
+                   "".format(title, table, pages, len(data)))
+            return msg
+        if method == "Chat":
+            await self.bot.say("There are {} pages of inventory items. "
+                               "Which page would you like to display?".format(pages))
+        else:
+            await self.bot.whisper("There are {} pages of inventory items. "
+                                   "Which page would you like to display?".format(pages))
+        response = await self.bot.wait_for_message(timeout=15, author=user)
+        if response is None:
+            page = 0
+            table = tabulate(groups[page], headers=headers, numalign="left")
+            msg = ("{}```ini\n{}\n\nYou are viewing page {} of {}.```"
+                   "").format(title, table, page + 1, pages, len(data))
+            return msg
+        else:
+            try:
+                page = int(response.content) - 1
+                table = tabulate(groups[page], headers=headers, numalign="left")
+                msg = ("{}```ini\n{}\n\nYou are viewing page {} of {}.```"
+                       "").format(title, table, page + 1, pages, len(data))
+                return msg
+            except ValueError:
+                await self.bot.say("Sorry your response was not a number. Defaulting to page 1")
+                page = 0
+                table = tabulate(groups[page], headers=headers, numalign="left")
+                msg = ("{}```ini\n{}\n\nYou are viewing page 1 of {}.```"
+                       "".format(title, table, pages, len(data)))
+                return msg
 
     async def code_clear(self, settings, server, user, number):
         userid = [subdict for subdict in settings["Pending"]
@@ -1144,7 +1185,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.6"
+               "Version": "2.2.7"
                }
 
     f = "data/JumperCogs/shop/system.json"
