@@ -43,7 +43,7 @@ class Shop:
         self.user_check(settings, user)
         title = "```{}```".format(self.bordered("{}'s\nI N V E N T O R Y".format(user.name)))
         if not settings["Users"][user.id]["Inventory"]:
-            await self.bot.say("Your inventory is empty.")
+            return await self.bot.say("Your inventory is empty.")
 
         column1 = ["[{}]".format(subdict["Item Name"].title())
                    if "Role" in subdict else subdict["Item Name"].title()
