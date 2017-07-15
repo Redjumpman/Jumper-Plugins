@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.710
+                                    "Transfer Cooldown": 30, "Version": 1.711
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -123,7 +123,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.710
+        self.patch = 1.711
 
     def create_account(self, user):
         server = user.server
@@ -447,7 +447,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.10"
+        self.version = "1.7.11"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1171,7 +1171,7 @@ class Casino:
                    "Blackjack": 0, "Payday": 0}
 
         for player in settings["Players"]:
-            settings["Players"][player]["Cooldowns"] = cd_dict
+            settings["Players"][player]["Cooldowns"].update(cd_dict)
 
         self.casino_bank.save_system()
         await self.bot.say("Cooldowns have been reset for all users on this server.")
@@ -2390,7 +2390,8 @@ class Casino:
             self.casino_bank.save_system()
             return None
         elif (datetime.utcnow() - parser.parse(user_time)).seconds + reduction < base:
-            seconds = abs((datetime.utcnow() - parser.parse(user_time)).seconds - base - reduction)
+            diff = int((datetime.utcnow() - parser.parse(user_time)).total_seconds())
+            seconds = abs(diff - base - reduction)
             remaining = self.time_format(seconds)
             msg = "{} is still on a cooldown. You still have: {}".format(method, remaining)
             return msg
@@ -2484,6 +2485,9 @@ class Casino:
             else:
                 player_data[key] = new_game[key]
         self.casino_bank.save_system()
+
+    def time_converter(self, units):
+        return sum(int(x) * 60 ** i for i, x in enumerate(reversed(units.split(":"))))
 
     def time_format(self, seconds, brief=False):
         # Calculate the time and input into a dict to plural the strings later.
