@@ -4,6 +4,7 @@
 
 # STD Library
 import asyncio
+import gettext
 import logging
 import logging.handlers
 import os
@@ -21,18 +22,18 @@ from discord.ext import commands
 from __main__ import send_cmd_help
 
 # Third Party Libraries
-try:
-    from tabulate import tabulate
-    tabulateAvailable = True
-except ImportError:
-    tabulateAvailable = False
-
+from tabulate import tabulate
+from dateutil import parser
 
 try:
-    from dateutil import parser
-    dateutilAvailable = True
-except ImportError:
-    dateutilAvailable = False
+    l_path = "data/JumperCogs/casino/data/languages.json"
+    lang_data = dataIO.load_json(l_path)
+    lang_default = lang_data["Language"]
+    language_set = gettext.translation('casino', localedir='data/JumperCogs/casino/data',
+                                       languages=[lang_default])
+    language_set.install()
+except FileNotFoundError:
+    _ = lambda s: s
 
 
 # Default settings that is created when a server begin's using Casino
@@ -40,7 +41,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.711
+                                    "Transfer Cooldown": 30, "Version": 1.712
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -82,10 +83,6 @@ bj_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10
 war_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'Jack': 11,
               'Queen': 12, 'King': 13, 'Ace': 14}
 
-hilo_data = {"Played": {"Hi-Lo Played": 0}, "Won": {"Hi-Lo Won": 0}, "Cooldown": {"Hi-Lo": 0}}
-
-war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0}, "Cooldown": {"War": 0}}
-
 c_games = ["Blackjack", "Coin", "Allin", "Cups", "Dice", "Hi-Lo", "War"]
 
 
@@ -123,7 +120,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.711
+        self.patch = 1.712
 
     def create_account(self, user):
         server = user.server
@@ -244,7 +241,7 @@ class CasinoBank:
         if server.id not in self.memberships["Servers"]:
             self.memberships["Servers"][server.id] = server_default
             self.save_system()
-            print("Creating default casino settings for Server: {}".format(server.name))
+            print(_("Creating default casino settings for Server: {}").format(server.name))
             path = self.memberships["Servers"][server.id]
             return path
         else:  # NOTE Will be moved to a cmd in future patch. Used to update JSON from older version
@@ -263,19 +260,22 @@ class CasinoBank:
     def casino_patcher(self, path):
 
         if path["System Config"]["Version"] < 1.581:
-            self.DICT_PATCH_1581(path)
+            self.patch_1581(path)
 
         if path["System Config"]["Version"] < 1.692:
-            self.DICT_PATCH_1692(path)
+            self.patch_1692(path)
 
         if path["System Config"]["Version"] < 1.694:
-            self.DICT_PATCH_1694(path)
+            self.patch_1694(path)
 
         if path["System Config"]["Version"] < 1.705:
-            self.DICT_PATCH_16(path)
+            self.patch_16(path)
 
         if path["System Config"]["Version"] < 1.706:
-            self.DICT_PATCH_1694(path)  # Fix for unix cd update failure
+            self.patch_1694(path)  # Fix for unix cd update failure
+
+        if path["System Config"]["Version"] < 1.712:
+            self.patch_1712(path)
 
             # Save changes and return updated dictionary.
         self.save_system()
@@ -290,8 +290,8 @@ class CasinoBank:
             except AttributeError:
                 removal.append(server)
                 logger.info("WIPED SERVER: {} FROM CASINO".format(server))
-                print("Removed server ID: {} from the list of servers, because the bot is no "
-                      "longer on that server.".format(server))
+                print(_("Removed server ID: {} from the list of servers, because the bot is no "
+                        "longer on that server.").format(server))
         for x in removal:
             self.memberships["Servers"].pop(x)
         self.save_system()
@@ -301,12 +301,13 @@ class CasinoBank:
         for player in players:
             mobj = server.get_member(player)
             try:
-                if players[player]["Name"] != mobj.name:
+                # noinspection PyTypeChecker
+                if mobj.name != players[player]["Name"]:
                     players[player]["Name"] = mobj.name
             except AttributeError:
-                print("Error updating name! {} is no longer on this server.".format(player))
+                print(_("Error updating name! {} is no longer on this server.").format(player))
 
-    def DICT_PATCH_GAMES(self, path):
+    def patch_games(self, path):
 
         # Check if player data has the war game, and if not add it.
         for player in path["Players"]:
@@ -318,9 +319,42 @@ class CasinoBank:
                 path["Players"][player]["Cooldowns"]["War"] = 0
         self.save_system()
 
-    def DICT_PATCH_1694(self, path):
+    def patch_1712(self, path):
+        """Fixes older players in the casino who didn't have war or hi-lo"""
+        hilo_data = {"Played": {"Hi-Lo Played": 0}, "Won": {"Hi-Lo Won": 0},
+                     "Cooldown": {"Hi-Lo": 0}}
+
+        war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0}, "Cooldown": {"War": 0}}
+
+        for player in path["Players"]:
+            if "Hi-Lo Played" not in path["Players"][player.id]["Played"]:
+                self.player_update(path["Players"][player.id], hilo_data)
+
+            if "War Played" not in path["Players"][player.id]["Played"]:
+                self.player_update(path["Players"][player.id], war_data)
+
+        self.save_system()
+
+    def player_update(self, player_data, new_game, path=None):
+        """Helper function to add new data into the player's data"""
+
+        if path is None:
+            path = []
+        for key in new_game:
+            if key in player_data:
+                if isinstance(player_data[key], dict) and isinstance(new_game[key], dict):
+                    self.player_update(player_data[key], new_game[key], path + [str(key)])
+                elif player_data[key] == new_game[key]:
+                    pass
+                else:
+                    raise Exception(_("Conflict at {}").format("".join(path + [str(key)])))
+            else:
+                player_data[key] = new_game[key]
+        self.save_system()
+
+    def patch_1694(self, path):
         """This patch aimed at converting the old cooldown times into unix time."""
-        print("DICT_Patch_1694 ran")
+        print(_("patch_1694 ran"))
         for player in path["Players"]:
             try:
                 for cooldown in path["Players"][player]["Cooldowns"]:
@@ -331,14 +365,14 @@ class CasinoBank:
                 pass
         self.save_system()
 
-    def DICT_PATCH_1692(self, path):
+    def patch_1692(self, path):
         """Issues with memberships storing keys that are lower case.
         Fire bombing everyones memberships so I don't have nightmares.
         """
         path["Memberships"] = {}
         self.save_system()
 
-    def DICT_PATCH_16(self, path):
+    def patch_16(self, path):
         if "Transfer Limit" not in path["System Config"]:
             transfer_dict = {"Transfer Limit": 1000, "Transfer Cooldown": 30}
             path["System Config"].update(transfer_dict)
@@ -348,7 +382,7 @@ class CasinoBank:
                 path["Players"][x]["Cooldowns"]["Transfer"] = 0
         self.save_system()
 
-    def DICT_PATCH_1581(self, path):
+    def patch_1581(self, path):
         # Fixes the name bug for older versions
         self.name_fix()
         # Add hi-lo to older versions
@@ -447,7 +481,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.11"
+        self.version = "1.7.12"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -456,6 +490,39 @@ class Casino:
 
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
+
+    @casino.command(name="language", pass_context=True, hidden=True, enabled=False)
+    @checks.is_owner()
+    async def _language_casino(self, ctx):
+        """Changes the output language in casino.
+        Default is English
+        """
+        author = ctx.message.author
+        languages = {_("English"): "en", _("Spanish"): "es", _("Brazilian-Portuguese"): "br",
+                     _("Danish"): "da", _("Malaysian"): "zsm", _("German"): "de",
+                     _("Mandarin"): "cmn"}
+        l_out = ", ".join(list(languages.keys())[:-2] + [" or ".join(list(languages.keys())[-2:])])
+        await self.bot.say(_("I can change the language to \n{}\nWhich language would you prefer? "
+                             "\n*Note this change will affect every server.*").format(l_out))
+        response = await self.bot.wait_for_message(timeout=15, author=author)
+
+        if response is None:
+            return await self.bot.say(_("No response. Cancelling language change."))
+
+        if response.content.title() in languages:
+            language = languages[response.content.title()]
+            lang = gettext.translation('casino', localedir='data/JumperCogs/casino/data',
+                                       languages=[language])
+            lang.install()
+
+            fp = "data/JumperCogs/casino/data/languages.json"
+            l_data = dataIO.load_json(fp)
+            l_data["Language"] = language
+            dataIO.save_json(fp, l_data)
+
+            await self.bot.say(_("The language is now set to {}").format(response.content.title()))
+        else:
+            return await self.bot.say(_("That language is not supported."))
 
     @casino.command(name="purge", pass_context=True)
     @checks.is_owner()
@@ -466,25 +533,25 @@ class Casino:
         servers, there are many that it is no longer running on.
         This will remove them from the JSON file.
         """
-        user = ctx.message.author
+        author = ctx.message.author
         servers = self.casino_bank.get_all_servers()
         purge_list = [x for x in servers if self.bot.get_server(x) is None]
         if not purge_list:
             return await self.bot.say("There are no servers for me to purge at this time.")
-        await self.bot.say("I found {} server(s) I am no longer on. Would you like for me to "
-                           "delete their casino data?".format(len(purge_list)))
-        response = await self.bot.wait_for_message(timeout=15, author=user)
+        await self.bot.say(_("I found {} server(s) I am no longer on. Would you like for me to "
+                             "delete their casino data?").format(len(purge_list)))
+        response = await self.bot.wait_for_message(timeout=15, author=author)
 
         if response is None:
-            return await self.bot.say("You took too long to answer. Canceling purge.")
+            return await self.bot.say(_("You took too long to answer. Canceling purge."))
 
-        if response.content.title() == "Yes":
+        if response.content.title() == _("Yes"):
             for x in purge_list:
                 servers.pop(x)
             self.casino_bank.save_system()
-            await self.bot.say("{} server entries have been erased.".format(len(purge_list)))
+            await self.bot.say(_("{} server entries have been erased.").format(len(purge_list)))
         else:
-            return await self.bot.say("Incorrect response. This is a yes or no question.")
+            return await self.bot.say(_("Incorrect response. This is a yes or no question."))
 
     @casino.command(name="forceupdate", pass_context=True)
     @checks.is_owner()
@@ -498,11 +565,11 @@ class Casino:
 
         server = ctx.message.server
         settings = self.casino_bank.check_server_settings(server)
-        self.casino_bank.DICT_PATCH_1581(settings)
-        self.casino_bank.DICT_PATCH_16(settings)
-        self.casino_bank.DICT_PATCH_GAMES(settings)
-        self.casino_bank.DICT_PATCH_1694(settings)
-        await self.bot.say("Force applied three previous JSON updates. Please reload casino.")
+        self.casino_bank.patch_1581(settings)
+        self.casino_bank.patch_16(settings)
+        self.casino_bank.patch_games(settings)
+        self.casino_bank.patch_1694(settings)
+        await self.bot.say(_("Force applied three previous JSON updates. Please reload casino."))
 
     @casino.command(name="memberships", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -512,9 +579,9 @@ class Casino:
         settings = self.casino_bank.check_server_settings(server)
         memberships = settings["Memberships"].keys()
         if memberships:
-            await self.bot.say("Available Memberships:```\n{}```".format('\n'.join(memberships)))
+            await self.bot.say(_("Available Memberships:```\n{}```").format('\n'.join(memberships)))
         else:
-            await self.bot.say("There are no memberships.")
+            await self.bot.say(_("There are no memberships."))
 
     @casino.command(name="join", pass_context=True)
     async def _join_casino(self, ctx):
@@ -524,12 +591,12 @@ class Casino:
         try:
             self.casino_bank.create_account(user)
         except UserAlreadyRegistered:
-            return await self.bot.say("{} already has a casino membership".format(user.name))
+            return await self.bot.say(_("{} already has a casino membership").format(user.name))
         else:
             name = settings["System Config"]["Casino Name"]
-            await self.bot.say("Your membership has been approved! Welcome to {} Casino!\nAs a "
-                               "first time member we have credited your account with 100 free "
-                               "chips.\nHave fun!".format(name))
+            await self.bot.say(_("Your membership has been approved! Welcome to {} Casino!\nAs a "
+                                 "first time member we have credited your account with 100 free "
+                                 "chips.\nHave fun!").format(name))
 
     @casino.command(name="transfer", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -547,8 +614,8 @@ class Casino:
             return await self.bot.say("{} is not registered to the casino.".format(user.name))
 
         if chips > limit:
-            return await self.bot.say("Your transfer cannot exceed the server limit of {} {} "
-                                      "chips.".format(limit, chip_name))
+            return await self.bot.say(_("Your transfer cannot exceed the server limit of {} {} "
+                                        "chips.").format(limit, chip_name))
 
         chip_name = settings["System Config"]["Chip Name"]
         cooldown = self.check_cooldowns(user, "Transfer", settings)
@@ -557,19 +624,19 @@ class Casino:
             try:
                 self.casino_bank.transfer_chips(author, user, chips)
             except NegativeChips:
-                return await self.bot.say("An amount cannot be negative.")
+                return await self.bot.say(_("An amount cannot be negative."))
             except SameSenderAndReceiver:
-                return await self.bot.say("Sender and Reciever cannot be the same.")
+                return await self.bot.say(_("Sender and Reciever cannot be the same."))
             except BotNotAUser:
-                return await self.bot.say("You can send chips to a bot.")
+                return await self.bot.say(_("You can send chips to a bot."))
             except InsufficientChips:
-                return await self.bot.say("Not enough chips to transfer.")
+                return await self.bot.say(_("Not enough chips to transfer."))
             else:
                 logger.info("{}({}) transferred {} {} to {}({}).".format(author.name, author.id,
                                                                          chip_name, chips,
                                                                          user.name, user.id))
-            await self.bot.say("{} transferred {} {} to {}.".format(author.name, chip_name, chips,
-                                                                    user.name))
+            await self.bot.say(_("{} transferred {} {} to {}.").format(author.name, chip_name,
+                                                                       chips, user.name))
         else:
             await self.bot.say(cooldown)
 
@@ -580,35 +647,35 @@ class Casino:
         settings = self.casino_bank.check_server_settings(user.server)
 
         if not self.casino_bank.membership_exists(user):
-            msg = "I can't transfer data if you already have an account with the new casino."
+            msg = _("I can't transfer data if you already have an account with the new casino.")
         elif not self.legacy_available:
-            msg = "No legacy file was found. Unable to perform membership transfers."
+            msg = _("No legacy file was found. Unable to perform membership transfers.")
         elif user.id in self.legacy_system["Players"]:
-            await self.bot.say("Account for {} found. Your casino data will be transferred to the "
-                               "{} server. After your data is transferred your old data will be "
-                               "deleted. I can only transfer data **one time**.\nDo you wish to "
-                               "transfer?".format(user.name, user.server.name))
+            await self.bot.say(_("Account for {} found. Your casino data will be transferred to "
+                                 "the {} server. After your data is transferred your old data will "
+                                 "be deleted. I can only transfer data **one time**.\nDo you wish "
+                                 "to transfer?").format(user.name, user.server.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
-                msg = "No response, transfer cancelled."
-            elif response.content.title() == "No":
-                msg = "Transfer cancelled."
-            elif response.content.title() == "Yes":
+                msg = _("No response, transfer cancelled.")
+            elif response.content.title() == _("No"):
+                msg = _("Transfer cancelled.")
+            elif response.content.title() == _("Yes"):
                 old_data = self.legacy_system["Players"][user.id]
                 transfer = {user.id: old_data}
                 settings["Players"].update(transfer)
                 self.legacy_system["Players"].pop(user.id)
                 dataIO.save_json(self.legacy_path, self.legacy_system)
-                self.casino_bank.DICT_PATCH_1581(settings)
-                self.casino_bank.DICT_PATCH_16(settings)
-                self.casino_bank.DICT_PATCH_GAMES(settings)
-                self.casino_bank.DICT_PATCH_1694(settings)
+                self.casino_bank.patch_1581(settings)
+                self.casino_bank.patch_16(settings)
+                self.casino_bank.patch_games(settings)
+                self.casino_bank.patch_1694(settings)
                 self.casino_bank.save_system()
-                msg = "Data transfer successful. You can now access your old casino data."
+                msg = _("Data transfer successful. You can now access your old casino data.")
             else:
-                msg = "Improper response. Please state yes or no. Cancelling transfer."
+                msg = _("Improper response. Please state yes or no. Cancelling transfer.")
         else:
-            msg = "Unable to locate your previous data."
+            msg = _("Unable to locate your previous data.")
         await self.bot.say(msg)
 
     @casino.command(name="leaderboard", pass_context=True)
@@ -640,10 +707,10 @@ class Casino:
                 style = sorted(players, key=itemgetter(1), reverse=True)
                 players, chips = zip(*style)
                 data = list(zip(pos, players, chips))
-            headers = ["Rank", "Names", "Chips"]
+            headers = [_("Rank"), _("Names"), _("Chips")]
             msg = await self.table_split(user, headers, data, sort)
         else:
-            msg = "There are no casino players to show on the leaderboard."
+            msg = _("There are no casino players to show on the leaderboard.")
         await self.bot.say(msg)
 
     @casino.command(name="exchange", pass_context=True)
@@ -665,42 +732,43 @@ class Casino:
 
         # Logic checks
         if not self.casino_bank.membership_exists(user):
-            return await self.bot.say("You need to register to the {} Casino. To register type "
-                                      "`{}casino join`.".format(casino_name, ctx.prefix))
-        if currency not in ["Chips", "Credits"]:
-            return await self.bot.say("I can only exchange chips or credits, please specify one.")
+            return await self.bot.say(_("You need to register to the {} Casino. To register type "
+                                        "`{}casino join`.").format(casino_name, ctx.prefix))
+        if currency not in [_("Chips"), _("Credits")]:
+            return await self.bot.say(_("I can only exchange chips or credits, please specify "
+                                        "one."))
 
         # Logic for choosing chips
-        elif currency == "Chips":
+        elif currency == _("Chips"):
             if amount <= 0 and amount % credit_multiple != 0:
-                return await self.bot.say("The amount must be higher than 0 and "
-                                          "a multiple of {}.".format(credit_multiple))
+                return await self.bot.say(_("The amount must be higher than 0 and "
+                                            "a multiple of {}.").format(credit_multiple))
             try:
                 self.casino_bank.can_bet(user, amount)
             except InsufficientChips:
-                return await self.bot.say("You don't have that many chips to exchange.")
+                return await self.bot.say(_("You don't have that many chips to exchange."))
             else:
                 self.casino_bank.withdraw_chips(user, amount)
                 credits = int(amount * credit_rate)
                 bank.deposit_credits(user, credits)
-                return await self.bot.say("I have exchanged {} {} chips into {} credits.\nThank "
-                                          "you for playing at {} "
-                                          "Casino.".format(amount, chip_name, credits, casino_name))
+                return await self.bot.say(_("I have exchanged {} {} chips into {} credits.\nThank "
+                                            "you for playing at {} Casino."
+                                            "").format(amount, chip_name, credits, casino_name))
 
         # Logic for choosing Credits
-        elif currency == "Credits":
+        elif currency == _("Credits"):
             if amount <= 0 and amount % chip_multiple != 0:
-                return await self.bot.say("The amount must be higher than 0 and a multiple "
-                                          "of {}.".format(chip_multiple))
+                return await self.bot.say(_("The amount must be higher than 0 and a multiple "
+                                            "of {}.").format(chip_multiple))
             elif bank.can_spend(user, amount):
                 bank.withdraw_credits(user, amount)
                 chip_amount = int(amount * chip_rate)
                 self.casino_bank.deposit_chips(user, chip_amount)
-                await self.bot.say("I have exchanged {} credits for {} {} chips.\nEnjoy your time "
-                                   "at {} Casino!".format(amount, chip_amount, chip_name,
-                                                          casino_name))
+                await self.bot.say(_("I have exchanged {} credits for {} {} chips.\nEnjoy your "
+                                     "time at {} Casino!").format(amount, chip_amount, chip_name,
+                                                                  casino_name))
             else:
-                await self.bot.say("You don't have that many credits to exchange.")
+                await self.bot.say(_("You don't have that many credits to exchange."))
 
     @casino.command(name="stats", pass_context=True)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -717,17 +785,17 @@ class Casino:
         try:
             chip_balance = self.casino_bank.chip_balance(author)
         except UserNotRegistered:
-            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
-                               "join`.".format(casino_name, ctx.prefix))
+            await self.bot.say(_("You need to register to the {} Casino. To register type "
+                                 "`{}casino join`.").format(casino_name, ctx.prefix))
         else:
             pending_chips = settings["Players"][author.id]["Pending"]
             player = settings["Players"][author.id]
             wiki = "[Wiki](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino)"
             membership, benefits = self.get_benefits(settings, author.id)
-            b_msg = ("Access Level: {Access}\nCooldown Reduction: {Cooldown Reduction}\n"
-                     "Payday: {Payday}".format(**benefits))
-            description = ("{}\nMembership: {}\n{} Chips: "
-                           "{}".format(wiki, membership, chip_name, chip_balance))
+            b_msg = (_("Access Level: {Access}\nCooldown Reduction: {Cooldown Reduction}\n"
+                       "Payday: {Payday}").format(**benefits))
+            description = (_("{}\nMembership: {}\n{} Chips: "
+                             "{}").format(wiki, membership, chip_name, chip_balance))
             color = self.color_lookup(benefits["Color"])
 
             # Build columns for the table
@@ -739,17 +807,18 @@ class Casino:
 
             # Build embed
             embed = discord.Embed(colour=color, description=description)
-            embed.title = "{} Casino".format(casino_name)
+            embed.title = _("{} Casino").format(casino_name)
             embed.set_author(name=str(author), icon_url=author.avatar_url)
-            embed.add_field(name="Benefits", value=b_msg)
-            embed.add_field(name="Pending Chips", value=pending_chips, inline=False)
-            embed.add_field(name="Games", value="```Prolog\n{}```".format("\n".join(games)))
-            embed.add_field(name="Played",
+            embed.add_field(name=_("Benefits"), value=b_msg)
+            embed.add_field(name=_("Pending Chips"), value=pending_chips, inline=False)
+            embed.add_field(name=_("Games"), value="```Prolog\n{}```".format("\n".join(games)))
+            embed.add_field(name=_("Played"),
                             value="```Prolog\n{}```".format("\n".join(map(str, played))))
-            embed.add_field(name="Won", value="```Prolog\n{}```".format("\n".join(map(str, won))))
-            embed.add_field(name="Cooldown Items",
+            embed.add_field(name=_("Won"),
+                            value="```Prolog\n{}```".format("\n".join(map(str, won))))
+            embed.add_field(name=_("Cooldown Items"),
                             value="```CSS\n{}```".format("\n".join(cool_items)))
-            embed.add_field(name="Cooldown Remaining",
+            embed.add_field(name=_("Cooldown Remaining"),
                             value="```xl\n{}```".format("\n".join(cooldowns)))
 
             await self.bot.say(embed=embed)
@@ -796,10 +865,9 @@ class Casino:
         m = list(zip(games, multiplier, min_bet, max_bet, cooldown_formatted))
         m = sorted(m, key=itemgetter(0))
         t = tabulate(m, headers=["Game", "Multiplier", "Min Bet", "Max Bet", "Cooldown"])
-        msg = ("```Python\n{}\n\nCredit Exchange Rate:    {}\nChip Exchange Rate:      {}\n"
-               "Casino Members: {}\nServer Memberships: {}\nServer Threshold: "
-               "{}```".format(t, credit_ratio, chip_ratio, players, memberships, threshold))
-        print("THIS MESSAGE IS {} CHARACTERS".format(len(msg)))
+        msg = (_("```Python\n{}\n\nCredit Exchange Rate:    {}\nChip Exchange Rate:      {}\n"
+                 "Casino Members: {}\nServer Memberships: {}\nServer Threshold: "
+                 "{}```").format(t, credit_ratio, chip_ratio, players, memberships, threshold))
         await self.bot.say(msg)
 
     @casino.command(name="payday", pass_context=True)
@@ -822,11 +890,11 @@ class Casino:
                     membership = settings["Players"][user.id]["Membership"]
                     amount = settings["Memberships"][membership]["Payday"]
                     self.casino_bank.deposit_chips(user, amount)
-                    msg = "You received {} {} chips.".format(amount, chip_name)
+                    msg = _("You received {} {} chips.").format(amount, chip_name)
                 else:
                     payday = settings["System Config"]["Default Payday"]
                     self.casino_bank.deposit_chips(user, payday)
-                    msg = "You received {} {} chips. Enjoy!".format(payday, chip_name)
+                    msg = _("You received {} {} chips. Enjoy!").format(payday, chip_name)
             else:
                 msg = cooldown
             await self.bot.say(msg)
@@ -842,10 +910,10 @@ class Casino:
         try:
             balance = self.casino_bank.chip_balance(user)
         except UserNotRegistered:
-            await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
-                               "join`.".format(casino_name, ctx.prefix))
+            await self.bot.say(_("You need to register to the {} Casino. To register type "
+                                 "`{}casino join`.").format(casino_name, ctx.prefix))
         else:
-            await self.bot.say("```Python\nYou have {} {} chips.```".format(balance, chip_name))
+            await self.bot.say(_("```Python\nYou have {} {} chips.```").format(balance, chip_name))
 
     @commands.command(pass_context=True, no_pm=True, aliases=["hl", "hi-lo"])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -857,7 +925,7 @@ class Casino:
         settings = self.casino_bank.check_server_settings(user.server)
         chip_name = settings["System Config"]["Chip Name"]
         choice = choice.title()
-        choices = ["Hi", "High", "Low", "Lo", "Seven", "7"]
+        choices = [_("Hi"), _("High"), _("Low"), _("Lo"), _("Seven"), "7"]
 
         # Run a logic check to determine if the user can play the game
         check = self.game_checks(settings, ctx.prefix, user, bet, "Hi-Lo", choice, choices)
@@ -866,7 +934,7 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Hi-Lo Played"] += 1
-            await self.bot.say("The dice hit the table and slowly fall into place...")
+            await self.bot.say(_("The dice hit the table and slowly fall into place..."))
             die_one = random.randint(1, 6)
             die_two = random.randint(1, 6)
             result = die_one + die_two
@@ -874,37 +942,37 @@ class Casino:
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = ("The dice landed on {} and {} \n".format(die_one, die_two))
+            msg = (_("The dice landed on {} and {} \n").format(die_one, die_two))
             if choice in outcome:
-                msg += ("Congratulations! The outcome was "
-                        "{} ({})!".format(outcome[0], outcome[2]))
+                msg += (_("Congratulations! The outcome was "
+                          "{} ({})!").format(result, outcome[0]))
                 settings["Players"][user.id]["Won"]["Hi-Lo Won"] += 1
 
                 # Check for a 7 to give a 12x multiplier
-                if outcome[2] == "Seven":
+                if outcome[0] == _("Seven"):
                     amount = bet * 6
-                    msg += "\n**BONUS!** 6x multiplier for Seven!"
+                    msg += _("\n**BONUS!** 6x multiplier for Seven!")
                 else:
                     amount = int(round(bet * settings["Games"]["Hi-Lo"]["Multiplier"]))
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
                     settings["Players"][user.id]["Pending"] = amount
-                    msg += ("```Your winnings exceeded the threshold set on this server. "
-                            "The amount of {} {} chips will be withheld until reviewed and "
-                            "released by an admin. Do not attempt to play additional games "
-                            "exceeding the threshold until this has been cleared.```"
-                            "".format(amount, chip_name, user.id))
+                    msg += (_("```Your winnings exceeded the threshold set on this server. "
+                              "The amount of {} {} chips will be withheld until reviewed and "
+                              "released by an admin. Do not attempt to play additional games "
+                              "exceeding the threshold until this has been cleared.```"
+                              "").format(amount, chip_name, user.id))
                     logger.info("{}({}) won {} chips exceeding the threshold. Game "
                                 "details:\nPlayer Choice: {}\nPlayer Bet: {}\nGame "
                                 "Outcome: {}\n[END OF REPORT]"
                                 "".format(user.name, user.id, amount, choice.ljust(10),
-                                          str(bet).ljust(10), str(outcome[0]).ljust(10)))
+                                          str(bet).ljust(10), str(result).ljust(10)))
                 else:
                     self.casino_bank.deposit_chips(user, amount)
-                    msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
+                    msg += _("```Python\nYou just won {} {} chips.```").format(amount, chip_name)
             else:
-                msg += "Sorry. The outcome was {} ({}).".format(outcome[0], outcome[2])
+                msg += _("Sorry. The outcome was {} ({}).").format(result, outcome[0])
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -930,23 +998,23 @@ class Casino:
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Cups Played"] += 1
             outcome = random.randint(1, 4)
-            await self.bot.say("The cups start shuffling along the table...")
+            await self.bot.say(_("The cups start shuffling along the table..."))
             await asyncio.sleep(3)
 
             # Begin game logic to determine a win or loss
             if cup == outcome:
                 amount = int(round(bet * settings["Games"]["Cups"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Cups Won"] += 1
-                msg = "Congratulations! The coin was under cup {}!".format(outcome)
+                msg = _("Congratulations! The coin was under cup {}!").format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
                     settings["Players"][user.id]["Pending"] = amount
-                    msg += ("Your winnings exceeded the threshold set on this server. "
-                            "The amount of {} {} chips will be withheld until reviewed and "
-                            "released by an admin. Do not attempt to play additional games "
-                            "exceeding the threshold until this has been cleared."
-                            "".format(amount, chip_name, user.id))
+                    msg += (_("Your winnings exceeded the threshold set on this server. "
+                              "The amount of {} {} chips will be withheld until reviewed and "
+                              "released by an admin. Do not attempt to play additional games "
+                              "exceeding the threshold until this has been cleared."
+                              "").format(amount, chip_name, user.id))
                     logger.info("{}({}) won {} chips exceeding the threshold. Game "
                                 "details:\nPlayer Cup: {}\nPlayer Bet: {}\nGame "
                                 "Outcome: {}\n[END OF REPORT]"
@@ -954,9 +1022,9 @@ class Casino:
                                           str(bet).ljust(10), str(outcome).ljust(10)))
                 else:
                     self.casino_bank.deposit_chips(user, amount)
-                    msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
+                    msg += _("```Python\nYou just won {} {} chips.```").format(amount, chip_name)
             else:
-                msg = "Sorry! The coin was under cup {}.".format(outcome)
+                msg = _("Sorry! The coin was under cup {}.").format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -971,7 +1039,7 @@ class Casino:
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
         choice = choice.title()
-        choices = ["Heads", "Tails"]
+        choices = [_("Heads"), _("Tails")]
         chip_name = settings["System Config"]["Chip Name"]
 
         # Run a logic check to determine if the user can play the game
@@ -981,24 +1049,24 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Coin Played"] += 1
-            outcome = random.choice(["Heads", "Tails"])
-            await self.bot.say("The coin flips into the air...")
+            outcome = random.choice([_("Heads"), _("Tails")])
+            await self.bot.say(_("The coin flips into the air..."))
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
             if choice == outcome:
                 amount = int(round(bet * settings["Games"]["Coin"]["Multiplier"]))
-                msg = "Congratulations! The coin landed on {}!".format(outcome)
+                msg = _("Congratulations! The coin landed on {}!").format(outcome)
                 settings["Players"][user.id]["Won"]["Coin Won"] += 1
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
                     settings["Players"][user.id]["Pending"] = amount
-                    msg += ("\nYour winnings exceeded the threshold set on this server. "
-                            "The amount of {} {} chips will be withheld until reviewed and "
-                            "released by an admin. Do not attempt to play additional games "
-                            "exceeding the threshold until this has been cleared."
-                            "".format(amount, chip_name, user.id))
+                    msg += (_("\nYour winnings exceeded the threshold set on this server. "
+                              "The amount of {} {} chips will be withheld until reviewed and "
+                              "released by an admin. Do not attempt to play additional games "
+                              "exceeding the threshold until this has been cleared."
+                              "").format(amount, chip_name, user.id))
                     logger.info("{}({}) won {} chips exceeding the threshold. Game "
                                 "details:\nPlayer Choice: {}\nPlayer Bet: {}\nGame "
                                 "Outcome: {}\n[END OF REPORT]"
@@ -1006,9 +1074,9 @@ class Casino:
                                           str(bet).ljust(10), outcome[0].ljust(10)))
                 else:
                     self.casino_bank.deposit_chips(user, amount)
-                    msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
+                    msg += _("```Python\nYou just won {} {} chips.```").format(amount, chip_name)
             else:
-                msg = "Sorry! The coin landed on {}.".format(outcome)
+                msg = _("Sorry! The coin landed on {}.").format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1031,29 +1099,29 @@ class Casino:
         else:  # Run the game when the checks return None
             self.casino_bank.withdraw_chips(user, bet)
             settings["Players"][user.id]["Played"]["Dice Played"] += 1
-            await self.bot.say("The dice strike the back of the table and begin to tumble into "
-                               "place...")
+            await self.bot.say(_("The dice strike the back of the table and begin to tumble into "
+                                 "place..."))
             die_one = random.randint(1, 6)
             die_two = random.randint(1, 6)
             outcome = die_one + die_two
             await asyncio.sleep(2)
 
             # Begin game logic to determine a win or loss
-            msg = "The dice landed on {} and {} \n".format(die_one, die_two)
+            msg = _("The dice landed on {} and {} \n").format(die_one, die_two)
             if outcome in [2, 7, 11, 12]:
                 amount = int(round(bet * settings["Games"]["Dice"]["Multiplier"]))
                 settings["Players"][user.id]["Won"]["Dice Won"] += 1
 
-                msg += "Congratulations! The dice landed on {}.".format(outcome)
+                msg += _("Congratulations! The dice landed on {}.").format(outcome)
 
                 # Check if a threshold is set and withold chips if amount is exceeded
                 if self.threshold_check(settings, amount):
                     settings["Players"][user.id]["Pending"] = amount
-                    msg += ("\nYour winnings exceeded the threshold set on this server. "
-                            "The amount of {} {} chips will be withheld until reviewed and "
-                            "released by an admin. Do not attempt to play additional games "
-                            "exceeding the threshold until this has been cleared."
-                            "".format(amount, chip_name, user.id))
+                    msg += (_("\nYour winnings exceeded the threshold set on this server. "
+                              "The amount of {} {} chips will be withheld until reviewed and "
+                              "released by an admin. Do not attempt to play additional games "
+                              "exceeding the threshold until this has been cleared."
+                              "").format(amount, chip_name, user.id))
                     logger.info("{}({}) won {} chips exceeding the threshold. Game "
                                 "details:\nPlayer Bet: {}\nGame "
                                 "Outcome: {}\n[END OF FILE]".format(user.name, user.id, amount,
@@ -1061,9 +1129,9 @@ class Casino:
                                                                     str(outcome[0]).ljust(10)))
                 else:
                     self.casino_bank.deposit_chips(user, amount)
-                    msg += "```Python\nYou just won {} {} chips.```".format(amount, chip_name)
+                    msg += _("```Python\nYou just won {} {} chips.```").format(amount, chip_name)
             else:
-                msg += "Sorry! The result was {}.".format(outcome)
+                msg += _("Sorry! The result was {}.").format(outcome)
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1125,8 +1193,8 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
 
         if not self.casino_bank.membership_exists(user):
-            return await self.bot.say("You need to register. Type "
-                                      "{}casino join.".format(ctx.prefix))
+            return await self.bot.say(_("You need to register. Type "
+                                        "{}casino join.").format(ctx.prefix))
 
         # Run a logic check to determine if the user can play the game.
         check = self.game_checks(settings, ctx.prefix, user, 0, "Allin", 1, [1])
@@ -1139,17 +1207,18 @@ class Casino:
             balance = self.casino_bank.chip_balance(user)
             outcome = random.randint(0, multiplier + 1)
             self.casino_bank.withdraw_chips(user, balance)
-            await self.bot.say("You put all your chips into the machine and pull the lever...")
+            await self.bot.say(_("You put all your chips into the machine and pull the lever..."))
             await asyncio.sleep(3)
 
             # Begin game logic to determine a win or loss.
             if outcome == 0:
                 self.casino_bank.deposit_chips(user, amount)
-                msg = "```Python\nJackpot!! You just won {} {} chips!!```".format(amount, chip_name)
+                msg = _("```Python\nJackpot!! You just won {} {} "
+                        "chips!!```").format(amount, chip_name)
                 settings["Players"][user.id]["Won"]["Allin Won"] += 1
             else:
-                msg = ("Sorry! Your all or nothing gamble failed and you lost "
-                       "all your {} chips.".format(chip_name))
+                msg = (_("Sorry! Your all or nothing gamble failed and you lost "
+                         "all your {} chips.").format(chip_name))
             # Save the results of the game
             self.casino_bank.save_system()
         # Send a message telling the user the outcome of this command
@@ -1159,7 +1228,7 @@ class Casino:
     @checks.admin_or_permissions(manage_server=True)
     async def _version_casino(self):
         """Shows current Casino version"""
-        await self.bot.say("You are currently running Casino version {}.".format(self.version))
+        await self.bot.say(_("You are currently running Casino version {}.").format(self.version))
 
     @casino.command(name="cdreset", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1174,7 +1243,7 @@ class Casino:
             settings["Players"][player]["Cooldowns"].update(cd_dict)
 
         self.casino_bank.save_system()
-        await self.bot.say("Cooldowns have been reset for all users on this server.")
+        await self.bot.say(_("Cooldowns have been reset for all users on this server."))
 
     @casino.command(name="removemembership", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1185,9 +1254,9 @@ class Casino:
 
         if membership in settings["Memberships"]:
             settings["Memberships"].pop(membership)
-            msg = "{} removed from the list of membership.".format(membership)
+            msg = _("{} removed from the list of membership.").format(membership)
         else:
-            msg = "Could not find a membership with that name."
+            msg = _("Could not find a membership with that name.")
 
         await self.bot.say(msg)
 
@@ -1199,10 +1268,12 @@ class Casino:
         # Declare variables
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
-        cancel = ctx.prefix + "cancel"
-        requirement_list = ["Days On Server", "Credits", "Chips", "Role"]
-        colors = ["blue", "red", "green", "orange", "purple", "yellow", "turquoise", "teal",
-                  "magenta", "pink", "white"]
+        cancel = ctx.prefix + _("cancel")
+        requirement_list = [_("Days On Server"), _("Credits"), _("Chips"), _("Role")]
+        colors = {_("blue"): "blue", _("red"): "red", _("green"): "green", _("orange"): "orange",
+                  _("purple"): "purple", _("yellow"): "yellow", _("turquoise"): "turquoise",
+                  _("teal"): "teal", _("magenta"): "magenta", _("pink"): "pink",
+                  _("white"): "white"}
         server_roles = [r.name for r in ctx.message.server.roles if r.name != "Bot"]
 
         # Various checks for the different questions
@@ -1212,108 +1283,110 @@ class Casino:
         check4 = lambda m: m.content.isdigit() or m.content in server_roles or m.content == cancel
         check5 = lambda m: m.content.lower() in colors or m.content == cancel
 
-        start = ("Welcome to the membership creation process. This will create a membership to "
-                 "provide benefits to your members such as reduced cooldowns and access levels.\n"
-                 "You may cancel this process at anytime by typing {}cancel. Let's begin with the "
-                 "first question.\n\nWhat is the name of this membership? Examples: Silver, Gold, "
-                 "and Diamond.".format(ctx.prefix))
+        start = (_("Welcome to the membership creation process. This will create a membership to "
+                   "provide benefits to your members such as reduced cooldowns and access levels.\n"
+                   "You may cancel this process at anytime by typing {}cancel. Let's begin with "
+                   "the first question.\n\nWhat is the name of this membership? Examples: Silver, "
+                   "Gold, and Diamond.").format(ctx.prefix))
 
         # Begin creation process
         await self.bot.say(start)
         name = await self.bot.wait_for_message(timeout=35, author=author)
 
         if name is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if name.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
         if name.content.title() in settings["Memberships"]:
-            await self.bot.say("A membership with that name already exists. Cancelling creation.")
+            await self.bot.say(_("A membership with that name already exists. "
+                                 "Cancelling creation."))
             return
 
-        await self.bot.say("What is the color for this membership? This color appears in the "
-                           "{}casino stats command.\nPlease pick from these colors: "
-                           "```{}```".format(ctx.prefix, ", ".join(colors)))
+        await self.bot.say(_("What is the color for this membership? This color appears in the "
+                             "{}casino stats command.\nPlease pick from these colors: "
+                             "```{}```").format(ctx.prefix, ", ".join(colors)))
         color = await self.bot.wait_for_message(timeout=35, author=author, check=check5)
 
         if color is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if color.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
-        await self.bot.say("What is the payday amount for this membership?")
+        await self.bot.say(_("What is the payday amount for this membership?"))
         payday = await self.bot.wait_for_message(timeout=35, author=author, check=check1)
 
         if payday is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if payday.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
-        await self.bot.say("What is the cooldown reduction for this membership in seconds? 0 for "
-                           "none")
+        await self.bot.say(_("What is the cooldown reduction for this membership in seconds? 0 for "
+                             "none"))
         reduction = await self.bot.wait_for_message(timeout=35, author=author, check=check2)
 
         if reduction is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if reduction.content == cancel:
-            await self.bot.say("membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
-        await self.bot.say("What is the access level for this membership? 0 is the default access "
-                           "level for new members. Access levels can be used to restrict access to "
-                           "games. See `{}setcasino access` for more info.".format(ctx.prefix))
+        await self.bot.say(_("What is the access level for this membership? 0 is the default "
+                             "access level for new members. Access levels can be used to restrict "
+                             "access to games. See `{}setcasino access` for more "
+                             "info.").format(ctx.prefix))
 
         access = await self.bot.wait_for_message(timeout=35, author=author, check=check1)
 
         if access is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if access.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
         if int(access.content) in [x["Access"] for x in settings["Memberships"].values()]:
-            await self.bot.say("You cannot have memberships with the same access level. Cancelling "
-                               "creation.")
+            await self.bot.say(_("You cannot have memberships with the same access level. "
+                                 "Cancelling creation."))
             return
 
-        await self.bot.say("What is the requirement for this membership? Available options are:```"
-                           "Days on server, Credits, Chips, or Role```Which would you "
-                           "like set? You can always remove and add additional requirements later"
-                           "using `{0}setcasino addrequirements` and "
-                           "`{0}setcasino removerequirements`.".format(ctx.prefix))
+        await self.bot.say(_("What is the requirement for this membership? Available options are:"
+                             "```Days on server, Credits, Chips, or Role```Which would you "
+                             "like set? You can always remove and add additional requirements "
+                             "later using `{0}setcasino addrequirements` and "
+                             "`{0}setcasino removerequirements`.").format(ctx.prefix))
         req_type = await self.bot.wait_for_message(timeout=35, author=author, check=check3)
 
         if req_type is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if req_type.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
 
-        await self.bot.say("What is the number of days, chips, credits or role name you would like "
-                           "set?")
+        await self.bot.say(_("What is the number of days, chips, credits or role name you would "
+                             "like to set?"))
         req_val = await self.bot.wait_for_message(timeout=35, author=author, check=check4)
 
         if req_val is None:
-            await self.bot.say("You took too long. Cancelling membership creation.")
+            await self.bot.say(_("You took too long. Cancelling membership creation."))
             return
 
         if req_val.content == cancel:
-            await self.bot.say("Membership creation cancelled.")
+            await self.bot.say(_("Membership creation cancelled."))
             return
         else:
 
@@ -1324,13 +1397,14 @@ class Casino:
 
             params = [name.content, color.content, payday.content, reduction.content,
                       access.content, req_val]
-            msg = ("Membership successfully created. Please review the details below.\n"
-                   "```Name:  {0}\nColor:  {1}\nPayday:  {2}\nCooldown Reduction:  {3}\n"
-                   "Access Level:  {4}\n".format(*params))
-            msg += "Requirement:  {} {}```".format(req_val, req_type.content.title())
+            msg = (_("Membership successfully created. Please review the details below.\n"
+                     "```Name:  {0}\nColor:  {1}\nPayday:  {2}\nCooldown Reduction:  {3}\n"
+                     "Access Level:  {4}\n").format(*params))
+            msg += _("Requirement:  {} {}```").format(req_val, req_type.content.title())
 
             memberships = {"Payday": int(payday.content), "Access": int(access.content),
-                           "Cooldown Reduction": int(reduction.content), "Color": color.content,
+                           "Cooldown Reduction": int(reduction.content),
+                           "Color": colors[color.content],
                            "Requirements": {req_type.content.title(): req_val}}
             settings["Memberships"][name.content.title()] = memberships
             self.casino_bank.save_system()
@@ -1343,21 +1417,21 @@ class Casino:
 
         user = ctx.message.author
         settings = self.casino_bank.check_server_settings(user.server)
-        await self.bot.say("This will reset casino to it's default settings and keep player data.\n"
-                           "Do you wish to reset casino settings?")
+        await self.bot.say(_("This will reset casino to it's default settings and keep player data."
+                             "\nDo you wish to reset casino settings?"))
         response = await self.bot.wait_for_message(timeout=15, author=user)
 
         if response is None:
-            msg = "No response, reset cancelled."
-        elif response.content.title() == "No":
-            msg = "Cancelling reset."
-        elif response.content.title() == "Yes":
+            msg = _("No response, reset cancelled.")
+        elif response.content.title() == _("No"):
+            msg = _("Cancelling reset.")
+        elif response.content.title() == _("Yes"):
             settings["System Config"] = server_default["System Config"]
             settings["Games"] = server_default["Games"]
             self.casino_bank.save_system()
-            msg = "Casino settings reset to default."
+            msg = _("Casino settings reset to default.")
         else:
-            msg = "Improper response. Cancelling reset."
+            msg = _("Improper response. Cancelling reset.")
         await self.bot.say(msg)
 
     @casino.command(name="toggle", pass_context=True)
@@ -1371,10 +1445,10 @@ class Casino:
 
         if settings["System Config"]["Casino Open"]:
             settings["System Config"]["Casino Open"] = False
-            msg = "The {} Casino is now closed.".format(casino_name)
+            msg = _("The {} Casino is now closed.").format(casino_name)
         else:
             settings["System Config"]["Casino Open"] = True
-            msg = "The {} Casino is now open!".format(casino_name)
+            msg = _("The {} Casino is now open!").format(casino_name)
         self.casino_bank.save_system()
         await self.bot.say(msg)
 
@@ -1388,27 +1462,27 @@ class Casino:
         if self.casino_bank.membership_exists(user):
             amount = settings["Players"][user.id]["Pending"]
             if amount > 0:
-                await self.bot.say("{} has a pending amount of {}. Do you wish to approve this "
-                                   "amount?".format(user.name, amount))
+                await self.bot.say(_("{} has a pending amount of {}. Do you wish to approve this "
+                                     "amount?").format(user.name, amount))
                 response = await self.bot.wait_for_message(timeout=15, author=author)
 
                 if response is None:
-                    await self.bot.say("You took too long. Cancelling pending chip approval.")
+                    await self.bot.say(_("You took too long. Cancelling pending chip approval."))
                     return
 
-                if response.content.title() in ["No", "Cancel", "Stop"]:
-                    await self.bot.say("Cancelling pending chip approval.")
+                if response.content.title() in [_("No"), _("Cancel"), _("Stop")]:
+                    await self.bot.say(_("Cancelling pending chip approval."))
                     return
 
-                if response.content.title() in ["Yes", "Approve"]:
-                    await self.bot.say("{} approved the pending chips. Sending {} {} chips to "
-                                       " {}.".format(author.name, amount, chip_name, user.name))
+                if response.content.title() in [_("Yes"), _("Approve")]:
+                    await self.bot.say(_("{} approved the pending chips. Sending {} {} chips to "
+                                         " {}.").format(author.name, amount, chip_name, user.name))
                     self.casino_bank.deposit_chips(user, amount)
                 else:
-                    await self.bot.say("Incorrect response. Cancelling pending chip approval.")
+                    await self.bot.say(_("Incorrect response. Cancelling pending chip approval."))
                     return
             else:
-                await self.bot.say("{} does not have any chips pending.".format(user.name))
+                await self.bot.say(_("{} does not have any chips pending.").format(user.name))
 
     @casino.command(name="removeuser", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1418,18 +1492,18 @@ class Casino:
         self.casino_bank.check_server_settings(author.server)
 
         if not self.casino_bank.membership_exists(user):
-            msg = "This user is not a member of the casino."
+            msg = _("This user is not a member of the casino.")
         else:
-            await self.bot.say("Are you sure you want to remove player data for {}? Type {} to "
-                               "confirm.".format(user.name, user.name))
+            await self.bot.say(_("Are you sure you want to remove player data for {}? Type {} to "
+                                 "confirm.").format(user.name, user.name))
             response = await self.bot.wait_for_message(timeout=15, author=author)
             if response is None:
-                msg = "No response. Player removal cancelled."
+                msg = _("No response. Player removal cancelled.")
             elif response.content.title() == user.name:
                 self.casino_bank.remove_membership(user)
-                msg = "{}\'s casino data has been removed by {}.".format(user.name, author.name)
+                msg = _("{}\'s casino data has been removed by {}.").format(user.name, author.name)
             else:
-                msg = "Incorrect name. Cancelling player removal."
+                msg = _("Incorrect name. Cancelling player removal.")
         await self.bot.say(msg)
 
     @casino.command(name="wipe", pass_context=True)
@@ -1445,37 +1519,37 @@ class Casino:
             server = [self.bot.get_server(x) for x in servers
                       if self.bot.get_server(x).name == servername][0]
         except AttributeError:
-            msg = ("A server with that name could not be located.\n**List of "
-                   "Servers:**")
+            msg = (_("A server with that name could not be located.\n**List of "
+                     "Servers:**"))
             if len(fmt_list) > 25:
                 fmt_list = fmt_list[:25]
                 msg += "\n\n{}".format('\n'.join(fmt_list))
-                msg += "\nThere are too many server names to display, displaying first 25."
+                msg += _("\nThere are too many server names to display, displaying first 25.")
             else:
                 msg += "\n\n{}".format('\n'.join(fmt_list))
 
             return await self.bot.say(msg)
 
-        await self.bot.say("This will wipe casino server data.**WARNING** ALL PLAYER DATA WILL "
-                           "BE DESTROYED.\nDo you wish to wipe {}?".format(server.name))
+        await self.bot.say(_("This will wipe casino server data.**WARNING** ALL PLAYER DATA WILL "
+                             "BE DESTROYED.\nDo you wish to wipe {}?").format(server.name))
         response = await self.bot.wait_for_message(timeout=15, author=user)
 
         if response is None:
-            msg = "No response, casino wipe cancelled."
-        elif response.content.title() == "No":
-            msg = "Cancelling casino wipe."
-        elif response.content.title() == "Yes":
-            await self.bot.say("To confirm type the server name: {}".format(server.name))
+            msg = _("No response, casino wipe cancelled.")
+        elif response.content.title() == _("No"):
+            msg = _("Cancelling casino wipe.")
+        elif response.content.title() == _("Yes"):
+            await self.bot.say(_("To confirm type the server name: {}").format(server.name))
             response = await self.bot.wait_for_message(timeout=15, author=user)
             if response is None:
-                msg = "No response, casino wipe cancelled."
+                msg = _("No response, casino wipe cancelled.")
             elif response.content == server.name:
                 self.casino_bank.wipe_caisno_server(server)
-                msg = "Casino wiped."
+                msg = _("Casino wiped.")
             else:
-                msg = "Incorrect server name. Cancelling casino wipe."
+                msg = _("Incorrect server name. Cancelling casino wipe.")
         else:
-            msg = "Improper response. Cancelling casino wipe."
+            msg = _("Improper response. Cancelling casino wipe.")
 
         await self.bot.say(msg)
 
@@ -1499,11 +1573,11 @@ class Casino:
 
         if limit > 0:
             settings["System Config"]["Transfer Limit"] = limit
-            msg = "{} set transfer limit to {}.".format(author.name, limit)
+            msg = _("{} set transfer limit to {}.").format(author.name, limit)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
             self.casino_bank.save_system()
         else:
-            msg = "Limit must be higher than 0."
+            msg = _("Limit must be higher than 0.")
 
         await self.bot.say(msg)
 
@@ -1523,11 +1597,11 @@ class Casino:
         if seconds > 0:
             settings["System Config"]["Transfer Cooldown"] = seconds
             time_fmt = self.time_format(seconds)
-            msg = "{} set transfer cooldown to {}.".format(author.name, time_fmt)
+            msg = _("{} set transfer cooldown to {}.").format(author.name, time_fmt)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
             self.casino_bank.save_system()
         else:
-            msg = "Seconds must be higher than 0."
+            msg = _("Seconds must be higher than 0.")
 
         await self.bot.say(msg)
 
@@ -1540,11 +1614,11 @@ class Casino:
 
         if threshold > 0:
             settings["System Config"]["Threshold"] = threshold
-            msg = "{} set payout threshold to {}.".format(author.name, threshold)
+            msg = _("{} set payout threshold to {}.").format(author.name, threshold)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
             self.casino_bank.save_system()
         else:
-            msg = "Threshold amount needs to be higher than 0."
+            msg = _("Threshold amount needs to be higher than 0.")
 
         await self.bot.say(msg)
 
@@ -1556,10 +1630,10 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if settings["System Config"]["Threshold Switch"]:
-            msg = "{} turned the threshold OFF.".format(author.name)
+            msg = _("{} turned the threshold OFF.").format(author.name)
             settings["System Config"]["Threshold Switch"] = False
         else:
-            msg = "{} turned the threshold ON.".format(author.name)
+            msg = _("{} turned the threshold ON.").format(author.name)
             settings["System Config"]["Threshold Switch"] = True
 
         logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
@@ -1583,10 +1657,11 @@ class Casino:
         if amount >= 0:
             settings["System Config"]["Default Payday"] = amount
             self.casino_bank.save_system()
-            msg = "{} set the default payday to {} {} chips.".format(author.name, amount, chip_name)
+            msg = _("{} set the default payday to {} {} "
+                    "chips.").format(author.name, amount, chip_name)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
-            msg = "You cannot set a negative number to payday."
+            msg = _("You cannot set a negative number to payday.")
 
         await self.bot.say(msg)
 
@@ -1605,17 +1680,17 @@ class Casino:
             settings["System Config"]["Payday Timer"] = seconds
             self.casino_bank.save_system()
             time_set = self.time_format(seconds)
-            msg = "{} set the default payday to {}.".format(author.name, time_set)
+            msg = _("{} set the default payday to {}.").format(author.name, time_set)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
-            msg = ("You cannot set a negative number to payday timer. That would be like going back"
-                   " in time. Which would be totally cool, but I don't understand the physics of "
-                   "how it might apply in this case. One would assume you would go back in time to "
-                   "the point in which you could receive a payday, but it is actually quite the "
-                   "opposite. You would go back to the point where you were about to claim a "
-                   "payday and thus claim it again, but unfortunately your total would not receive "
-                   "a net gain, because you are robbing from yourself. Next time think before you "
-                   "do something so stupid.")
+            msg = (_("You cannot set a negative number to payday timer. That would be like going "
+                     "back in time. Which would be totally cool, but I don't understand the "
+                     "physics of how it might apply in this case. One would assume you would go "
+                     "back in time to the point in which you could receive a payday, but it is "
+                     "actually quite the opposite. You would go back to the point where you were "
+                     "about to claim a payday and thus claim it again, but unfortunately your "
+                     "total would not receive a net gain, because you are robbing from yourself. "
+                     "Next time think before you do something so stupid."))
 
         await self.bot.say(msg)
 
@@ -1627,15 +1702,15 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if game.title() not in c_games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
+            msg = _("This game does not exist. Please pick from: {}").format(", ".join(c_games))
         elif multiplier > 0:
             multiplier = float(abs(multiplier))
             settings["Games"][game.title()]["Multiplier"] = multiplier
             self.casino_bank.save_system()
-            msg = "Now setting the payout multiplier for {} to {}".format(game, multiplier)
+            msg = _("Now setting the payout multiplier for {} to {}").format(game, multiplier)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
-            msg = "Multiplier needs to be higher than 0."
+            msg = _("Multiplier needs to be higher than 0.")
 
         await self.bot.say(msg)
 
@@ -1649,14 +1724,14 @@ class Casino:
         game = game.title()
 
         if game not in c_games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
+            msg = _("This game does not exist. Please pick from: {}").format(", ".join(c_games))
         elif access >= 0:
             settings["Games"][game.title()]["Access Level"] = access
             self.casino_bank.save_system()
-            msg = "{} changed the access level for {} to {}.".format(author.name, game, access)
+            msg = _("{} changed the access level for {} to {}.").format(author.name, game, access)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
-            msg = "Access level must be higher than 0."
+            msg = _("Access level must be higher than 0.")
 
         await self.bot.say(msg)
 
@@ -1668,8 +1743,9 @@ class Casino:
         # Declare variables
         author = ctx.message.author
         settings = self.casino_bank.check_server_settings(author.server)
-        cancel_message = "You took too long to respond. Cancelling requirement addition."
-        requirement_options = ["Days On Server", "Credits", "Chips", "Role"]
+        cancel_message = _("You took too long to respond. Cancelling requirement addition.")
+        requirement_options = {_("Days On Server"): "Days On Server", _("Credits"): "Credits",
+                               _("Chips"): "Chips", _("Role"): "Role"}
         server_roles = [r.name for r in ctx.message.server.roles if r.name != "Bot"]
 
         # Message checks
@@ -1679,12 +1755,13 @@ class Casino:
 
         # Begin logic
         if membership not in settings["Memberships"]:
-            await self.bot.say("This membership does not exist.")
+            await self.bot.say(_("This membership does not exist."))
         else:
 
-            await self.bot.say("Which of these requirements would you like to add to the {} "
-                               " membership?```{}.```NOTE: You cannot have multiple requirements of"
-                               " the same type.".format(membership, ', '.join(requirement_options)))
+            await self.bot.say(_("Which of these requirements would you like to add to the {} "
+                                 " membership?```{}.```NOTE: You cannot have multiple requirements "
+                                 "of the same "
+                                 "type.").format(membership, ', '.join(requirement_options)))
             rsp = await self.bot.wait_for_message(timeout=15, author=author, check=check1)
 
             if rsp is None:
@@ -1693,35 +1770,35 @@ class Casino:
 
             else:
                 # Determine amount for DoS, Credits, or Chips
-                if rsp.content.title() != "Role":
+                if rsp.content.title() != _("Role"):
                     name = rsp.content.split(' ', 1)[0]
-                    await self.bot.say("How many {} are required?".format(name))
+                    await self.bot.say(_("How many {} are required?").format(name))
                     reply = await self.bot.wait_for_message(timeout=15, author=author, check=check2)
 
                     if reply is None:
                         await self.bot.say(cancel_message)
                         return
                     else:
-                        await self.bot.say("Adding the requirement of {} {} to the membership "
-                                           "{}.".format(reply.content, rsp.content, membership))
+                        await self.bot.say(_("Adding the requirement of {} {} to the membership "
+                                           "{}.").format(reply.content, rsp.content, membership))
                         reply = int(reply.content)
 
                 # Determine the role for the requirement
                 else:
-                    await self.bot.say("Which role would you like set? This role must already be "
-                                       "set on server.")
+                    await self.bot.say(_("Which role would you like set? This role must already be "
+                                       "set on server."))
                     reply = await self.bot.wait_for_message(timeout=15, author=author, check=check3)
 
                     if reply is None:
                         await self.bot.say(cancel_message)
                         return
                     else:
-                        await self.bot.say("Adding the requirement role of {} to the membership "
-                                           "{}.".format(reply.content, membership))
+                        await self.bot.say(_("Adding the requirement role of {} to the membership "
+                                           "{}.").format(reply.content, membership))
                         reply = reply.content
 
                 # Add and save the requirement
-                key = rsp.content.title()
+                key = requirement_options[rsp.content.title()]
                 settings["Memberships"][membership]["Requirements"][key] = reply
                 self.casino_bank.save_system()
 
@@ -1735,26 +1812,26 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if membership not in settings["Memberships"]:
-            await self.bot.say("This membership does not exist.")
+            await self.bot.say(_("This membership does not exist."))
         else:  # Membership was found.
             current_requirements = settings["Memberships"][membership]["Requirements"].keys()
 
             if not current_requirements:
-                return await self.bot.say("This membership has no requirements.")
+                return await self.bot.say(_("This membership has no requirements."))
 
             check = lambda m: m.content.title() in current_requirements
 
-            await self.bot.say("The current requirements for this membership are:\n```{}```Which "
-                               "would you like to remove?".format(", ".join(current_requirements)))
+            await self.bot.say(_("The current requirements for this membership are:\n```{}```Which "
+                               "would you like to remove?").format(", ".join(current_requirements)))
             resp = await self.bot.wait_for_message(timeout=15, author=author, check=check)
 
             if resp is None:
-                return await self.bot.say("You took too long. Cancelling requirement removal.")
+                return await self.bot.say(_("You took too long. Cancelling requirement removal."))
             else:
                 settings["Memberships"][membership]["Requirements"].pop(resp.content.title())
                 self.casino_bank.save_system()
-                await self.bot.say("{} requirement removed from {}.".format(resp.content.title(),
-                                                                            membership))
+                await self.bot.say(_("{} requirement removed from {}.").format(resp.content.title(),
+                                                                               membership))
 
     @setcasino.command(name="balance", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1767,15 +1844,15 @@ class Casino:
         try:
             self.casino_bank.set_chips(user, chips)
         except NegativeChips:
-            return await self.bot.say("Chips must be higher than 0.")
+            return await self.bot.say(_("Chips must be higher than 0."))
         except UserNotRegistered:
-            return await self.bot.say("You need to register to the {} Casino. To register type "
-                                      "`{}casino join`.".format(casino_name, ctx.prefix))
+            return await self.bot.say(_("You need to register to the {} Casino. To register type "
+                                        "`{}casino join`.").format(casino_name, ctx.prefix))
         else:
             logger.info("SETTINGS CHANGED {}({}) set {}({}) chip balance to "
                         "{}".format(author.name, author.id, user.name, user.id, chips))
-            await self.bot.say("```Python\nSetting the chip balance of {} to "
-                               "{} {} chips.```".format(user.name, chips, chip_name))
+            await self.bot.say(_("```Python\nSetting the chip balance of {} to "
+                                 "{} {} chips.```").format(user.name, chips, chip_name))
 
     @setcasino.command(name="exchange", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
@@ -1785,20 +1862,20 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if rate <= 0:
-            msg = "Rate must be higher than 0. Default is 1."
-        elif currency.title() == "Chips":
+            msg = _("Rate must be higher than 0. Default is 1.")
+        elif currency.title() == _("Chips"):
             settings["System Config"]["Chip Rate"] = rate
             logger.info("{}({}) changed the chip rate to {}".format(author.name, author.id, rate))
             self.casino_bank.save_system()
-            msg = "Setting the exchange rate for credits to chips to {}.".format(rate)
-        elif currency.title() == "Credits":
+            msg = _("Setting the exchange rate for credits to chips to {}.").format(rate)
+        elif currency.title() == _("Credits"):
             settings["System Config"]["Credit Rate"] = rate
             logger.info("SETTINGS CHANGED {}({}) changed the credit rate to "
                         "{}".format(author.name, author.id, rate))
             self.casino_bank.save_system()
-            msg = "Setting the exchange rate for chips to credits to {}.".format(rate)
+            msg = _("Setting the exchange rate for chips to credits to {}.").format(rate)
         else:
-            msg = "Please specify chips or credits"
+            msg = _("Please specify chips or credits")
 
         await self.bot.say(msg)
 
@@ -1810,7 +1887,7 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
         settings["System Config"]["Casino Name"] = name
         self.casino_bank.save_system()
-        msg = "Changed the casino name to {}.".format(name)
+        msg = _("Changed the casino name to {}.").format(name)
         logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         await self.bot.say(msg)
 
@@ -1837,12 +1914,12 @@ class Casino:
         settings = self.casino_bank.check_server_settings(author.server)
 
         if game.title() not in c_games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(c_games))
+            msg = _("This game does not exist. Please pick from: {}").format(", ".join(c_games))
         else:
             settings["Games"][game.title()]["Cooldown"] = seconds
             time_set = self.time_format(seconds)
             self.casino_bank.save_system()
-            msg = "Setting the cooldown period for {} to {}.".format(game, time_set)
+            msg = _("Setting the cooldown period for {} to {}.").format(game, time_set)
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
 
         await self.bot.say(msg)
@@ -1856,20 +1933,20 @@ class Casino:
         min_games = [x for x in c_games if x != "Allin"]
 
         if game.title() not in min_games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(min_games))
+            msg = _("This game does not exist. Please pick from: {}").format(", ".join(min_games))
         elif minbet < 0:
-            msg = "You need to set a minimum bet higher than 0."
+            msg = _("You need to set a minimum bet higher than 0.")
         elif minbet < settings["Games"][game.title()]["Max"]:
             settings["Games"][game.title()]["Min"] = minbet
             chips = settings["System Config"]["Chip Name"]
             self.casino_bank.save_system()
-            msg = ("Setting the minimum bet for {} to {} {} "
-                   "chips.".format(game.title(), minbet, chips))
+            msg = (_("Setting the minimum bet for {} to {} {} "
+                     "chips.").format(game.title(), minbet, chips))
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
             maxbet = settings["Games"][game.title()]["Max"]
-            msg = ("The minimum bet can't bet set higher than the maximum bet of "
-                   "{} for {}.".format(maxbet, game.title()))
+            msg = (_("The minimum bet can't bet set higher than the maximum bet of "
+                     "{} for {}.").format(maxbet, game.title()))
 
         await self.bot.say(msg)
 
@@ -1882,19 +1959,19 @@ class Casino:
         max_games = [x for x in c_games if x != "Allin"]
 
         if game.title() not in max_games:
-            msg = "This game does not exist. Please pick from: {}".format(", ".join(max_games))
+            msg = _("This game does not exist. Please pick from: {}").format(", ".join(max_games))
         elif maxbet <= 0:
-            msg = "You need to set a maximum bet higher than 0."
+            msg = _("You need to set a maximum bet higher than 0.")
         elif maxbet > settings["Games"][game.title()]["Min"]:
             settings["Games"][game.title()]["Max"] = maxbet
             chips = settings["System Config"]["Chip Name"]
             self.casino_bank.save_system()
-            msg = ("Setting the maximum bet for {} to {} {} "
-                   "chips.".format(game.title(), maxbet, chips))
+            msg = (_("Setting the maximum bet for {} to {} {} "
+                     "chips.").format(game.title(), maxbet, chips))
             logger.info("SETTINGS CHANGED {}({}) {}".format(author.name, author.id, msg))
         else:
             minbet = settings["Games"][game.title()]["Min"]
-            msg = "The max bet needs be higher than the minimum bet of {}.".format(minbet)
+            msg = _("The max bet needs be higher than the minimum bet of {}.").format(minbet)
 
         await self.bot.say(msg)
 
@@ -1907,39 +1984,39 @@ class Casino:
             page = next((idx for idx, sub in enumerate(groups) for tup in sub if name in tup), None)
             if not page:
                 page = 0
-            table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
-            msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
-                   "{} casino members.```".format(table, page + 1, pages, len(data)))
+            table = tabulate(groups[page], headers=headers, numalign="left")
+            msg = (_("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                     "{} casino members.```").format(table, page + 1, pages, len(data)))
             return msg
         elif pages == 1:
             page = 0
-            table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
-            msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
-                   "{} casino members```".format(table, pages, len(data)))
+            table = tabulate(groups[page], headers=headers, numalign="left")
+            msg = (_("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
+                     "{} casino members```").format(table, pages, len(data)))
             return msg
 
-        await self.bot.say("There are {} pages of high scores. "
-                           "Which page would you like to display?".format(pages))
+        await self.bot.say(_("There are {} pages of high scores. "
+                             "Which page would you like to display?").format(pages))
         response = await self.bot.wait_for_message(timeout=15, author=user)
         if response is None:
             page = 0
-            table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
-            msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
-                   "{} casino members.```".format(table, page + 1, pages, len(data)))
+            table = tabulate(groups[page], headers=headers, numalign="left")
+            msg = (_("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                     "{} casino members.```").format(table, page + 1, pages, len(data)))
             return msg
         else:
             try:
                 page = int(response.content) - 1
-                table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
-                msg = ("```ini\n{}``````Python\nYou are viewing page {} of {}. "
-                       "{} casino members.```".format(table, page + 1, pages, len(data)))
+                table = tabulate(groups[page], headers=headers, numalign="left")
+                msg = (_("```ini\n{}``````Python\nYou are viewing page {} of {}. "
+                         "{} casino members.```").format(table, page + 1, pages, len(data)))
                 return msg
             except ValueError:
                 await self.bot.say("Sorry your response was not a number. Defaulting to page 1")
                 page = 0
-                table = tabulate(groups[page], headers=headers, numalign="left", tablefmt="simple")
-                msg = ("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
-                       "{} casino members```".format(table, pages, len(data)))
+                table = tabulate(groups[page], headers=headers, numalign="left")
+                msg = (_("```ini\n{}``````Python\nYou are viewing page 1 of {}. "
+                         "{} casino members```").format(table, pages, len(data)))
                 return msg
 
     async def membership_updater(self):
@@ -1975,10 +2052,10 @@ class Casino:
         player_card, dealer_card, pc, dc = self.war_draw(deck)
         multiplier = settings["Games"]["War"]["Multiplier"]
 
-        await self.bot.say("The dealer shuffles the deck and deals 1 card face down to the player "
-                           "and dealer...")
+        await self.bot.say(_("The dealer shuffles the deck and deals 1 card face down to the "
+                             "player and the dealer..."))
         await asyncio.sleep(2)
-        await self.bot.say("**FLIP!**")
+        await self.bot.say(_("**FLIP!**"))
         await asyncio.sleep(1)
 
         if pc > dc:
@@ -1987,23 +2064,25 @@ class Casino:
         elif dc > pc:
             outcome = "Loss"
         else:
-            check = lambda m: m.content.title() in ["War", "Surrender", "Ffs"]
-            await self.bot.say("The player and dealer are both showing a **{}**!\nTHIS MEANS WAR! "
-                               "You may choose to surrender and forfeit half your bet, or you can "
-                               "go to war.\nYour bet will be doubled, but you will only win on "
-                               "half the bet, the rest will be pushed.".format(player_card))
+            check = lambda m: m.content.title() in [_("War"), _("Surrender"), _("Ffs")]
+            await self.bot.say(_("The player and dealer are both showing a **{}**!\nTHIS MEANS "
+                                 "WAR! You may choose to surrender and forfeit half your bet, or "
+                                 "you can go to war.\nYour bet will be doubled, but you will only "
+                                 "win on half the bet, the rest will be "
+                                 "pushed.").format(player_card))
             choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
 
-            if choice is None or choice.content.title() in ["Surrender", "Ffs"]:
+            if choice is None or choice.content.title() in [_("Surrender"), _("Ffs")]:
                 outcome = "Surrender"
                 amount = int(amount / 2)
-            elif choice.content.title() == "War":
+            elif choice.content.title() == _("War"):
                 self.casino_bank.withdraw_chips(user, amount)
                 player_card, dealer_card, pc, dc = self.burn_three(deck)
 
-                await self.bot.say("The dealer burns three cards and deals two cards face down...")
+                await self.bot.say(_("The dealer burns three cards and deals two cards "
+                                     "face down..."))
                 await asyncio.sleep(3)
-                await self.bot.say("**FLIP!**")
+                await self.bot.say(_("**FLIP!**"))
 
                 if pc >= dc:
                     outcome = "Win"
@@ -2011,7 +2090,7 @@ class Casino:
                 else:
                     outcome = "Loss"
             else:
-                await self.bot.say("Improper response. You are being forced to forfeit.")
+                await self.bot.say(_("Improper response. You are being forced to forfeit."))
                 outcome = "Surrender"
                 amount = int(amount / 2)
 
@@ -2022,22 +2101,22 @@ class Casino:
         ph = self.draw_two(deck)
         count = self.count_hand(ph)
         # checks used to ensure the player uses the correct input
-        check = lambda m: m.content.title() in ["Hit", "Stay", "Double"]
-        check2 = lambda m: m.content.title() in ["Hit", "Stay"]
+        check = lambda m: m.content.title() in [_("Hit"), _("Stay"), _("Double")]
+        check2 = lambda m: m.content.title() in [_("Hit"), _("Stay")]
 
         # End the game if the player has 21 in the starting hand.
         if count == 21:
             return ph, dh, amount
 
-        msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
-               "{}\nHit, stay, or double?".format(user.mention, ", ".join(ph), count, dh[0]))
+        msg = (_("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
+               "{}\nHit, stay, or double?").format(user.mention, ", ".join(ph), count, dh[0]))
         await self.bot.say(msg)
         choice = await self.bot.wait_for_message(timeout=15, author=user, check=check)
 
         # Stop the blackjack game if the player chooses stay or double.
-        if choice is None or choice.content.title() == "Stay":
+        if choice is None or choice.content.title() == _("Stay"):
             return ph, dh, amount
-        elif choice.content.title() == "Double":
+        elif choice.content.title() == _("Double"):
             # Create a try/except block to catch when people are dumb and don't have enough chips
             try:
                 self.casino_bank.withdraw_chips(user, amount)
@@ -2046,13 +2125,13 @@ class Casino:
                 count = self.count_hand(ph)
                 return ph, dh, amount
             except InsufficientChips:
-                await self.bot.say("Not enough chips. Please choose hit or stay.")
+                await self.bot.say(_("Not enough chips. Please choose hit or stay."))
                 choice2 = await self.bot.wait_for_message(timeout=15, author=user, check=check2)
 
-                if choice2 is None or choice2.content.title() == "Stay":
+                if choice2 is None or choice2.content.title() == _("Stay"):
                     return ph, dh, amount
 
-                elif choice2.content.title() == "Hit":
+                elif choice2.content.title() == _("Hit"):
                     # This breaks PEP8 for DRY but I didn't want to create a sperate coroutine.
                     while count < 21:
                         ph = self.draw_card(ph, deck)
@@ -2060,13 +2139,14 @@ class Casino:
 
                         if count >= 21:
                             break
-                        msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
-                               "{}\nHit or stay?".format(user.mention, ", ".join(ph), count, dh[0]))
+                        msg = (_("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
+                                 "{}\nHit or stay?").format(user.mention, ", ".join(ph), count,
+                                                            dh[0]))
                         await self.bot.say(msg)
                         resp = await self.bot.wait_for_message(timeout=15, author=user,
                                                                check=check2)
 
-                        if resp is None or resp.content.title() == "Stay":
+                        if resp is None or resp.content.title() == _("Stay"):
                             break
                         else:
                             continue
@@ -2074,19 +2154,19 @@ class Casino:
                     return ph, dh, amount
 
         # Continue game logic in a loop until the player's count is 21 or bust.
-        elif choice.content.title() == "Hit":
+        elif choice.content.title() == _("Hit"):
             while count < 21:
                 ph = self.draw_card(ph, deck)
                 count = self.count_hand(ph)
 
                 if count >= 21:
                     break
-                msg = ("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
-                       "{}\nHit or stay?".format(user.mention, ", ".join(ph), count, dh[0]))
+                msg = (_("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: "
+                         "{}\nHit or stay?").format(user.mention, ", ".join(ph), count, dh[0]))
                 await self.bot.say(msg)
                 response = await self.bot.wait_for_message(timeout=15, author=user, check=check2)
 
-                if response is None or response.content.title() == "Stay":
+                if response is None or response.content.title() == _("Stay"):
                     break
                 else:
                     continue
@@ -2095,18 +2175,18 @@ class Casino:
 
     def war_results(self, settings, user, outcome, player_card, dealer_card, amount):
         chip_name = settings["System Config"]["Chip Name"]
-        msg = ("======**{}**======\nPlayer Card: {}"
-               "\nDealer Card: {}\n".format(user.name, player_card, dealer_card))
+        msg = (_("======**{}**======\nPlayer Card: {}"
+                 "\nDealer Card: {}\n").format(user.name, player_card, dealer_card))
         if outcome == "Win":
             settings["Players"][user.id]["Won"]["War Won"] += 1
             # Check if a threshold is set and withold chips if amount is exceeded
             if self.threshold_check(settings, amount):
                 settings["Players"][user.id]["Pending"] = amount
-                msg += ("Your winnings exceeded the threshold set on this server. "
-                        "The amount of {} {} chips will be withheld until reviewed and "
-                        "released by an admin. Do not attempt to play additional games "
-                        "exceeding the threshold until this has been cleared."
-                        "".format(amount, chip_name, user.id))
+                msg += (_("Your winnings exceeded the threshold set on this server. "
+                          "The amount of {} {} chips will be withheld until reviewed and "
+                          "released by an admin. Do not attempt to play additional games "
+                          "exceeding the threshold until this has been cleared."
+                          "").format(amount, chip_name, user.id))
                 logger.info("{}({}) won {} chips exceeding the threshold. Game "
                             "details:\nPlayer Bet: {}\nGame "
                             "Outcome: {}\n[END OF FILE]".format(user.name, user.id, amount,
@@ -2114,15 +2194,15 @@ class Casino:
                                                                 str(outcome[0]).ljust(10)))
             else:
                 self.casino_bank.deposit_chips(user, amount)
-                msg += ("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just won {} {} "
-                        "chips.```".format(amount, chip_name))
+                msg += (_("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just won {} {} "
+                          "chips.```").format(amount, chip_name))
 
         elif outcome == "Loss":
-            msg += "======House Wins!======"
+            msg += _("======House Wins!======")
         else:
             self.casino_bank.deposit_chips(user, amount)
-            msg = ("======**{}**======\n:flag_white: Surrendered :flag_white:\n==================\n"
-                   "{} {} chips returned.".format(user.name, amount, chip_name))
+            msg = (_("======**{}**======\n:flag_white: Surrendered :flag_white:\n=================="
+                     "\n{} {} chips returned.").format(user.name, amount, chip_name))
 
         # Save results and return appropriate outcome message.
         self.casino_bank.save_system()
@@ -2132,8 +2212,8 @@ class Casino:
         chip_name = settings["System Config"]["Chip Name"]
         dc = self.count_hand(dh)
         pc = self.count_hand(ph)
-        msg = ("======**{}**======\nYour hand: {}\nYour score: {}\nDealer's hand: {}\nDealer's "
-               "score: {}\n".format(user.name, ", ".join(ph), pc, ", ".join(dh), dc))
+        msg = (_("======**{}**======\nYour hand: {}\nYour score: {}\nDealer's hand: {}\nDealer's "
+                 "score: {}\n").format(user.name, ", ".join(ph), pc, ", ".join(dh), dc))
 
         if dc > 21 and pc <= 21 or dc < pc <= 21:
             settings["Players"][user.id]["Won"]["BJ Won"] += 1
@@ -2141,27 +2221,27 @@ class Casino:
             # Check if a threshold is set and withold chips if amount is exceeded
             if self.threshold_check(settings, total):
                 settings["Players"][user.id]["Pending"] = total
-                msg = ("Your winnings exceeded the threshold set on this server. "
-                       "The amount of {} {} chips will be withheld until reviewed and "
-                       "released by an admin. Do not attempt to play additional games "
-                       "exceeding the threshold until this has been cleared."
-                       "".format(total, chip_name, user.id))
+                msg = (_("Your winnings exceeded the threshold set on this server. "
+                         "The amount of {} {} chips will be withheld until reviewed and "
+                         "released by an admin. Do not attempt to play additional games "
+                         "exceeding the threshold until this has been cleared."
+                         "").format(total, chip_name, user.id))
                 logger.info("{}({}) won {} chips exceeding the threshold. Game "
                             "details:\nPlayer Bet: {}\nGame\n"
                             "[END OF FILE]".format(user.name, user.id, total, str(total).ljust(10)))
             else:
-                msg += ("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just "
-                        "won {} {} chips.```".format(total, chip_name))
+                msg += (_("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***\n```Python\nYou just "
+                          "won {} {} chips.```").format(total, chip_name))
                 self.casino_bank.deposit_chips(user, total)
         elif pc > 21:
-            msg += "======BUST!======"
+            msg += _("======BUST!======")
         elif dc == pc and dc <= 21 and pc <= 21:
-            msg += ("======Pushed======\nReturned {} {} chips to your "
-                    "account.".format(amount, chip_name))
+            msg += (_("======Pushed======\nReturned {} {} chips to your "
+                      "account.").format(amount, chip_name))
             amount = int(round(amount))
             self.casino_bank.deposit_chips(user, amount)
         elif dc > pc and dc <= 21:
-            msg += "======House Wins!======".format(user.name)
+            msg += _("======House Wins!======").format(user.name)
         # Save results and return appropriate outcome message.
         self.casino_bank.save_system()
         return msg
@@ -2306,11 +2386,12 @@ class Casino:
             return False
 
     def hl_outcome(self, dicetotal):
-        choices = [(1, "Lo", "Low"), (2, "Lo", "Low"), (3, "Lo", "Low"), (4, "Lo", "Low"),
-                   (5, "Lo", "Low"), (6, "Lo", "Low"), (7, "7", "Seven"), (8, "Hi", "High"),
-                   (9, "Hi", "High"), (10, "Hi", "High"), (11, "Hi", "High"), (12, "Hi", "High")]
-        outcome = choices[dicetotal - 1]
-        return outcome
+        if dicetotal in list(range(1, 7)):
+            return [_("Low"), _("Lo")]
+        elif dicetotal == 7:
+            return [_("Seven"), _("7")]
+        else:
+            return [_("High"), _("Hi")]
 
     def minmax_check(self, bet, game, settings):
         mi = settings["Games"][game]["Min"]
@@ -2320,10 +2401,10 @@ class Casino:
             return None
         else:
             if mi != mx:
-                msg = ("Your bet needs to be {} or higher, but cannot exceed the "
-                       "maximum of {} chips.".format(mi, mx))
+                msg = (_("Your bet needs to be {} or higher, but cannot exceed the "
+                         "maximum of {} chips.").format(mi, mx))
             else:
-                msg = ("Your bet needs to be exactly {}.".format(mi))
+                msg = (_("Your bet needs to be exactly {}.").format(mi))
             return msg
 
     def stats_cooldowns(self, settings, user, cd_list):
@@ -2352,14 +2433,14 @@ class Casino:
 
             # Begin cooldown logic calculation
             if user_time == 0:  # For new accounts
-                cooldowns.append("<<Ready to Play!")
+                cooldowns.append(_("<<Ready to Play!"))
             elif (datetime.utcnow() - parser.parse(user_time)).seconds + reduction < base:
                 ut = parser.parse(user_time)
                 seconds = abs((datetime.utcnow() - ut).seconds - base - reduction)
                 remaining = self.time_format(seconds, brief=True)
                 cooldowns.append(remaining)
             else:
-                cooldowns.append("<<Ready to Play!")
+                cooldowns.append(_("<<Ready to Play!"))
         return cooldowns
 
     def check_cooldowns(self, user, method, settings):
@@ -2393,7 +2474,7 @@ class Casino:
             diff = int((datetime.utcnow() - parser.parse(user_time)).total_seconds())
             seconds = abs(diff - base - reduction)
             remaining = self.time_format(seconds)
-            msg = "{} is still on a cooldown. You still have: {}".format(method, remaining)
+            msg = _("{} is still on a cooldown. You still have: {}").format(method, remaining)
             return msg
         else:
             settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
@@ -2427,31 +2508,24 @@ class Casino:
         try:
             self.casino_bank.can_bet(user, bet)
         except UserNotRegistered:
-            msg = ("You need to register to the {} Casino. To register type `{}casino "
-                   "join`.".format(casino_name, prefix))
+            msg = (_("You need to register to the {} Casino. To register type `{}casino "
+                     "join`.").format(casino_name, prefix))
             return msg
         except InsufficientChips:
-            msg = "You do not have enough chips to cover the bet."
+            msg = _("You do not have enough chips to cover the bet.")
             return msg
-
-        # Check if casino json file has the hi-lo game, and if not add it.
-        if "Hi-Lo Played" not in settings["Players"][user.id]["Played"]:
-            self.player_update(settings["Players"][user.id], hilo_data)
-
-        if "War Played" not in settings["Players"][user.id]["Played"]:
-            self.player_update(settings["Players"][user.id], war_data)
 
         user_access = self.access_calculator(settings, user)
         # Begin logic to determine if the game can be played.
         if choice not in choices:
-            msg = "Incorrect response. Accepted response are:\n{}".format(", ".join(choices))
+            msg = _("Incorrect response. Accepted response are:\n{}").format(", ".join(choices))
             return msg
         elif not settings["System Config"]["Casino Open"]:
-            msg = "The {} Casino is closed.".format(casino_name)
+            msg = _("The {} Casino is closed.").format(casino_name)
             return msg
         elif game_access > user_access:
-            msg = ("{} requires an access level of {}. Your current access level is {}. Obtain a "
-                   "higher membership to play this game.")
+            msg = (_("{} requires an access level of {}. Your current access level is {}. Obtain a "
+                     "higher membership to play this game."))
             return msg
         elif minmax_fail:
             msg = minmax_fail
@@ -2468,23 +2542,6 @@ class Casino:
                   "turquoise": 0x00FFFF, "grey": 0x666666, "pink": 0xFE01D1, "white": 0xFFFFFF}
         color = colors[color]
         return color
-
-    def player_update(self, player_data, new_game, path=None):
-        """Helper function to add new data into the player's data"""
-
-        if path is None:
-            path = []
-        for key in new_game:
-            if key in player_data:
-                if isinstance(player_data[key], dict) and isinstance(new_game[key], dict):
-                    self.player_update(player_data[key], new_game[key], path + [str(key)])
-                elif player_data[key] == new_game[key]:
-                    pass
-                else:
-                    raise Exception("Conflict at {}".format("".join(path + [str(key)])))
-            else:
-                player_data[key] = new_game[key]
-        self.casino_bank.save_system()
 
     def time_converter(self, units):
         return sum(int(x) * 60 ** i for i, x in enumerate(reversed(units.split(":"))))
@@ -2552,7 +2609,7 @@ def check_files():
 
     f = "data/JumperCogs/casino/casino.json"
     if not dataIO.is_valid_json(f):
-        print("Creating default casino.json...")
+        print(_("Creating default casino.json..."))
         dataIO.save_json(f, system)
 
 
@@ -2570,9 +2627,5 @@ def setup(bot):
         handler.setFormatter(logging.Formatter('%(asctime)s %(name)-12s %(message)s',
                                                datefmt="[%d/%m/%Y %H:%M]"))
         logger.addHandler(handler)
-    if not tabulateAvailable:
-        raise RuntimeError("You need to run 'pip3 install tabulate'")
-    elif not dateutilAvailable:
-        raise RuntimeError("You need to install the library python-dateutil.")
     else:
         bot.add_cog(Casino(bot))
