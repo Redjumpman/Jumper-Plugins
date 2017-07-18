@@ -35,13 +35,12 @@ try:
 except FileNotFoundError:
     _ = lambda s: s
 
-
 # Default settings that is created when a server begin's using Casino
 server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.712
+                                    "Transfer Cooldown": 30, "Version": 1.713
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -120,7 +119,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.712
+        self.patch = 1.713
 
     def create_account(self, user):
         server = user.server
@@ -327,11 +326,11 @@ class CasinoBank:
         war_data = {"Played": {"War Played": 0}, "Won": {"War Won": 0}, "Cooldown": {"War": 0}}
 
         for player in path["Players"]:
-            if "Hi-Lo Played" not in path["Players"][player.id]["Played"]:
-                self.player_update(path["Players"][player.id], hilo_data)
+            if "Hi-Lo Played" not in path["Players"][player]["Played"]:
+                self.player_update(path["Players"][player], hilo_data)
 
-            if "War Played" not in path["Players"][player.id]["Played"]:
-                self.player_update(path["Players"][player.id], war_data)
+            if "War Played" not in path["Players"][player]["Played"]:
+                self.player_update(path["Players"][player], war_data)
 
         self.save_system()
 
@@ -471,6 +470,7 @@ class Casino:
     __slots__ = ['bot', 'file_path', 'version', 'legacy_available', 'legacy_path', 'legacy_system',
                  'casino_bank', 'cycle_task']
 
+
     def __init__(self, bot):
         self.bot = bot
         try:  # This allows you to port accounts from older versions of casino
@@ -481,7 +481,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.12"
+        self.version = "1.7.13"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
