@@ -90,6 +90,12 @@ class Shop:
             await self.bot.say("You have too many items pending! You may only have 12 items "
                                "pending at one time.")
 
+    @shop.command(name="addbulk", pass_context=True, no_pm=True, hidden=True, enabled=False)
+    @checks.is_owner()
+    async def _addbulk_shop(self, ctx, *, filename):
+        """Adds a bulk list of items from a text file."""
+        await self.bot.say("Coming soon!")
+
     @shop.command(name="add", pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
     async def _add_shop(self, ctx, quantity: int, cost: int, *, itemname):
@@ -100,6 +106,8 @@ class Shop:
         itemname = itemname.title()
         item_count = len(settings["Shop List"].keys())
         self.shop_item_add(settings, itemname, cost, quantity)
+        if quantity == 0:
+            quantity = "An infinite quantity of"
         await self.bot.say("```{} {} have been added to {} shop.\n{} items available for purchase "
                            "in the store.```".format(quantity, itemname, shop_name, item_count))
 
@@ -346,10 +354,10 @@ class Shop:
         user = ctx.message.author
         settings = self.check_server_settings(user.server)
         item = item.title()
+        quantity = settings["Shop List"][item]["Quantity"]
         if item not in settings["Shop List"]:
             msg = "That item is not in the shop."
-        elif len(settings["Shop List"][item]["Buy Msg"]) <\
-                int(settings["Shop List"][item]["Quantity"]):
+        elif quantity == "∞" or len(settings["Shop List"][item]["Buy Msg"]) < int(quantity):
             await self.bot.whisper("What msg do you want users to receive when purchasing, "
                                    "{}?".format(item))
             response = await self.bot.wait_for_message(timeout=25, author=user)
@@ -1185,7 +1193,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.7"
+               "Version": "2.2.8"
                }
 
     f = "data/JumperCogs/shop/system.json"
