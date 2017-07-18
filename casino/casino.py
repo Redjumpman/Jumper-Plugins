@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.713
+                                    "Transfer Cooldown": 30, "Version": 1.714
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -119,7 +119,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.713
+        self.patch = 1.714
 
     def create_account(self, user):
         server = user.server
@@ -481,7 +481,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.13"
+        self.version = "1.7.14"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -1404,7 +1404,7 @@ class Casino:
 
             memberships = {"Payday": int(payday.content), "Access": int(access.content),
                            "Cooldown Reduction": int(reduction.content),
-                           "Color": colors[color.content],
+                           "Color": colors[color.content.lower()],
                            "Requirements": {req_type.content.title(): req_val}}
             settings["Memberships"][name.content.title()] = memberships
             self.casino_bank.save_system()
