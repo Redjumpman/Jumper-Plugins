@@ -70,8 +70,8 @@ class Shop:
 
     @shop.command(name="version", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _version_lottery(self):
-        """Shows the version of lottery cog you are running."""
+    async def _version_shop(self):
+        """Shows the version of the shop cog you are running."""
         version = self.system["Version"]
         await self.bot.say("```Python\nYou are running Shop Cog version {}.```".format(version))
 
