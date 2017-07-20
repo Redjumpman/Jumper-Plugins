@@ -35,7 +35,7 @@ class Fortune:
                         "I'm FREE! You've released me from my prison, I shall now cause havock across the realm!",
                         "When you squeeze an orange, orange juice comes out, because that's what's inside."]
 
-    @commands.command(name="fortune", aliases=["cookie"])
+    @commands.command(name="fortune")
     async def _cookie(self):
         """Ask for your fortune
 
