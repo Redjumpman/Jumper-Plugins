@@ -27,10 +27,16 @@ Vault = vault
 |Good| "{} brought a Go-Bag for the team. +25 credits.", 25
 |Good| "{} found a secret stash in the deposit box room. +50 credits.", 50
 |Good| "{} found a box of jewelry on a civilian. +25 credits.", 25
+|Good| "{} stayed focused and vigilant. +25 credits.", 25
+|Good| "{} spray painted the video cameras. +25 credits.", 25
+|Good| "{} located the vault manager. +25 credits.", 25
+|Good| "{} set a clever trap for the swat team. +50 credits.", 50
+|Good| "{} Planned the getaway route. +25 credits.", 25
+|Good| "{} Changed vehicles by stealing an old lady's car. +50 credits.", 50
 
 |Bad| "A shoot out with local authorities began and {0} was hit...but survived!", "Apprehended"
 |Bad| "The cops dusted for finger prints and later arrested {0}.", "Apprehended"
-|Bad| "{0} was gutted in a sword fight.", "Dead"
+|Bad| "{0} was gutted in a knife fight.", "Dead"
 |Bad| "{0} blew a tire in the getaway car.", "Apprehended"
 |Bad| "{0}'s gun jammed while fighting local security, and was knocked out.", "Apprehended"
 |Bad| "{0} held off the police while the crew was making their getaway.", "Apprehended"
@@ -55,3 +61,9 @@ Vault = vault
 |Bad| "Someone snitched and {0} was arrested.", "Apprehended"
 |Bad| "Before the crew could intervene a guard tazed {0} and is now out cold.", "Apprehended"
 |Bad| "Swat came through the vents, and neutralized {0}.", "Apprehended"
+|Bad| "During a high-speed chase, {0} was shot by the cops.", "Dead"
+|Bad| "A fire was started in the bank, and {0} passed out from inhalation.", "Apprehended"
+|Bad| "{0} cut the wrong wire to the bank's systems and was electrocuted, but lived.", "Apprehended"
+|Bad| "During the escape, the crew left {0} behind.", "Apprehended"
+|Bad| "The crew knocked out {0} because they shot a hostage without cause.", "Apprehended"
+
