@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.714
+                                    "Transfer Cooldown": 30, "Version": 1.715
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -52,7 +52,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                      "Max": 500, "Access Level": 0},
                             "Blackjack": {"Multiplier": 2.2, "Cooldown": 5, "Open": True,
                                           "Min": 50, "Max": 500, "Access Level": 0},
-                            "Allin": {"Multiplier": 2.2, "Cooldown": 86400, "Open": True,
+                            "Allin": {"Multiplier": 2.2, "Cooldown": 43200, "Open": True,
                                       "Access Level": 0},
                             "Hi-Lo": {"Multiplier": 1.5, "Cooldown": 5, "Open": True,
                                       "Min": 20, "Max": 20, "Access Level": 0},
@@ -119,7 +119,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.714
+        self.patch = 1.715
 
     def create_account(self, user):
         server = user.server
@@ -243,9 +243,8 @@ class CasinoBank:
             print(_("Creating default casino settings for Server: {}").format(server.name))
             path = self.memberships["Servers"][server.id]
             return path
-        else:  # NOTE Will be moved to a cmd in future patch. Used to update JSON from older version
+        else:
             path = self.memberships["Servers"][server.id]
-
             try:
                 if path["System Config"]["Version"] < self.patch:
                     self.casino_patcher(path)
@@ -258,25 +257,19 @@ class CasinoBank:
 
     def casino_patcher(self, path):
 
-        if path["System Config"]["Version"] < 1.581:
-            self.patch_1581(path)
-
-        if path["System Config"]["Version"] < 1.692:
-            self.patch_1692(path)
-
-        if path["System Config"]["Version"] < 1.694:
-            self.patch_1694(path)
-
-        if path["System Config"]["Version"] < 1.705:
-            self.patch_16(path)
-
         if path["System Config"]["Version"] < 1.706:
-            self.patch_1694(path)  # Fix for unix cd update failure
+            self.patch_1581(path)
+            self.patch_1692(path)
+            self.patch_1694(path)
+            self.patch_16(path)
 
         if path["System Config"]["Version"] < 1.712:
             self.patch_1712(path)
 
-            # Save changes and return updated dictionary.
+        if path["System Config"]["Version"] < 1.715:
+            self.patch_1715(path)
+
+        # Save changes and return updated dictionary.
         self.save_system()
 
     def name_fix(self):
@@ -317,6 +310,22 @@ class CasinoBank:
             if "War" not in path["Players"][player]["Cooldowns"]:
                 path["Players"][player]["Cooldowns"]["War"] = 0
         self.save_system()
+
+    def patch_1715(self, path):
+        """Fix transfer issues"""
+
+        for player in path["Players"]:
+            path["Players"][player]["Cooldowns"] = {}
+            path["Players"][player]["Cooldowns"]["Allin"] = 0
+            path["Players"][player]["Cooldowns"]["Blackjack"] = 0
+            path["Players"][player]["Cooldowns"]["Coin"] = 0
+            path["Players"][player]["Cooldowns"]["Cups"] = 0
+            path["Players"][player]["Cooldowns"]["Dice"] = 0
+            path["Players"][player]["Cooldowns"]["Hi-Lo"] = 0
+            path["Players"][player]["Cooldowns"]["Payday"] = 0
+            path["Players"][player]["Cooldowns"]["Transfer"] = 0
+            path["Players"][player]["Cooldowns"]["War"] = 0
+            self.save_system()
 
     def patch_1712(self, path):
         """Fixes older players in the casino who didn't have war or hi-lo"""
@@ -470,7 +479,6 @@ class Casino:
     __slots__ = ['bot', 'file_path', 'version', 'legacy_available', 'legacy_path', 'legacy_system',
                  'casino_bank', 'cycle_task']
 
-
     def __init__(self, bot):
         self.bot = bot
         try:  # This allows you to port accounts from older versions of casino
@@ -481,7 +489,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.14"
+        self.version = "1.7.15"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -491,7 +499,7 @@ class Casino:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @casino.command(name="language", pass_context=True, hidden=True, enabled=False)
+    @casino.command(name="language", pass_context=True, hidden=True)
     @checks.is_owner()
     async def _language_casino(self, ctx):
         """Changes the output language in casino.
@@ -618,7 +626,7 @@ class Casino:
                                         "chips.").format(limit, chip_name))
 
         chip_name = settings["System Config"]["Chip Name"]
-        cooldown = self.check_cooldowns(user, "Transfer", settings)
+        cooldown = self.check_cooldowns(user, "Transfer", settings, triggered=True)
 
         if not cooldown:
             try:
@@ -799,10 +807,10 @@ class Casino:
             color = self.color_lookup(benefits["Color"])
 
             # Build columns for the table
-            games = list(sorted(settings["Games"]))
+            games = sorted(settings["Games"])
             played = [x[1] for x in sorted(player["Played"].items(), key=lambda tup: tup[0])]
             won = [x[1] for x in sorted(player["Won"].items(), key=lambda tup: tup[0])]
-            cool_items = list(sorted(games + ["Payday"]))
+            cool_items = sorted(games + ["Payday"])
             cooldowns = self.stats_cooldowns(settings, author, cool_items)
 
             # Build embed
@@ -884,7 +892,7 @@ class Casino:
             await self.bot.say("You need to register to the {} Casino. To register type `{}casino "
                                "join`.".format(casino_name, ctx.prefix))
         else:
-            cooldown = self.check_cooldowns(user, "Payday", settings)
+            cooldown = self.check_cooldowns(user, "Payday", settings, triggered=True)
             if not cooldown:
                 if settings["Players"][user.id]["Membership"]:
                     membership = settings["Players"][user.id]["Membership"]
@@ -1236,11 +1244,10 @@ class Casino:
         """Resets all cooldowns on the server"""
         server = ctx.message.server
         settings = self.casino_bank.check_server_settings(server)
-        cd_dict = {"Dice": 0, "Cups": 0, "Coin": 0, "Allin": 0, "Hi-Lo": 0, "War": 0,
-                   "Blackjack": 0, "Payday": 0}
 
         for player in settings["Players"]:
-            settings["Players"][player]["Cooldowns"].update(cd_dict)
+            for cd in settings["Players"][player]["Cooldowns"]:
+                settings["Players"][player]["Cooldowns"][cd] = 0
 
         self.casino_bank.save_system()
         await self.bot.say(_("Cooldowns have been reset for all users on this server."))
@@ -2408,54 +2415,25 @@ class Casino:
             return msg
 
     def stats_cooldowns(self, settings, user, cd_list):
-        user_membership = settings["Players"][user.id]["Membership"]
-        reduction = 0
-
-        # Check for cooldown reduction, if the membership was removed, set the user back to None.
-        try:
-            if user_membership:
-                reduction = settings["Memberships"][user_membership]["Cooldown Reduction"]
-        except KeyError:
-            settings["Players"][user.id]["Membership"] = None
-            self.casino_bank.save_system()
-
-        # Begin cooldown logic calculation
         cooldowns = []
         for method in cd_list:
-            user_time = settings["Players"][user.id]["Cooldowns"][method]
-
-            # Check if method is for a game or for payday
-            if method in c_games:
-                base = settings["Games"][method]["Cooldown"]
-            else:
-                reduction = 0
-                base = settings["System Config"]["Payday Timer"]
-
-            # Begin cooldown logic calculation
-            if user_time == 0:  # For new accounts
+            msg = self.check_cooldowns(user, method, settings, triggered=False, brief=True)
+            if not msg:
                 cooldowns.append(_("<<Ready to Play!"))
-            elif (datetime.utcnow() - parser.parse(user_time)).seconds + reduction < base:
-                ut = parser.parse(user_time)
-                seconds = abs((datetime.utcnow() - ut).seconds - base - reduction)
-                remaining = self.time_format(seconds, brief=True)
-                cooldowns.append(remaining)
             else:
-                cooldowns.append(_("<<Ready to Play!"))
+                cooldowns.append(msg)
         return cooldowns
 
-    def check_cooldowns(self, user, method, settings):
+    def check_cooldowns(self, user, method, settings, triggered=False, brief=False):
         user_time = settings["Players"][user.id]["Cooldowns"][method]
         user_membership = settings["Players"][user.id]["Membership"]
-        reduction = 0
 
-        # Check for cooldown reduction, if the membership was removed, set the user back to None.
         try:
-            if user_membership:
-                reduction = settings["Memberships"][user_membership]["Cooldown Reduction"]
+            reduction = settings["Memberships"][user_membership]["Cooldown Reduction"]
         except KeyError:
-            settings["Players"][user.id]["Membership"] = None
-            self.casino_bank.save_system()
-        # Check if method is for a game or for payday
+            reduction = 0
+
+        # Find the base cooldown by method
         if method in c_games:
             base = settings["Games"][method]["Cooldown"]
         elif method == "Payday":
@@ -2465,83 +2443,29 @@ class Casino:
             reduction = 0
             base = settings["System Config"]["Transfer Cooldown"]
 
+        print(reduction)
+
         # Begin cooldown logic calculation
         if user_time == 0:  # For new accounts
-            settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
-            self.casino_bank.save_system()
-            return None
-        elif (datetime.utcnow() - parser.parse(user_time)).seconds + reduction < base:
-            diff = int((datetime.utcnow() - parser.parse(user_time)).total_seconds())
-            seconds = abs(diff - base - reduction)
-            remaining = self.time_format(seconds)
-            msg = _("{} is still on a cooldown. You still have: {}").format(method, remaining)
-            return msg
-        else:
-            settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
-            self.casino_bank.save_system()
-            return None
-
-    def access_calculator(self, settings, user):
-        user_membership = settings["Players"][user.id]["Membership"]
-
-        if user_membership is None:
-            return 0
-        else:
-            if user_membership in settings["Memberships"]:
-                access = settings["Memberships"][user_membership]["Access"]
-                return access
-            else:
-                settings["Players"][user.id]["Membership"] = None
+            if triggered:
+                settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
                 self.casino_bank.save_system()
-                return 0
-
-    def game_checks(self, settings, prefix, user, bet, game, choice, choices):
-        casino_name = settings["System Config"]["Casino Name"]
-        game_access = settings["Games"][game]["Access Level"]
-        # Allin does not require a minmax check, so we set it to None if Allin.
-        if game != "Allin":
-            minmax_fail = self.minmax_check(bet, game, settings)
-        else:
-            minmax_fail = None
-            bet = int(settings["Players"][user.id]["Chips"])
-        # Check for membership first.
-        try:
-            self.casino_bank.can_bet(user, bet)
-        except UserNotRegistered:
-            msg = (_("You need to register to the {} Casino. To register type `{}casino "
-                     "join`.").format(casino_name, prefix))
-            return msg
-        except InsufficientChips:
-            msg = _("You do not have enough chips to cover the bet.")
-            return msg
-
-        user_access = self.access_calculator(settings, user)
-        # Begin logic to determine if the game can be played.
-        if choice not in choices:
-            msg = _("Incorrect response. Accepted response are:\n{}").format(", ".join(choices))
-            return msg
-        elif not settings["System Config"]["Casino Open"]:
-            msg = _("The {} Casino is closed.").format(casino_name)
-            return msg
-        elif game_access > user_access:
-            msg = (_("{} requires an access level of {}. Your current access level is {}. Obtain a "
-                     "higher membership to play this game."))
-            return msg
-        elif minmax_fail:
-            msg = minmax_fail
+            return None
+        elif int((datetime.utcnow() - parser.parse(user_time)).total_seconds()) + reduction < base:
+            diff = int((datetime.utcnow() - parser.parse(user_time)).total_seconds())
+            seconds = base - diff - reduction
+            if brief:
+                remaining = self.time_format(seconds, True)
+                msg = remaining
+            else:
+                remaining = self.time_format(seconds, False)
+                msg = _("{} is still on a cooldown. You still have: {}").format(method, remaining)
             return msg
         else:
-            cd_check = self.check_cooldowns(user, game, settings)
-            # Cooldowns are checked last incase another check failed.
-            return cd_check
-
-    def color_lookup(self, color):
-        color = color.lower()
-        colors = {"blue": 0x3366FF, "red": 0xFF0000, "green": 0x00CC33, "orange": 0xFF6600,
-                  "purple": 0xA220BD, "yellow": 0xFFFF00, "teal": 0x009999, "magenta": 0xBA2586,
-                  "turquoise": 0x00FFFF, "grey": 0x666666, "pink": 0xFE01D1, "white": 0xFFFFFF}
-        color = colors[color]
-        return color
+            if triggered:
+                settings["Players"][user.id]["Cooldowns"][method] = datetime.utcnow().isoformat()
+                self.casino_bank.save_system()
+            return None
 
     def time_converter(self, units):
         return sum(int(x) * 60 ** i for i, x in enumerate(reversed(units.split(":"))))
@@ -2593,6 +2517,68 @@ class Casino:
                 msg = "None"
         return msg.format(h, m, s)
 
+    def access_calculator(self, settings, user):
+        user_membership = settings["Players"][user.id]["Membership"]
+
+        if user_membership is None:
+            return 0
+        else:
+            if user_membership in settings["Memberships"]:
+                access = settings["Memberships"][user_membership]["Access"]
+                return access
+            else:
+                settings["Players"][user.id]["Membership"] = None
+                self.casino_bank.save_system()
+                return 0
+
+    def game_checks(self, settings, prefix, user, bet, game, choice, choices):
+        casino_name = settings["System Config"]["Casino Name"]
+        game_access = settings["Games"][game]["Access Level"]
+        # Allin does not require a minmax check, so we set it to None if Allin.
+        if game != "Allin":
+            minmax_fail = self.minmax_check(bet, game, settings)
+        else:
+            minmax_fail = None
+            bet = int(settings["Players"][user.id]["Chips"])
+        # Check for membership first.
+        try:
+            self.casino_bank.can_bet(user, bet)
+        except UserNotRegistered:
+            msg = (_("You need to register to the {} Casino. To register type `{}casino "
+                     "join`.").format(casino_name, prefix))
+            return msg
+        except InsufficientChips:
+            msg = _("You do not have enough chips to cover the bet.")
+            return msg
+
+        user_access = self.access_calculator(settings, user)
+        # Begin logic to determine if the game can be played.
+        if choice not in choices:
+            msg = _("Incorrect response. Accepted response are:\n{}").format(", ".join(choices))
+            return msg
+        elif not settings["System Config"]["Casino Open"]:
+            msg = _("The {} Casino is closed.").format(casino_name)
+            return msg
+        elif game_access > user_access:
+            msg = (_("{} requires an access level of {}. Your current access level is {}. Obtain a "
+                     "higher membership to play this game."))
+            return msg
+        elif minmax_fail:
+            msg = minmax_fail
+            return msg
+        else:
+            cd_check = self.check_cooldowns(user, game, settings, triggered=True)
+            # Cooldowns are checked last incase another check failed.
+            return cd_check
+
+    def color_lookup(self, color):
+        color = color.lower()
+        colors = {"blue": 0x3366FF, "red": 0xFF0000, "green": 0x00CC33, "orange": 0xFF6600,
+                  "purple": 0xA220BD, "yellow": 0xFFFF00, "teal": 0x009999, "magenta": 0xBA2586,
+                  "turquoise": 0x00FFFF, "grey": 0x666666, "pink": 0xFE01D1, "white": 0xFFFFFF}
+        color = colors[color]
+        return color
+
     def __unload(self):
         self.cycle_task.cancel()
         self.casino_bank.save_system()
@@ -2627,5 +2613,4 @@ def setup(bot):
         handler.setFormatter(logging.Formatter('%(asctime)s %(name)-12s %(message)s',
                                                datefmt="[%d/%m/%Y %H:%M]"))
         logger.addHandler(handler)
-    else:
-        bot.add_cog(Casino(bot))
+    bot.add_cog(Casino(bot))
