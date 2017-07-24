@@ -123,7 +123,7 @@ class Shop:
                    "Load buyrole to use this function.")
         else:
             self.shop_item_add(settings, role, cost, quantity, role=True)
-            item_count = len(settings["Shop List"].keys())
+            item_count = len(settings["Shop List"])
             msg = ("```{} {} have been added to {} shop.\n{} item(s) available for purchase in the "
                    "store.```".format(quantity, role.name, shop_name, item_count))
         await self.bot.say(msg)
@@ -1031,7 +1031,7 @@ class Shop:
         time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         item_dict = {"Name": user.name, "Confirmation Number": confirmation, "Status": "Pending",
                      "Time Stamp": time_now, "Item": itemname}
-        if "Role" in settings["Users"][user.id]["Inventory"][itemname].keys():
+        if "Role" in settings["Users"][user.id]["Inventory"][itemname]:
             if "Buyrole" in self.bot.cogs:
                 roleid = settings["Users"][user.id]["Inventory"][itemname]["Role"]
                 role = [role for role in ctx.message.server.roles if roleid == role.id][0]
@@ -1139,8 +1139,8 @@ class Shop:
             user_path[itemname]["Item Quantity"] += quantity
         else:
             user_path[itemname] = {"Item Name": itemname, "Item Quantity": quantity}
-            if "Role" in settings["Shop List"][itemname].keys():
-                user_path[itemname]["Role"] = settings["Shop List"][itemname]["Role"]
+        if "Role" in settings["Shop List"][itemname]:
+            user_path[itemname]["Role"] = settings["Shop List"][itemname]["Role"]
         dataIO.save_json(self.file_path, self.system)
 
     def user_remove_all(self, settings, user, itemname):
@@ -1193,7 +1193,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.8"
+               "Version": "2.2.9"
                }
 
     f = "data/JumperCogs/shop/system.json"
