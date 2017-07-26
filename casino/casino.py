@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.715
+                                    "Transfer Cooldown": 30, "Version": 1.716
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -119,7 +119,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.715
+        self.patch = 1.716
 
     def create_account(self, user):
         server = user.server
@@ -362,7 +362,6 @@ class CasinoBank:
 
     def patch_1694(self, path):
         """This patch aimed at converting the old cooldown times into unix time."""
-        print(_("patch_1694 ran"))
         for player in path["Players"]:
             try:
                 for cooldown in path["Players"][player]["Cooldowns"]:
@@ -489,7 +488,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.15"
+        self.version = "1.7.16"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2442,8 +2441,6 @@ class Casino:
         else:
             reduction = 0
             base = settings["System Config"]["Transfer Cooldown"]
-
-        print(reduction)
 
         # Begin cooldown logic calculation
         if user_time == 0:  # For new accounts
