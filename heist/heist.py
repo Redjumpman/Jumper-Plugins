@@ -53,8 +53,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.3"
-        self.patch = 2.3
+        self.version = "2.3.1"
+        self.patch = 2.31
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -404,7 +404,7 @@ class Heist:
             if remaining == "No Cooldown":
                 msg = "You served your time. Enjoy the fresh air of freedom while you can."
                 if oob:
-                    msg = "You are no longer on probabtion! 3x penalty removed."
+                    msg = "You are no longer on probation! 3x penalty removed."
                     settings["Players"][author.id]["OOB"] = False
                 settings["Players"][author.id]["Sentence"] = 0
                 settings["Players"][author.id]["Time Served"] = 0
@@ -863,7 +863,7 @@ class Heist:
             settings["Players"][user.id]["Jail Counter"] += 1
             bail_base = settings["Config"]["Bail Base"]
             offenses = settings["Players"][user.id]["Jail Counter"]
-            sentence_base = settings["Config"]["Bail Base"]
+            sentence_base = settings["Config"]["Sentence Base"]
 
             if offenses > 1:
                 offenses = offenses - 1
