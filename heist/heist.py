@@ -783,7 +783,7 @@ class Heist:
         credits_stolen = int(int(vault) * 0.75 / len(settings["Crew"]))
         stolen_data = [credits_stolen] * len(settings["Crew"])
         total_winnings = [x + y for x, y in zip(stolen_data, bonuses)]
-        settings["Targets"][target]["Vault"] -= stolen_data[0]
+        settings["Targets"][target]["Vault"] -= credits_stolen * len(settings["Crew"])
         credit_data = list(zip(names, stolen_data, bonuses, total_winnings))
         deposits = list(zip(players, total_winnings))
         self.award_credits(deposits)
