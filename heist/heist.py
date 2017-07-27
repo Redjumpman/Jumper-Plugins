@@ -53,7 +53,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.3.1"
+        self.version = "2.3.2"
         self.patch = 2.31
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
@@ -1110,7 +1110,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.3},
+                                  "Version": 2.32},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
