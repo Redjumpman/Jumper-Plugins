@@ -6,6 +6,7 @@ import asyncio
 import os
 import random
 import time
+from operator import itemgetter
 
 # Discord and Red
 import discord
@@ -74,18 +75,22 @@ class Cookie:
             msg = "Cooldown needs to be higher than 0."
         await self.bot.say(msg)
 
+
+
+
+
     @commands.command(pass_context=True, no_pm=True)
     async def give(self, ctx, user: discord.Member, cookies: int):
         """Gives another user your cookies"""
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        self.account_check(settings, author)
-        self.account_check(settings, user)
-        sender_cookies = settings["Players"][author.id]["Cookies"]
         if user.bot:
             return await self.bot.say("Nice try, us bots can't accept cookies from strangers.")
         if author.id == user.id:
             return await self.bot.say("You can't give yourself cookies.")
+        self.account_check(settings, author)
+        self.account_check(settings, user)
+        sender_cookies = settings["Players"][author.id]["Cookies"]
         if 0 < cookies <= sender_cookies:
             settings["Players"][author.id]["Cookies"] -= cookies
             settings["Players"][user.id]["Cookies"] += cookies
@@ -135,7 +140,9 @@ class Cookie:
         if user is None:
             user = self.random_user(settings, author, server)
 
-        if user.bot:
+        if user == "Fail":
+            pass
+        elif user.bot:
             return await self.bot.say("Stealing failed because the picked target is a bot.\nYou "
                                       "can retry stealing again, your cooldown is not consumed.")
 
@@ -166,7 +173,12 @@ class Cookie:
         success_chance = random.randint(1, 100)
         if user == "Fail":
             msg = "ω(=OｪO=)ω Nyaaaaaaaan! I couldn't find anyone with cookies!"
-        elif settings["Players"][user.id]["Cookies"] == 0:
+            return msg
+
+        if user.id not in settings["Players"]:
+            self.account_check(settings, user)
+
+        if settings["Players"][user.id]["Cookies"] == 0:
             msg = ("ω(=｀ｪ ´=)ω Nyaa! Neko-chan is sorry, nothing but crumbs in this human's "
                    ":cookie: jar!")
         else:
@@ -184,12 +196,14 @@ class Cookie:
                 msg = ("ω(=＾ ‥ ＾=)ﾉ彡:cookie:\nYou stole {} cookies from "
                        "{}!".format(stolen, user.name))
             else:
-                msg = ("ω(=｀ｪ ´=)ω Nyaa... Neko-chan couldn't find their :cookie: jar!")
+                msg = "ω(=｀ｪ ´=)ω Nyaa... Neko-chan couldn't find their :cookie: jar!"
         return msg
 
     def random_user(self, settings, author, server):
-        legit_users = [server.get_member(x) for x in settings["Players"]
-                       if hasattr(server.get_member(x), "name") and x != author.id]
+        filter_users = [server.get_member(x) for x in settings["Players"]
+                        if hasattr(server.get_member(x), "name")]
+        legit_users = [x for x in filter_users if x.id != author.id and x is not x.bot]
+
         users = [x for x in legit_users if settings["Players"][x.id]["Cookies"] > 0]
 
         if not users:
