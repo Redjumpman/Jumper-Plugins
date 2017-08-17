@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0.02"
+        self.version = "3.0.03"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -916,7 +916,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.02
+                    "Version": 3.03
                 },
                 "Members": {},
                 "Players": {},
@@ -990,7 +990,12 @@ class Lottery:
 
     def lottery_teardown(self, settings, load_pref, server):
         players = settings["Players"]
-        if len(players) == 0:
+
+        # Remove people that left the server during a lottery. Seriously, who does that!
+        filtered_players = [player for player in players.keys()
+                            if server.get_member(player) is not None]
+
+        if len(players) == 0 or not filtered_players:
             end_msg = ("Oh no! No one joined the lottery. I'll reset the system so you can try "
                        "again later.")
             self.lottery_reset(settings)
@@ -1000,10 +1005,6 @@ class Lottery:
         prize = load_pref["Prize"]
 
         winners = load_pref["Winners"]
-
-        # Remove people that left the server during a lottery. Seriously, who does that!
-        filtered_players = [player for player in players.keys()
-                            if server.get_member(player) is not None]
 
         sample = min(len(filtered_players), winners)
         selected_winners = random.sample(filtered_players, sample)
