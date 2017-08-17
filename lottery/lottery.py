@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0.05"
+        self.version = "3.0.06"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -771,7 +771,7 @@ class Lottery:
             footer = "There are currently {} users in the lottery.".format(len(settings["Players"]))
 
             if author.id in settings["Players"]:
-                desc = "You are currently in the lottery!."
+                desc = "You are currently in the lottery."
             else:
                 desc = "You have **not** entered into this lottery yet."
 
@@ -932,7 +932,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.05
+                    "Version": 3.06
                 },
                 "Members": {},
                 "Players": {},
