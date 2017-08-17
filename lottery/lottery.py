@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0.03"
+        self.version = "3.0.04"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -63,7 +63,7 @@ class Lottery:
 
     @lottery.command(name="delete", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
-    async def _delete_lottery(self, ctx, loadout):
+    async def _delete_lottery(self, ctx, loadout: int):
         """Deletes a lottery loadout
         This command will completely remove a lottery loadout slot.
         You cannot delete the default lottery slot, 0.
@@ -71,7 +71,7 @@ class Lottery:
         """
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        if loadout == settings["Config"]["Current Loadout"] or loadout not in list(range(1, 6)):
+        if str(loadout) == settings["Config"]["Current Loadout"] or 1 <= loadout < 6:
             return await self.bot.say("I can't delete a loadout that is in use.")
         await self.bot.say("You are about to delete slot {}. Are you sure you wish to delete "
                            "this loadout?".format(loadout))
@@ -79,8 +79,9 @@ class Lottery:
 
         if choice is None or choice.content.title() != "Yes":
             return await self.bot.say("No response. Canceling deletion.")
-        settings["Loadouts"][loadout].clear()
-        dataIO.save_json(self.file_path, self.system)
+        
+        settings["Loadouts"][str(loadout)].clear()
+        self.save_system()
         await self.bot.say("Successfully deleted loadout slot {}.".format(loadout))
 
     @lottery.command(name="edit", pass_context=True)
@@ -169,7 +170,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["Start Message"] = start_message.content
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("Start message changed. Returning to the edit "
                                              "selection menu.")
                     await asyncio.sleep(1)
@@ -199,7 +200,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["End Message"] = end_message.content
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("End message changed. Returning to the edit selection "
                                              "menu.")
                     await asyncio.sleep(1)
@@ -227,7 +228,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["Limit"] = int(limit.content)
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("Entry limit changed. Returning to the edit selection "
                                              "menu.")
                     await asyncio.sleep(1)
@@ -255,7 +256,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["Prize"] = prize.content
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("Prize changed. Returning to the edit selection menu.")
 
                     await asyncio.sleep(1)
@@ -282,7 +283,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["Role"] = role_req.content
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("Role requirement changed. Returning to the edit "
                                              "selection menu.")
                     await asyncio.sleep(1)
@@ -313,7 +314,7 @@ class Lottery:
                 else:
                     lot_time = self.time_converter(timer.content)
                     settings["Loadouts"][loadout]["Timer"] = lot_time
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("The timer has changed. Returning to the edit "
                                              "selection menu.")
                     await asyncio.sleep(0.5)
@@ -339,7 +340,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["Winners"] = int(winners.content)
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("The number of winners has changed. Returning to the "
                                              "edit selection menu.")
                     await asyncio.sleep(1)
@@ -367,7 +368,7 @@ class Lottery:
                         await self.bot.delete_message(msg)
                 else:
                     settings["Loadouts"][loadout]["DOS"] = int(dos.content)
-                    dataIO.save_json(self.file_path, self.system)
+                    self.save_system()
                     ret = await self.bot.say("The DoS requirement has changed. Returning to the "
                                              "edit selection menu.")
                     await asyncio.sleep(1)
@@ -423,6 +424,7 @@ class Lottery:
         settings["Players"][author.id] = {"Name": author.name}
         players = len(settings["Players"])
         self.update_entries(settings, author.id)
+        self.save_system()
         msg = ("{} has been added to the lottery. Good luck!\nThere are now {} user(s) "
                "participating in the lottery.".format(author.mention, players))
 
@@ -641,7 +643,7 @@ class Lottery:
             "Winners": int(winners.content)
         }
         settings["Loadouts"][slot] = slot_data
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
 
         await self.bot.say("Creation process completed. Saved to loadout slot {}. You can edit "
                            "this loadout at any time using the command "
@@ -667,7 +669,7 @@ class Lottery:
             return await self.bot.say("You do not have the required role to track stats.")
 
         settings["Members"][author.id] = {"Name": author.name, "Entries": 0, "Won": 0}
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
 
         await self.bot.say("Congratulations {}, you can now start tracking your lottery stats. "
                            "To view yourstats use the command "
@@ -703,12 +705,12 @@ class Lottery:
         load_pref = settings["Loadouts"][loadout]
         lottery_id = str(uuid.uuid4())
         settings["Config"]["Lottery ID"] = lottery_id
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
         await self.bot.say(load_pref["Start Message"].format_map(Formatter(start_params)))
 
         if load_pref["Timer"] > 0:
             settings["Config"]["Tracker"] = datetime.utcnow().isoformat()
-            dataIO.save_json(self.file_path, self.system)
+            self.save_system()
             await asyncio.sleep(load_pref["Timer"])
             if settings["Config"]["Lottery ID"] == lottery_id:
                 end_msg = self.lottery_teardown(settings, load_pref, author.server)
@@ -859,7 +861,7 @@ class Lottery:
         settings = self.check_server_settings(server)
 
         settings["Config"]["Default Loadout"] = str(loadout)
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
         await self.bot.say("Setting the default loadout to {}".format(loadout))
 
     @setlottery.command(name="role", pass_context=True)
@@ -876,10 +878,13 @@ class Lottery:
         server = ctx.message.server
         settings = self.check_server_settings(server)
         settings["Config"]["Role"] = role.name
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
         await self.bot.say("Changed the membership role to {}".format(role.name))
 
     # ================== Helper Functions ===================================
+    
+    def save_system(self):
+        dataIO.save_json(self.file_path, self.system)
 
     def check_requirements(self, ctx, author, players, loadout):
         role_req = loadout["Role"]
@@ -916,7 +921,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.03
+                    "Version": 3.04
                 },
                 "Members": {},
                 "Players": {},
@@ -944,7 +949,7 @@ class Lottery:
                 }
             }
             self.system["Servers"][server.id] = default
-            dataIO.save_json(self.file_path, self.system)
+            self.save_system()
             path = self.system["Servers"][server.id]
             print("Creating default lottery settings for Server: {}".format(server.name))
             return path
@@ -973,7 +978,7 @@ class Lottery:
         settings["Config"]["Active"] = False
         settings["Players"].clear()
         settings["Config"]["Lottery ID"] = 0
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
 
     def lottery_setup(self, settings, loadout, author):
         settings["Config"]["Active"] = True
@@ -985,7 +990,7 @@ class Lottery:
         start_params["Timer"] = self.time_formatter(start_params["Timer"])
 
         settings["Config"]["Current Loadout"] = loadout
-        dataIO.save_json(self.file_path, self.system)
+        self.save_system()
         return start_params
 
     def lottery_teardown(self, settings, load_pref, server):
