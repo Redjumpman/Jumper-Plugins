@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0.04"
+        self.version = "3.0.05"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -71,15 +71,20 @@ class Lottery:
         """
         author = ctx.message.author
         settings = self.check_server_settings(author.server)
-        if str(loadout) == settings["Config"]["Current Loadout"] or 1 <= loadout < 6:
+
+        if str(loadout) == settings["Config"]["Current Loadout"]:
             return await self.bot.say("I can't delete a loadout that is in use.")
+
+        if not 1 <= loadout < 6:
+            return await self.bot.say("You must pick a loadout number in the range of 1-5.")
+
         await self.bot.say("You are about to delete slot {}. Are you sure you wish to delete "
                            "this loadout?".format(loadout))
         choice = await self.bot.wait_for_message(timeout=25, author=author)
 
         if choice is None or choice.content.title() != "Yes":
             return await self.bot.say("No response. Canceling deletion.")
-        
+
         settings["Loadouts"][str(loadout)].clear()
         self.save_system()
         await self.bot.say("Successfully deleted loadout slot {}.".format(loadout))
@@ -764,13 +769,11 @@ class Lottery:
             role_req = settings["Loadouts"][ld]["Role"]
             prize = settings["Loadouts"][ld]["Prize"]
             footer = "There are currently {} users in the lottery.".format(len(settings["Players"]))
-            url = ("https://media3.giphy.com/media/1jARfPtdz7eE0/giphy.gif?response_id=5925f3dd22e"
-                   "fea100f4995b5")
 
             if author.id in settings["Players"]:
-                desc = "You have are in this lottery!."
+                desc = "You are currently in the lottery!."
             else:
-                desc = "You have **not** entered this lottery yet."
+                desc = "You have **not** entered into this lottery yet."
 
             embed = discord.Embed(title="Loadout {}".format(ld), description=desc, color=0x50bdfe)
             embed.set_author(name="Lottery System 3.0")
@@ -780,7 +783,6 @@ class Lottery:
             embed.add_field(name="Limit", value=entry_limit, inline=True)
             embed.add_field(name="Time Remaining", value=remaining, inline=True)
             embed.add_field(name="Days on Server Required", value=dos, inline=True)
-            embed.set_image(url=url)
             embed.set_footer(text=footer)
             await self.bot.say(embed=embed)
         else:
@@ -882,13 +884,19 @@ class Lottery:
         await self.bot.say("Changed the membership role to {}".format(role.name))
 
     # ================== Helper Functions ===================================
-    
+
     def save_system(self):
         dataIO.save_json(self.file_path, self.system)
 
     def check_requirements(self, ctx, author, players, loadout):
         role_req = loadout["Role"]
         dos = loadout["DOS"]
+        prize = loadout["Prize"]
+
+        try:
+            set_prize = int(prize)
+        except ValueError:
+            set_prize = prize
 
         try:
             bank = self.bot.get_cog("Economy").bank
@@ -902,10 +910,13 @@ class Lottery:
             msg = "You do not meet the time on server requirement for this lottery."
         elif 0 < loadout["Limit"] <= players:
             msg = "You can't join, the lottery has reached the entry limit, wait for it to end."
-        elif not bank.account_exists(author):
-            msg = ("You do not have a bank account. You must register for an account to "
-                   "participate in lotteries. Everyone please **shame** {} in chat for making me "
-                   "write this error exception.".format(author.name))
+        elif isinstance(set_prize, int):
+            if not bank.account_exists(author):
+                msg = ("You do not have a bank account. You must register for an account to "
+                       "participate in lotteries. Everyone please **shame** {} in chat for making "
+                       "me write this error exception.".format(author.name))
+            else:
+                msg = "True"
         else:
             msg = "True"
         return msg
@@ -921,7 +932,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.04
+                    "Version": 3.05
                 },
                 "Members": {},
                 "Players": {},
