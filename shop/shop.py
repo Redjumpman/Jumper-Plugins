@@ -937,10 +937,10 @@ class Shop:
                         await asyncio.sleep(1)
                         await self.bot.edit_message(msg, "Trade Complete!")
                         await asyncio.sleep(2)
-                        new_msg = ("{} received {}, and {} received "
-                                   "{}.".format(author.mention, amount.content,
-                                                response.content.title(),
-                                                user.mention, quantity, itemname))
+                        new_msg = ("{} received {} {}, and {} received {} {}."
+                                   "".format(author.mention, amount.content,
+                                             response.content.title(),
+                                             user.mention, quantity, itemname))
                         await self.bot.edit_message(msg, new_msg)
 
     async def notify_handler(self, settings, ctx, itemname, user, confirmation):
