@@ -63,7 +63,13 @@ class Pokedex:
     async def _pokemon_pokedex(self, *, pokemon: str):
         """Get a pokemon's pokedex info.
         Example !pokedex pokemon gengar"""
-        p = pokemon.lower().replace(' ', '_')
+        p = pokemon.lower()
+        variant = None
+        if "alola" in p:
+            variant = 'alola'
+            p = p.replace('alola ', '')
+            pokemon = p
+        p = p.replace(' ', '_')
         url = "http://bulbapedia.bulbagarden.net/wiki/{}".format(p)
         with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -124,7 +130,6 @@ class Pokedex:
                         ab = [td1[0].find('span').get_text()]
                         formes = None
 
-
                     ab_format = self.abilities_parser(ab, pokemon, formes)
 
                     # Types
@@ -139,14 +144,27 @@ class Pokedex:
                                           "{4}/{5}  (Wash Rotom)\n{6}/{7}  (Frost Rotom)\n"
                                           "{8}/{9}  (Fan Rotom)\n{10}/{11}  (Mow Rotom)\n")
                             types_output = types_temp.format(*types)
+                        elif variant:
+                            if len(types) == 3:
+                                types_output = "{}/{}".format(types[1], types[2])
+                                types = [types[1], types[2]]
+                            elif len(types) == 2:
+                                types_output = types[1]
+                                types = [types[1]]
+                            else:
+                                types_output = "{}/{}".format(types[2], types[3])
+                                types = [types[2], types[3]]
                     except IndexError:
                         types_output = types[0]
 
                     # Image
-                    img_raw = tables[2].find('a', attrs={'class', 'image'})
+                    img_raw = tables[2].find_all('a', attrs={'class', 'image'})
+                    if variant:
+                        img_raw = img_raw[1]
+                    else:
+                        img_raw = img_raw[0]
                     img = "https:" + img_raw.find('img')['src']
                     if poke in ["Sawsbuck", "Deerling"]:
-                        img_raw = tables[2].find_all('a', attrs={'class', 'image'})
                         img_set = [x.find('img')['src'] for x in img_raw]
                         img = "https:" + random.choice(img_set)
 
@@ -154,14 +172,26 @@ class Pokedex:
                     rep_text = "Other Pokémon with this total"
                     div = soup.find('div', attrs={'id': 'mw-content-text', 'lang': 'en',
                                                   'dir': 'ltr', 'class': 'mw-content-ltr'})
-                    stat_table = div.find('table', attrs={'align': 'left'})
+
+                    stat_table = [x for x in soup.find_all('table', attrs={'align': 'left'})
+                                  if x.find('a', attrs={'title': 'Statistic'})]
+                    if variant:
+                        stat_table = stat_table[1]
+                    else:
+                        stat_table = stat_table[0]
+
                     raw_stats = [x.get_text(strip=True) for x in stat_table.find_all('table')]
                     stats = [x.replace(rep_text, "").replace(":", ": ") for x in raw_stats]
 
                     # Weaknesses / Resistances
                     if poke != "Eevee":
-                        wri_table = soup.find('table', attrs={'class': 'roundy', 'width': '100%',
-                                              'align': 'center', 'cellpadding': 0})
+                        wri_table = soup.find_all('table', attrs={'class': 'roundy',
+                                                  'width': '100%', 'align': 'center',
+                                                                  'cellpadding': 0})
+                        if variant:
+                            wri_table = wri_table[1]
+                        else:
+                            wri_table = wri_table[0]
                     else:
                         tb_attrs = {'class': 'roundy', 'width': '100%',
                                     'align': 'center', 'cellpadding': 0,
@@ -178,8 +208,14 @@ class Pokedex:
                     table_attrs = {'width': '100%', 'class': 'roundy',
                                    'style': 'background: transparent; border-collapse:collapse;'}
                     info_search = div.find_all('table', attrs=table_attrs)
-                    info_table = info_search[0].find_all('td', attrs={'class': 'roundy'})
-                    description = info_table[0].text.strip()
+                    if variant:
+                        b = [x for x in info_search if
+                             x.find('a', attrs={'title': 'Pokémon Moon'})]
+                        b = b[1].find_all('td', attrs={'class': 'roundy'})
+                        description = b[0].text.strip() + " " + b[1].text.strip()
+                    else:
+                        info_table = info_search[0].find_all('td', attrs={'class': 'roundy'})
+                        description = info_table[0].text.strip()
 
                     # Title
                     wiki = "[{} {}]({})".format(poke, national_number, url)
@@ -375,14 +411,30 @@ class Pokedex:
             ab_linked = []
             s1 = '(\({} Hidden Ability\))'.format(pokemon.title())
             s2 = '(\(Alolan {} Hidden Ability\))'.format(pokemon.title())
+            s3 = "(\(Alolan {}\))".format(pokemon.title())
+            s4 = "(\({}\))".format(pokemon.title())
+            s5 = '(\(Hidden Ability\))'
 
             for x in abilities:
+                print(x)
                 if "({} Hidden Ability)".format(pokemon.title()) in x:
                     n = re.split(s1, x)
                     f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
                     ab_linked.append(f)
                 elif "(Alolan {} Hidden Ability)".format(pokemon.title()) in x:
                     n = re.split(s2, x)
+                    f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
+                    ab_linked.append(f)
+                elif "(Alolan {})".format(pokemon.title()) in x and 'or ' not in x:
+                    n = re.split(s3, x)
+                    f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
+                    ab_linked.append(f)
+                elif "({})".format(pokemon.title()) in x and 'or ' not in x:
+                    n = re.split(s4, x)
+                    f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
+                    ab_linked.append(f)
+                elif "(Hidden Ability)" in x:
+                    n = re.split(s5, x)
                     f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
                     ab_linked.append(f)
                 else:
