@@ -5,6 +5,7 @@
 import aiohttp
 import random
 import re
+from collections import OrderedDict
 
 # Discord and Redbot
 import discord
@@ -44,7 +45,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.0.51"
+        self.version = "2.0.52"
 
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
@@ -59,10 +60,10 @@ class Pokedex:
         await self.bot.say("You are running pokedex version {}".format(self.version))
 
     @pokedex.command(name="pokemon", pass_context=False)
-    async def _pokemon2_pokedex(self, *, pokemon: str):
+    async def _pokemon_pokedex(self, *, pokemon: str):
         """Get a pokemon's pokedex info.
         Example !pokedex pokemon gengar"""
-        p = pokemon.title().replace(' ', '_')
+        p = pokemon.lower().replace(' ', '_')
         url = "http://bulbapedia.bulbagarden.net/wiki/{}".format(p)
         with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -70,30 +71,33 @@ class Pokedex:
                     soup = BeautifulSoup(await response.text(), "html.parser")
                     tables = soup.find_all("table", attrs={"class": "roundy"})
                     side_bar = tables[0]
-    
+
                     a_attrs = {"title": "List of Pokémon by National Pokédex number"}
                     species = side_bar.find("a", attrs={"title": "Pokémon category"}).text.strip()
                     national_number = side_bar.find("a", attrs=a_attrs).text.strip()
                     japanese_name = side_bar.find("i").text.strip()
-    
+
                     # Abilities
                     poke = pokemon.title()
                     alolan = "Alolan {} Hidden Ability".format(poke)
-                    rep1 = {alolan: "*({})".format(alolan)}
-                    rep2 = {"Alolan {}".format(poke): "*(Alolan {})".format(poke)}
-                    rep3 = {"Battle Bond Ash-Greninja": "Battle Bond (Ash-Greninja)",
-                            "{}".format(poke): "({})".format(poke),
-                            "Cosplay Pikachu": " (Cosplay Pikachu)",
-                            " Greninja": "",
-                            "Gen. V-V I": "",  # Entei and Raikou
-                            "Hidden Ability": "(Hidden Ability)"}
-                    rep1 = dict((re.escape(k), v) for k, v in rep1.items())
-                    pattern1 = re.compile("|".join(rep1.keys()))
+                    rep = {"Battle Bond Ash-Greninja": "Battle Bond (Ash-Greninja)",
+                           alolan: "-apha-",
+                           "{} Hidden Ability".format(poke): "-pha-",
+                           "Alolan {}".format(poke): "-ap-".format(poke),
+                           "{}".format(poke): "({})".format(poke),
+                           "Cosplay Pikachu": " (Cosplay Pikachu)",
+                           " Greninja": "",
+                           "Gen. V-V I": "",  # Entei and Raikou
+                           "Hidden Ability": "(Hidden Ability)"}
+                    rep = dict((re.escape(k), v) for k, v in rep.items())
+                    rep = OrderedDict(rep)
+
+                    rep2 = {"-apha-": "(Alolan {} Hidden Ability)".format(poke), "-pha-":
+                            "({} Hidden Ability)".format(poke), "-ap-": "(Alolan {})".format(poke)}
                     rep2 = dict((re.escape(k), v) for k, v in rep2.items())
-                    pattern2 = re.compile("|".join(rep2.keys()))
-                    rep3 = dict((re.escape(k), v) for k, v in rep3.items())
-                    pattern3 = re.compile("|".join(rep3.keys()))
-    
+                    pattern = re.compile('|'.join(rep.keys()))
+                    pattern2 = re.compile('|'.join(rep2.keys()))
+
                     td1 = side_bar.find_all('td', attrs={'class': 'roundy', 'colspan': '2'})
                     ab_raw = td1[1].find_all('td')
                     exclusions = ["Cacophony", "CacophonySummer Form", "CacophonyAutumn Form"]
@@ -109,22 +113,25 @@ class Pokedex:
                             formes = ab_split
                         else:
                             formes = None
-    
-                        ab = [pattern3.sub(lambda m: rep3[re.escape(m.group(0))], x)
-                              for x in ab_split]
+
+                        ab1 = [pattern.sub(lambda m: rep[re.escape(m.group(0))], x)
+                               for x in ab_split]
+                        ab = [pattern2.sub(lambda m: rep2[re.escape(m.group(0))], x)
+                              for x in ab1]
                     else:
                         td_attrs = {'width': '50%', 'style': 'padding-top:3px; padding-bottom:3px'}
                         td1 = side_bar.find_all('td', attrs=td_attrs)
                         ab = [td1[0].find('span').get_text()]
                         formes = None
-    
+
+
                     ab_format = self.abilities_parser(ab, pokemon, formes)
-    
+
                     # Types
                     search_type = side_bar.find_all("table", attrs={"class": "roundy"})
                     types_raw = search_type[2].find_all('b')
                     types = [x.text.strip() for x in types_raw if x.text.strip() != "Unknown"]
-    
+
                     try:
                         types_output = "{}/{}".format(types[0], types[1])
                         if poke == "Rotom":
@@ -134,7 +141,7 @@ class Pokedex:
                             types_output = types_temp.format(*types)
                     except IndexError:
                         types_output = types[0]
-    
+
                     # Image
                     img_raw = tables[2].find('a', attrs={'class', 'image'})
                     img = "https:" + img_raw.find('img')['src']
@@ -142,7 +149,7 @@ class Pokedex:
                         img_raw = tables[2].find_all('a', attrs={'class', 'image'})
                         img_set = [x.find('img')['src'] for x in img_raw]
                         img = "https:" + random.choice(img_set)
-    
+
                     # Stats
                     rep_text = "Other Pokémon with this total"
                     div = soup.find('div', attrs={'id': 'mw-content-text', 'lang': 'en',
@@ -150,7 +157,7 @@ class Pokedex:
                     stat_table = div.find('table', attrs={'align': 'left'})
                     raw_stats = [x.get_text(strip=True) for x in stat_table.find_all('table')]
                     stats = [x.replace(rep_text, "").replace(":", ": ") for x in raw_stats]
-    
+
                     # Weaknesses / Resistances
                     if poke != "Eevee":
                         wri_table = soup.find('table', attrs={'class': 'roundy', 'width': '100%',
@@ -163,21 +170,21 @@ class Pokedex:
                     wri_stripped = wri_table.text.strip()
                     wri_raw = wri_stripped.replace("\n", "")
                     weak, resist = self.weak_resist_builder(wri_raw)
-    
+
                     # Color
                     color = self.color_lookup(types[0])
-    
+
                     # Description
                     table_attrs = {'width': '100%', 'class': 'roundy',
                                    'style': 'background: transparent; border-collapse:collapse;'}
                     info_search = div.find_all('table', attrs=table_attrs)
                     info_table = info_search[0].find_all('td', attrs={'class': 'roundy'})
                     description = info_table[0].text.strip()
-    
+
                     # Title
                     wiki = "[{} {}]({})".format(poke, national_number, url)
                     embed_disc = "\n".join([wiki, japanese_name, species])
-    
+
                     # Build embed
                     embed = discord.Embed(colour=color, description=embed_disc)
                     embed.set_thumbnail(url=img)
@@ -187,13 +194,13 @@ class Pokedex:
                     embed.add_field(name="Weaknesses", value="\n".join(weak))
                     embed.add_field(name="Abilities", value="\n".join(ab_format))
                     embed.set_footer(text=description)
-    
+
                     await self.bot.say(embed=embed)
                 except IndexError:
                     await self.bot.say("I couldn't find a pokemon with that name.")
 
     @pokedex.command(name="moveset", pass_context=False)
-    async def _moveset_pokedex(self, generation: str, pokemon: str):
+    async def _moveset_pokedex(self, generation: str, *, pokemon: str):
         """Get a pokemon's moveset by generation(1-6).
 
           Example: !pokedex moveset V pikachu """
@@ -222,7 +229,7 @@ class Pokedex:
                                "Input a name and try again.")
 
     @pokedex.command(name="tmset", pass_context=False)
-    async def _tmset_pokedex(self, generation: str, pokemon: str):
+    async def _tmset_pokedex(self, generation: str, *, pokemon: str):
         """Get a pokemon's learnset by generation(1-6).
 
           Example: !pokedex tmset V pikachu """
@@ -289,7 +296,7 @@ class Pokedex:
             await self.bot.say("Please input an item name.")
 
     @pokedex.command(name="location", pass_context=False)
-    async def _location_pokedex(self, pokemon: str):
+    async def _location_pokedex(self, *, pokemon: str):
         """Get a pokemon's catch location.
         Example !pokedex location voltorb
         """
@@ -320,7 +327,7 @@ class Pokedex:
                 await self.bot.say("```{}```".format(t))
 
     @pokedex.command(name="evolution", pass_context=False)
-    async def _evolution_pokedex(self, pokemon: str):
+    async def _evolution_pokedex(self, *, pokemon: str):
         """Show a pokemon's evolution chain
         Example !pokedex evolution bulbasaur"""
         url = "http://pokemondb.net/pokedex/{}".format(pokemon)
@@ -350,18 +357,52 @@ class Pokedex:
                "(Ash-Greninja)": "",
                "(Cosplay Pikachu)": "",
                "({})".format(pokemon.title()): "",
+               "(Alolan {} Hidden Ability)".format(pokemon.title()): "",
+               "({} Hidden Ability)".format(pokemon.title()): "",
+               "(Alolan {})".format(pokemon.title()): "",
                " ": "_"}
         if formes:
             for x in formes:
                 rep[x] = ""
         rep = dict((re.escape(k), v) for k, v in rep.items())
         pattern = re.compile("|".join(rep.keys()))
-        fmt = "[{}]({}{}) ({})"
 
-        if len(abilities) < 2:
-            ab_linked = "[{}]({}{})".format(abilities[0], link, [abilities[0]])
+        # if len(abilities) < 2:
+        # ab_linked = "[{}]({}{})".format(abilities[0], link, [abilities[0]])
+        if any("Alolan" in x for x in abilities):
+            abilities = [x.split('or ', 1) if 'or ' in x else x for x in abilities]
 
-        if [x for x in abilities if "or " and pokemon.title() in abilities]:
+            ab_linked = []
+            s1 = '(\({} Hidden Ability\))'.format(pokemon.title())
+            s2 = '(\(Alolan {} Hidden Ability\))'.format(pokemon.title())
+
+            for x in abilities:
+                if "({} Hidden Ability)".format(pokemon.title()) in x:
+                    n = re.split(s1, x)
+                    f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
+                    ab_linked.append(f)
+                elif "(Alolan {} Hidden Ability)".format(pokemon.title()) in x:
+                    n = re.split(s2, x)
+                    f = "[{}]({}{}(Ability) {}".format(n[0], link, n[0].replace(' ', '_'), n[1])
+                    ab_linked.append(f)
+                else:
+                    if "(Alolan {})".format(pokemon.title()) in x[1]:
+                        a = x[0]
+                        b = x[1].replace("(Alolan {})".format(pokemon.title()), '')
+                        c = "(Alolan {})".format(pokemon.title())
+                        fmt = ("[{0}]({1}{2}(Ability) or [{3}]({1}{4}(Ability) {5}"
+                               "".format(a, link, a.replace(' ', '_'), b, b.replace(' ', '_'), c))
+                        ab_linked.append(fmt)
+                    else:
+                        a = x[0]
+                        b = x[1].replace("({})".format(pokemon.title()), '')
+                        c = "({})".format(pokemon.title())
+                        fmt = ("[{0}]({1}{2}(Ability) or [{3}]({1}{4}(Ability) {5}"
+                               "".format(a, link, a.replace(' ', '_'), b, b.replace(' ', '_'), c))
+                        ab_linked.append(fmt)
+
+        elif [x for x in abilities if "or " and pokemon.title() in abilities]:
+            fmt = "[{}]({}{}) ({})"
             abilities = [re.split(' or |\*', x) if 'or' in x else x for x in abilities]
             ab_linked = [fmt.format(re.sub(r'\((.*?)\)', '', x), link,
                          pattern.sub(lambda m: rep[re.escape(m.group(0))], x),
@@ -372,9 +413,8 @@ class Pokedex:
                          for x in abilities]
 
         elif "or " in abilities[0]:
-            split = abilities[0].split('or ', 1)
-            del abilities[0]
-            abilities.append(split)
+            abilities = [x.split('or ', 1) if 'or ' in x else x for x in abilities]
+            fmt = "[{}]({}{}) ({})"
             ab_linked = [fmt.format(re.sub(r'\((.*?)\)', '', x), link,
                          pattern.sub(lambda m: rep[re.escape(m.group(0))], x),
                          re.search(r'\((.*?)\)', x).group(1)) if "(Hidden Ability)" in x
@@ -384,6 +424,7 @@ class Pokedex:
                          for x in abilities]
             ab_linked.reverse()
         else:
+            fmt = "[{}]({}{}) ({})"
             ab_linked = [fmt.format(re.sub(r' \((.*?)\)', '', x), link,
                          pattern.sub(lambda m: rep[re.escape(m.group(0))], x),
                          re.search(r'\((.*?)\)', x).group(1)) if "(" in x
@@ -404,14 +445,19 @@ class Pokedex:
                 item = match.group(0)
                 if item.startswith('ug'):
                     item = "B" + item
+                if "1½" in item:
+                    output.append(item)
                 if "1" in item:
                     pass
                 else:
                     output.append(item)
             else:
                 pass
-        result = [x.replace('½', "0.5").replace('¼', "0.25") + "x" for x in output]
-        weak = [x for x in result if "2x" in x or "4x" in x]
+
+        result = [x.replace('1½', '1.5').replace('½', "0.5").replace('¼', "0.25") + "x"
+                  for x in output]
+
+        weak = [x for x in result if "2x" in x or "4x" in x or "1.5x" in x]
         resist = [x for x in result if "0.5x" in x or "0.25x" in x]
 
         if len(weak) == 0:
