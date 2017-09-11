@@ -37,12 +37,13 @@ pokemon_exceptions = ["Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmo
                       "Wurmple", "Wynaut", "Tynamo", "Metapod", "MissingNo.", "Scatterbug",
                       "Silcoon", "Smeargle"]
 
+
 class Pokedex:
     """Search for Pokemon."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.0.6"
+        self.version = "2.1.01"
 
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
@@ -161,19 +162,15 @@ class Pokedex:
                             types_output = types_temp.format(*types)
                         elif variant:
                             if len(types) == 4:
-                                print(4)
                                 types_output = "{}/{}".format(types[2], types[3])
                                 types = [types[2], types[3]]
                             elif len(types) == 3:
-                                print(3)
                                 types_output = "{}/{}".format(types[1], types[2])
                                 types = [types[1], types[2]]
                             elif len(types) == 2:
-                                print("0000000")
                                 types_output = types[1]
                                 types = [types[1]]
                             else:
-                                print(1)
                                 types_output = types[0]
                                 types = [types[0]]
 
@@ -191,7 +188,11 @@ class Pokedex:
                         img_raw = img_raw[0]
                     img = "https:" + img_raw.find('img')['src']
                     if poke in ["Sawsbuck", "Deerling"]:
-                        img_set = [x.find('img')['src'] for x in img_raw]
+                        spring = soup.find('a', attrs={'title': 'Spring Form'}).find('img')['src']
+                        summer = soup.find('a', attrs={'title': 'Summer Form'}).find('img')['src']
+                        autumn = soup.find('a', attrs={'title': 'Autumn Form'}).find('img')['src']
+                        winter = soup.find('a', attrs={'title': 'Winter Form'}).find('img')['src']
+                        img_set = [spring, summer, autumn, winter]
                         img = "https:" + random.choice(img_set)
 
                     # Stats
@@ -504,12 +505,10 @@ class Pokedex:
                 b = "(\({}\))|(or)".format(pokemon.title())
                 c = re.split(b, a[0])
                 c = [x.lstrip() for x in c if x]
-                print(c)
                 d = fmt.format(c[0], link, c[0].replace(' ', '_'), c[2], link,
                                c[2].replace(' ', '_'), c[3])
                 abilities.remove(a[0])
 
-            print(abilities)
             try:
                 ab_linked = [fmt.format(re.sub(r' \((.*?)\)', '', x), link,
                              pattern.sub(lambda m: rep[re.escape(m.group(0))], x),
@@ -518,6 +517,7 @@ class Pokedex:
                              pattern.sub(lambda m: rep[re.escape(m.group(0))], x))
                              for x in abilities]
             except IndexError:
+
                 fmt = "[{}]({}{}) {}"
                 lst = abilities[0]
                 m = lst.split("(Hidden Ability)")
@@ -530,7 +530,8 @@ class Pokedex:
                 ab_linked.append(d)
 
         elif "or " in abilities[0]:
-            abilities = [x.split('or ', 1) if 'or ' in x else x for x in abilities]
+            abilities = [x.split('or ', 1) if 'or ' in x and 'or (' not in x
+                         else x for x in abilities]
             fmt = "[{}]({}{}) ({})"
             ab_linked = [fmt.format(re.sub(r'\((.*?)\)', '', x), link,
                          pattern.sub(lambda m: rep[re.escape(m.group(0))], x),
