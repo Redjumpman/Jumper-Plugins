@@ -43,7 +43,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.1.01"
+        self.version = "2.1.02"
 
     @commands.group(pass_context=True, aliases=["dex"])
     async def pokedex(self, ctx):
@@ -220,6 +220,11 @@ class Pokedex:
                                                                   'cellpadding': 0})
                         if variant == 'alola' or poke in special or xy == 'X':
                             wri_table = wri_table[1]
+                        elif variant == 'mega':
+                            try:
+                                wri_table = wri_table[1]
+                            except IndexError:
+                                wri_table = wri_table[0]
                         else:
                             wri_table = wri_table[0]
                     else:
@@ -500,14 +505,26 @@ class Pokedex:
             abilities.remove(k[0])
             d = None
             if [x for x in abilities if 'or ' in x]:
-                a = [x for x in abilities if "({})".format(pokemon.title()) in x]
-                fmt = "[{}]({}{}) or [{}]({}{}) {}"
-                b = "(\({}\))|(or)".format(pokemon.title())
-                c = re.split(b, a[0])
-                c = [x.lstrip() for x in c if x]
-                d = fmt.format(c[0], link, c[0].replace(' ', '_'), c[2], link,
-                               c[2].replace(' ', '_'), c[3])
-                abilities.remove(a[0])
+                if "Regenerator" in abilities[0]:
+                    a = [x for x in abilities if "({})".format(pokemon.title()) in x]
+                    fmt = "[{}]({}{}) or [{}]({}{}) {}"
+                    b = "(\({}\))|(Regenerator)|(or)".format(pokemon.title())
+                    c = re.split(b, a[0])
+                    filt = [x for x in c if x and x != ' ']
+                    c = [x.lstrip() for x in filt if x]
+                    d = fmt.format(c[0], link, c[0].replace(' ', '_'), c[2], link,
+                                   c[2].replace(' ', '_'), c[3])
+                    abilities.remove(a[0])
+
+                else:
+                    a = [x for x in abilities if "({})".format(pokemon.title()) in x]
+                    fmt = "[{}]({}{}) or [{}]({}{}) {}"
+                    b = "(\({}\))|(or)".format(pokemon.title())
+                    c = re.split(b, a[0])
+                    c = [x.lstrip() for x in c if x]
+                    d = fmt.format(c[0], link, c[0].replace(' ', '_'), c[2], link,
+                                   c[2].replace(' ', '_'), c[3])
+                    abilities.remove(a[0])
 
             try:
                 ab_linked = [fmt.format(re.sub(r' \((.*?)\)', '', x), link,
