@@ -212,7 +212,7 @@ class AnimeList:
         url = "https://myanimelist.net/api/account/verify_credentials.xml"
         with aiohttp.ClientSession(auth=auth) as session:
             async with session.get(url) as response:
-                status = await response.status
+                status = response.status
 
                 if status == 200:
                     return True
