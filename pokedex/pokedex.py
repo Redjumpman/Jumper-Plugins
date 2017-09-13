@@ -36,7 +36,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.3.0"
+        self.version = "2.3.01"
 
     @commands.group(pass_context=True)
     async def pokemon(self, ctx):
@@ -285,20 +285,18 @@ class Pokedex:
         try:
             with open('data/pokedex/Pokemon.csv', 'rt') as f:
                 reader = csv.reader(f, delimiter=',')
+                for row in reader:
+                    if name == row[1]:
+                        num = row[0]
+                        wiki = "[{} {}]({})".format(name, row[0], url.format(link_name))
+                        header = [wiki, row[2], row[3]]
+                        types, img, desc = row[5], row[8], row[9]
+                        stats, abilities = ast.literal_eval(row[4]), ast.literal_eval(row[10])
+                        resist, weak = ast.literal_eval(row[6]), ast.literal_eval(row[7])
+                        return Pokemon(num, name, wiki, header, types, img, desc, stats, abilities,
+                                       weak, resist)
         except FileNotFoundError:
             print("The csv file Pokemon.csv could not be found in data/pokedex/Pokemon.csv")
-            return None
-        else:
-            for row in reader:
-                if name == row[1]:
-                    num = row[0]
-                    wiki = "[{} {}]({})".format(name, row[0], url.format(link_name))
-                    header = [wiki, row[2], row[3]]
-                    types, img, desc = row[5], row[8], row[9]
-                    stats, abilities = ast.literal_eval(row[4]), ast.literal_eval(row[10])
-                    resist, weak = ast.literal_eval(row[6]), ast.literal_eval(row[7])
-                    return Pokemon(num, name, wiki, header, types, img, desc, stats, abilities,
-                                   weak, resist)
             return None
 
 
