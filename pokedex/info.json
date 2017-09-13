@@ -1,12 +1,12 @@
 {
     "AUTHOR" : "Redjumpman",
     "SHORT" : "Fetch movesets, locations, data, and more on Pokemon",
-    "DESCRIPTION" : "Shows movesets, locations, pokedex info, evolution chains, and item searches for all Pokemon generations.",
+    "DESCRIPTION" : "Shows movesets, locations, pokedex info, and item searches for all Pokemon generations.",
     "DISABLED" : false,
     "NAME" : "Pokedex",
     "REQUIREMENTS" : ["beautifulsoup4", "tabulate"],
     "TAGS" : ["pokemon", "pokedex"],
-    "INSTALL_MSG" : "Thank you for installing Pokedex from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs"
+    "INSTALL_MSG" : "Thank you for installing Pokedex from Jumper Cogs.\nIf you like my cog please star my repo or post any issues on my github here:\nhttps://github.com/Redjumpman/Jumper-Cogs\nThis cog creates a data folder and adds a csv file containing pokemon data."
 }
 
 
