@@ -36,7 +36,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.3.01"
+        self.version = "2.3.02"
 
     @commands.group(pass_context=True)
     async def pokemon(self, ctx):
@@ -283,7 +283,7 @@ class Pokedex:
         Pokemon = namedtuple('Pokemon', ['id', 'name', 'wiki', 'header', 'types', 'image', 'desc',
                                          'stats', 'abilities', 'weak', 'resist'])
         try:
-            with open('data/pokedex/Pokemon.csv', 'rt') as f:
+            with open('data/pokedex/Pokemon.csv', 'rt', encoding='iso-8859-15') as f:
                 reader = csv.reader(f, delimiter=',')
                 for row in reader:
                     if name == row[1]:
