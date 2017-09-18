@@ -29,7 +29,7 @@ tm_exceptions = {"Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", 
 
 url = "https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
 url2 = "https://bulbapedia.bulbagarden.net/wiki/"
-
+url4 = 'test'
 
 class Pokedex:
     """Search for Pokemon."""
