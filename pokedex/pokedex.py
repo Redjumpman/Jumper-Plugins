@@ -17,9 +17,7 @@ from __main__ import send_cmd_help
 from bs4 import BeautifulSoup
 from tabulate import tabulate
 
-switcher = {
-    "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
-    'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7}
+switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
 
 exceptions = {'ho-oh', 'jangmo-o', 'hakamo-o', 'kommo-o', 'porygon-z', 'nidoran-f', 'nidoran-m'}
 tm_exceptions = {"Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", "Cosmog",
@@ -29,14 +27,14 @@ tm_exceptions = {"Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", 
 
 url = "https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
 url2 = "https://bulbapedia.bulbagarden.net/wiki/"
-url4 = 'test'
+
 
 class Pokedex:
     """Search for Pokemon."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.3.02"
+        self.version = "2.4.0"
 
     @commands.group(pass_context=True)
     async def pokemon(self, ctx):
@@ -76,10 +74,10 @@ class Pokedex:
         """
 
         link_name = self.link_builder(pokemon)
-        poke = self.search_pokemon(pokemon.title(), link_name)
+        poke = self.search_csv(pokemon.title(), 'data/pokedex/Pokemon.csv', link_name=link_name)
 
         try:
-            color = self.color_lookup(poke.types)
+            color = self.color_lookup(poke.types.split('/')[0])
         except AttributeError:
             await self.bot.say('A Pokémon with that name could not be found.')
         else:
@@ -97,15 +95,14 @@ class Pokedex:
 
             await self.bot.say(embed=embed)
 
-    @pokemon.command(name="moveset", pass_context=False)
-    async def _moveset_pokemon(self, generation: str, *, poke: str):
+    @pokemon.command(name="moves", pass_context=False)
+    async def _moves_pokemon(self, *, poke: str):
         """Search for a Pokémon's moveset
 
         If the generation specified is not found, it will default to 7
 
             Args:
-                generation: variable length string 1-7 or I-VII.
-                poke:       variable length string
+                poke: variable length string
 
             Returns:
                 Tabular output of Pokémon data.
@@ -114,27 +111,51 @@ class Pokedex:
                 AttributeError: Pokémon not found.
 
             Examples:
-                Roman:      [p]moveset III pikachu
-                Numbers:    [p]moveset 4 charizard
+                Numbers:    [p]pokemon moves charizard-4
+                Alolan:     [p]pokemon moves geodude-alola
         """
-        gen = switcher.get(generation, 7)
-        move_url = "http://pokemondb.net/pokedex/{}/moves/{}".format(poke, gen)
+        moves = self.search_csv(poke.lower(), 'data/pokedex/Moves.csv', data_type='m')
+
         try:
-            with aiohttp.ClientSession() as session:
-                async with session.get(move_url) as response:
-                    soup = BeautifulSoup(await response.text(), "html.parser")
-                    table = soup.find('table', attrs={'class': 'data-table wide-table'})
-                    table_body = table.find('tbody')
-                    rows = table_body.find_all('tr')
-                    moves = []
-                    for row in rows:
-                        cols = [ele.text.strip() for ele in row.find_all('td')]
-                        moves.append([ele for ele in cols if ele])
-                    t = tabulate(moves, headers=["Level", "Moves", "Type", "Category", "Power",
-                                                 "Accuracy"])
-                    await self.bot.say("```{}```".format(t))
+            table = tabulate(moves.moves, headers=['Level', 'Moves', 'Type', 'Power', 'Accuracy'])
         except AttributeError:
-            await self.bot.say("Could not locate a Pokémon with that name.")
+            await self.bot.say('A Pokémon with that name could not be found.')
+        else:
+            embed = discord.Embed(title=moves.pokemon, colour=moves.color,
+                                  description="```{}```".format(table))
+            embed.add_field(name="Versions", value='\n'.join(moves.versions))
+            embed.set_footer(text="This moveset is based on generation {}.".format(moves.gen))
+
+            await self.bot.say(embed=embed)
+
+    @pokemon.command(name="item")
+    async def _item_pokemon(self, *, item_name: str):
+        """Search for an item in the Pokémon universe
+
+            Args:
+                item_name: variable length string
+
+            Returns:
+                Discord embed
+
+            Raises:
+                AttributeError: Item not found
+
+            Examples:
+                pokemon item master ball
+        """
+        item = self.search_csv(item_name.title(), 'data/pokedex/Items.csv', data_type='i')
+        try:
+            color = self.color_lookup(item.category)
+        except AttributeError:
+            await self.bot.say("An item with that name could not be found.")
+        else:
+            embed = discord.Embed(colour=color, title=item.name)
+            embed.set_thumbnail(url=item.image)
+            embed.add_field(name="Cost", value=item.cost)
+            embed.add_field(name="Category", value=item.category)
+            embed.add_field(name="Effect", value=item.effect)
+            await self.bot.say(embed=embed)
 
     @pokemon.command(name="tmset")
     async def _tmset_pokemon(self, generation: str, *, poke: str):
@@ -180,22 +201,6 @@ class Pokedex:
             await self.bot.say("Oh no! That Pokémon was not available in that generation.")
         except AttributeError:
             await self.bot.say("Could not locate a Pokémon with that name.")
-
-    @pokemon.command(name="item")
-    async def _item_pokemon(self, *, item: str):
-        """Get a description of an item.
-        """
-        item = item.replace(" ", "-").lower()
-        item_url = "http://pokemondb.net/item/{}".format(item)
-        try:
-            with aiohttp.ClientSession() as session:
-                async with session.get(item_url) as response:
-                    soup = BeautifulSoup(await response.text(), "html.parser")
-                    divs = soup.find('p')
-                    info = divs.get_text()
-                    await self.bot.say("**{}:**\n```{}```".format(item.title(), info))
-        except AttributeError:
-            await self.bot.say("Cannot find an item with this name")
 
     @pokemon.command(name="location")
     async def _location_pokemon(self, *, poke: str):
@@ -269,35 +274,71 @@ class Pokedex:
 
         return linked
 
-    def color_lookup(self, element):
-        primary = element.split('/')[0]
+    def color_lookup(self, key):
         color_table = {"Normal": 0x999966, "Fire": 0xFF6600, "Fighting": 0xFF0000, "Ice": 0x99FFFF,
                        "Water": 0x3399FF, "Flying": 0x9999FF, "Grass": 0x33FF00, "Poison": 0x660099,
                        "Electric": 0xFFFF00, "Ground": 0xFFCC33, "Psychic": 0xFF3399,
                        "Rock": 0xCC9966, "Bug": 0x669900, "Dragon": 0x003399, "Dark": 0x333333,
-                       "Ghost": 0x9933FF, "Steel": 0x999999, "Fairy": 0xFF99FF}
-        color = color_table.get(primary, 0xFFFFFF)
+                       "Ghost": 0x9933FF, "Steel": 0x999999, "Fairy": 0xFF99FF,
+                       "Key Item": 0xAC00EB, "Berries": 0xF5F794, "Battle Items": 0xED002B,
+                       "General Items": 0xFFFFFF, "Hold Items": 0xC976A8, "Machines": 0x999999,
+                       "Medicine": 0x79EdA1, "Poké Balls": 0xFF0000}
+        color = color_table.get(key, 0xFFFFFF)
         return color
 
-    def search_pokemon(self, name, link_name):
+    def search_csv(self, name, file_path, data_type='p', link_name=None):
+        try:
+            with open(file_path, 'rt', encoding='iso-8859-15') as f:
+                reader = csv.reader(f, delimiter=',')
+                if data_type == 'p':
+                    return self.collect_pokemon(reader, name, link_name)
+                elif data_type == 'm':
+                    return self.collect_moves(reader, name)
+                elif data_type == 'i':
+                    return self.collect_items(reader, name)
+                else:
+                    return None
+        except FileNotFoundError:
+            print("The csv file could not be found in data/pokedex/")
+            return None
+
+    def collect_pokemon(self, reader, name, link_name):
         Pokemon = namedtuple('Pokemon', ['id', 'name', 'wiki', 'header', 'types', 'image', 'desc',
                                          'stats', 'abilities', 'weak', 'resist'])
-        try:
-            with open('data/pokedex/Pokemon.csv', 'rt', encoding='iso-8859-15') as f:
-                reader = csv.reader(f, delimiter=',')
-                for row in reader:
-                    if name == row[1]:
-                        num = row[0]
-                        wiki = "[{} {}]({})".format(name, row[0], url.format(link_name))
-                        header = [wiki, row[2], row[3]]
-                        types, img, desc = row[5], row[8], row[9]
-                        stats, abilities = ast.literal_eval(row[4]), ast.literal_eval(row[10])
-                        resist, weak = ast.literal_eval(row[6]), ast.literal_eval(row[7])
-                        return Pokemon(num, name, wiki, header, types, img, desc, stats, abilities,
-                                       weak, resist)
-        except FileNotFoundError:
-            print("The csv file Pokemon.csv could not be found in data/pokedex/Pokemon.csv")
-            return None
+        for row in reader:
+            if name == row[1]:
+                num = row[0]
+                wiki = "[{} {}]({})".format(name, row[0], url.format(link_name))
+                header = [wiki, row[2], row[3]]
+                types, img, desc = row[5], row[8], row[9]
+                stats, abilities = ast.literal_eval(row[4]), ast.literal_eval(row[10])
+                resist, weak = ast.literal_eval(row[6]), ast.literal_eval(row[7])
+                return Pokemon(num, name, wiki, header, types, img, desc, stats, abilities,
+                               weak, resist)
+
+    def collect_moves(self, reader, name):
+        Moves = namedtuple('Moves', ['pokemon', 'gen', 'color', 'moves', 'versions'])
+        if name.split('-')[-1].isdigit():
+            for row in reader:
+                if name == row[0]:
+                    pokemon = name.split('-')[0].title()
+                    generation, color = switcher[row[1]], int(ast.literal_eval(row[2]))
+                    moves, versions = ast.literal_eval(row[3]), ast.literal_eval(row[4])
+                    return Moves(pokemon, generation, color, moves, versions)
+        else:
+            for row in reader:
+                if name in row[0]:
+                    pokemon = name.title()
+                    generation, color = switcher[row[1]], int(ast.literal_eval(row[2]))
+                    moves, versions = ast.literal_eval(row[3]), ast.literal_eval(row[4])
+                    return Moves(pokemon, generation, color, moves, versions)
+
+    def collect_items(self, reader, name):
+        Item = namedtuple('Item', ['name', 'category', 'effect', 'cost', 'image'])
+        for row in reader:
+            if name == row[0]:
+                category, effect, cost, image = row[1], row[2], row[3], row[4]
+                return Item(name, category, effect, cost, image)
 
 
 def setup(bot):
