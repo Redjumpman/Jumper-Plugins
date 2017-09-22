@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.716
+                                    "Transfer Cooldown": 30, "Version": 1.717
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -488,7 +488,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.16"
+        self.version = "1.7.17"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2266,9 +2266,13 @@ class Casino:
 
     def count_hand(self, hand):
         count = sum([bj_values[x] for x in hand if x in bj_values])
-        count += sum([1 if x == 'Ace' and count + 11 > 21 else 11
-                      if x == 'Ace' and hand.count('Ace') == 1 else 1
-                      if x == 'Ace' and hand.count('Ace') > 1 else 0 for x in hand])
+
+        for x in hand:
+            if x == 'Ace' and count + 11 > 21:
+                count += 1
+            elif x == 'Ace':
+                count += 11
+
         return count
 
     def dealer(self, deck):
