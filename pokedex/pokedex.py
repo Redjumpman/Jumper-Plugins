@@ -34,7 +34,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.4.0"
+        self.version = "2.4.01"
 
     @commands.group(pass_context=True)
     async def pokemon(self, ctx):
@@ -213,17 +213,14 @@ class Pokedex:
                 soup = BeautifulSoup(await response.text(), "html.parser")
                 loc = []
                 version = []
-                div2 = soup.find('div', attrs={'class': 'col desk-span-7 lap-span-12'})
-                tables = div2.find_all('table', attrs={'class': 'vitals-table'})
-                for table in tables:
-                    cols = [ele.text.strip() for ele in table.find_all('td')]
-                    loc.append([ele for ele in cols if ele])
+                div = soup.find('div', attrs={'class': 'col desk-span-7 lap-span-12'})
+                table = div.find('table', attrs={'class': 'vitals-table'})
 
-                tables2 = div2.find_all('table', attrs={'class': 'vitals-table'})
+                cols = [ele.text.strip() for ele in table.find_all('td') if ele]
+                loc.append(cols)
 
-                for table2 in tables2:
-                    tcols = [ele.text.strip() for ele in table2.find_all('th')]
-                    version.append([ele for ele in tcols if ele])
+                tcols = [ele.strings for ele in table.find_all('th') if ele]
+                version.append([', '.join(x) for x in tcols])
                 # We have to extract out the base index, because it scrapes as
                 # a list of a list. Then we can stack and tabulate.
                 extract_loc = loc[0]
