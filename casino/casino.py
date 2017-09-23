@@ -40,7 +40,7 @@ server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": 
                                     "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
                                     "Payday Timer": 1200, "Threshold Switch": False,
                                     "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.717
+                                    "Transfer Cooldown": 30, "Version": 1.718
                                     },
                   "Memberships": {},
                   "Players": {},
@@ -119,7 +119,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.716
+        self.patch = 1.718
 
     def create_account(self, user):
         server = user.server
@@ -488,7 +488,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.17"
+        self.version = "1.7.18"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -698,7 +698,7 @@ class Casino:
 
         if members:
             players = [(x["Name"], x["Chips"]) for x in members.values()]
-            pos = [x + 1 for x, y in enumerate(players)]
+            pos = [x for x, y in enumerate(players, 1)]
             if sort == "bottom":
                 style = sorted(players, key=itemgetter(1))
                 rev_pos = list(reversed(pos))
@@ -1982,7 +1982,7 @@ class Casino:
         await self.bot.say(msg)
 
     async def table_split(self, user, headers, data, sort):
-        groups = [data[i:i + 20] for i in range(0, len(data), 20)]
+        groups = [data[i:i + 12] for i in range(0, len(data), 12)]
         pages = len(groups)
 
         if sort == "place":
