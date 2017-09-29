@@ -14,6 +14,7 @@ class Race:
     def __init__(self, bot):
         self.bot = bot
         self.system = {}
+        self.version = "1.0.03"
 
     @commands.group(pass_context=True, no_pm=True)
     async def race(self, ctx):
@@ -22,20 +23,14 @@ class Race:
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    def check_server(self, server):
-        if server.id in self.system:
-            return self.system[server.id]
-        else:
-            self.system[server.id] = {'Race Start': False,
-                                      'Race Active': False,
-                                      'Players': {},
-                                      'Winner': None,
-                                      'Prize': 0}
-            return self.system[server.id]
+    @race.command(name="version")
+    async def _version_race(self):
+        """Displays the version of race"""
+        await self.bot.say("You are running race version {}".format(self.version))
 
     @race.command(name="start", pass_context=True)
     @commands.cooldown(1, 120, commands.BucketType.server)
-    async def start(self, ctx):
+    async def _start_race(self, ctx):
         """Start a turtle race
 
             Returns:
@@ -85,7 +80,7 @@ class Race:
         self.game_teardown(data)
 
     @race.command(name="enter", pass_context=True)
-    async def enter(self, ctx):
+    async def _enter_race(self, ctx):
         """Enter a turtle race
 
         Returns:
@@ -113,7 +108,7 @@ class Race:
             await self.bot.say("**{}** joined the race!".format(author.name))
 
     @race.command(name="claim", pass_context=True)
-    async def claim(self, ctx):
+    async def _claim_race(self, ctx):
         """Claim your prize from the turtle race
 
         Returns:
@@ -151,6 +146,17 @@ class Race:
         finally:
             data['Winner'] = None
             data['Prize'] = 0
+
+    def check_server(self, server):
+        if server.id in self.system:
+            return self.system[server.id]
+        else:
+            self.system[server.id] = {'Race Start': False,
+                                      'Race Active': False,
+                                      'Players': {},
+                                      'Winner': None,
+                                      'Prize': 0}
+            return self.system[server.id]
 
     def game_teardown(self, data):
         data['Race Active'] = False
