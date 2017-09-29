@@ -36,30 +36,80 @@ except FileNotFoundError:
     _ = lambda s: s
 
 # Default settings that is created when a server begin's using Casino
-server_default = {"System Config": {"Casino Name": "Redjumpman", "Casino Open": True,
-                                    "Chip Name": "Jump", "Chip Rate": 1, "Default Payday": 100,
-                                    "Payday Timer": 1200, "Threshold Switch": False,
-                                    "Threshold": 10000, "Credit Rate": 1, "Transfer Limit": 1000,
-                                    "Transfer Cooldown": 30, "Version": 1.718
-                                    },
-                  "Memberships": {},
-                  "Players": {},
-                  "Games": {"Dice": {"Multiplier": 2.2, "Cooldown": 5, "Open": True, "Min": 50,
-                                     "Max": 500, "Access Level": 0},
-                            "Coin": {"Multiplier": 1.5, "Cooldown": 5, "Open": True, "Min": 10,
-                                     "Max": 10, "Access Level": 0},
-                            "Cups": {"Multiplier": 2.2, "Cooldown": 5, "Open": True, "Min": 50,
-                                     "Max": 500, "Access Level": 0},
-                            "Blackjack": {"Multiplier": 2.2, "Cooldown": 5, "Open": True,
-                                          "Min": 50, "Max": 500, "Access Level": 0},
-                            "Allin": {"Multiplier": 2.2, "Cooldown": 43200, "Open": True,
-                                      "Access Level": 0},
-                            "Hi-Lo": {"Multiplier": 1.5, "Cooldown": 5, "Open": True,
-                                      "Min": 20, "Max": 20, "Access Level": 0},
-                            "War": {"Multiplier": 1.5, "Cooldown": 5, "Open": True,
-                                    "Min": 20, "Max": 20, "Access Level": 0},
-                            }
-                  }
+server_default = {
+    "System Config": {
+        "Casino Name": "Redjumpman",
+        "Casino Open": True,
+        "Chip Name": "Jump",
+        "Chip Rate": 1,
+        "Credit Rate": 1,
+        "Default Payday": 100,
+        "Payday Timer": 1200,
+        "Threshold Switch": False,
+        "Threshold": 10000,
+        "Transfer Limit": 1000,
+        "Transfer Cooldown": 30,
+        "Version": 1.719
+        },
+    "Memberships": {},
+    "Players": {},
+    "Games": {
+        "Dice": {
+            "Access Level": 0,
+            "Cooldown": 5,
+            "Max": 500,
+            "Min": 50,
+            "Multiplier": 2.2,
+            "Open": True
+        },
+        "Coin": {
+            "Access Level": 0,
+            "Cooldown": 5,
+            "Max": 10,
+            "Min": 10,
+            "Multiplier": 1.5,
+            "Open": True
+        },
+        "Cups": {
+            "Access Level": 0,
+            "Cooldown": 5,
+            "Max": 500,
+            "Min": 50,
+            "Multiplier": 2.2,
+            "Open": True,
+        },
+        "Blackjack": {
+            "Multiplier": 2.2,
+            "Cooldown": 5,
+            "Open": True,
+            "Min": 50,
+            "Max": 500,
+            "Access Level": 0
+        },
+        "Allin": {
+            "Multiplier": 2.2,
+            "Cooldown": 43200,
+            "Open": True,
+            "Access Level": 0
+        },
+        "Hi-Lo": {
+            "Multiplier": 1.5,
+            "Cooldown": 5,
+            "Open": True,
+            "Min": 20,
+            "Max": 20,
+            "Access Level": 0
+        },
+        "War": {
+            "Multiplier": 1.5,
+            "Cooldown": 5,
+            "Open": True,
+            "Min": 20,
+            "Max": 20,
+            "Access Level": 0
+        },
+    }
+}
 
 new_user = {"Chips": 100,
             "Membership": None,
@@ -119,7 +169,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.718
+        self.patch = 1.719
 
     def create_account(self, user):
         server = user.server
@@ -488,7 +538,7 @@ class Casino:
             self.legacy_available = False
         self.file_path = "data/JumperCogs/casino/casino.json"
         self.casino_bank = CasinoBank(bot, self.file_path)
-        self.version = "1.7.18"
+        self.version = "1.7.19"
         self.cycle_task = bot.loop.create_task(self.membership_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2221,7 +2271,7 @@ class Casino:
         msg = (_("======**{}**======\nYour hand: {}\nYour score: {}\nDealer's hand: {}\nDealer's "
                  "score: {}\n").format(user.name, ", ".join(ph), pc, ", ".join(dh), dc))
 
-        if dc > 21 and pc <= 21 or dc < pc <= 21:
+        if dc > 21 >= pc or dc < pc <= 21:
             settings["Players"][user.id]["Won"]["BJ Won"] += 1
             total = int(round(amount * settings["Games"]["Blackjack"]["Multiplier"]))
             # Check if a threshold is set and withold chips if amount is exceeded
@@ -2241,12 +2291,12 @@ class Casino:
                 self.casino_bank.deposit_chips(user, total)
         elif pc > 21:
             msg += _("======BUST!======")
-        elif dc == pc and dc <= 21 and pc <= 21:
+        elif dc == pc <= 21:
             msg += (_("======Pushed======\nReturned {} {} chips to your "
                       "account.").format(amount, chip_name))
             amount = int(round(amount))
             self.casino_bank.deposit_chips(user, amount)
-        elif dc > pc and dc <= 21:
+        elif pc < dc <= 21:
             msg += _("======House Wins!======").format(user.name)
         # Save results and return appropriate outcome message.
         self.casino_bank.save_system()
@@ -2279,8 +2329,8 @@ class Casino:
         dh = self.draw_two(deck)
         count = self.count_hand(dh)
 
-        # forces hit if ace in first two cards
-        if 'Ace' in dh:
+        # forces hit if ace in first two cards without 21
+        if 'Ace' in dh and count != 21:
             dh = self.draw_card(dh, deck)
             count = self.count_hand(dh)
 
