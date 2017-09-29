@@ -34,7 +34,7 @@ class Race:
             return self.system[server.id]
 
     @race.command(name="start", pass_context=True)
-    @commands.cooldown(5, 120, commands.BucketType.server)
+    @commands.cooldown(1, 120, commands.BucketType.server)
     async def start(self, ctx):
         """Start a turtle race
 
