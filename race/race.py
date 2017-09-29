@@ -16,7 +16,6 @@ class Race:
         self.system = {}
 
     @commands.group(pass_context=True, no_pm=True)
-    @commands.cooldown(1, 120, commands.BucketType.server)
     async def race(self, ctx):
         """Race cog's group command"""
 
@@ -35,6 +34,7 @@ class Race:
             return self.system[server.id]
 
     @race.command(name="start", pass_context=True)
+    @commands.cooldown(1, 120, commands.BucketType.server)
     async def start(self, ctx):
         """Start a turtle race
 
