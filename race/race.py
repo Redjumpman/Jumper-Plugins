@@ -98,7 +98,7 @@ class Race:
         self.bot = bot
         self.system = {}
         self.config = dataIO.load_json('data/race/race.json')
-        self.version = "1.1.0"
+        self.version = "1.1.01"
 
     @commands.group(pass_context=True, no_pm=True)
     async def race(self, ctx):
