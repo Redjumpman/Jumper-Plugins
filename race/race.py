@@ -213,7 +213,7 @@ class Race:
     @race.command(name="start", pass_context=True)
     @commands.cooldown(1, 120, commands.BucketType.server)
     async def _start_race(self, ctx):
-        """Start a turtle race and enter yourself as participant
+        """Start an animal race and enter yourself as participant
 
             Returns:
                 Two text outputs. One to start the race,
@@ -275,7 +275,7 @@ class Race:
 
     @race.command(name="enter", pass_context=True)
     async def _enter_race(self, ctx):
-        """Enter a turtle race
+        """Enter an animal race
 
         Returns:
             Text informing the user they have entered the race.
@@ -303,7 +303,7 @@ class Race:
 
     @race.command(name="claim", pass_context=True)
     async def _claim_race(self, ctx):
-        """Claim your prize from the turtle race
+        """Claim your prize from the animal race
 
         Returns:
                 One of three outcomes based on result
