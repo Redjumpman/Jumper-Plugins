@@ -98,7 +98,7 @@ class Race:
         self.bot = bot
         self.system = {}
         self.config = dataIO.load_json('data/race/race.json')
-        self.version = "1.1.01"
+        self.version = "1.1.02"
 
     @commands.group(pass_context=True, no_pm=True)
     async def race(self, ctx):
@@ -207,7 +207,7 @@ class Race:
         """Reset race parameters DEBUG USE ONLY"""
         server = ctx.message.server
         data = self.check_server(server)
-        self.game_teardown(data)
+        self.game_teardown(data, force=True)
         await self.bot.say("Parameters reset.")
 
     @race.command(name="start", pass_context=True)
@@ -232,9 +232,11 @@ class Race:
         author = ctx.message.author
         data = self.check_server(author.server)
         settings = self.check_config(author.server)
+
         if data['Race Active']:
             return
 
+        self.game_teardown(data, force=True)
         data['Race Active'] = True
         data['Players'][author.id] = {}
         wait = settings['Time']
@@ -322,11 +324,16 @@ class Race:
         data = self.check_server(author.server)
         settings = self.check_config(author.server)
 
-        if data['Winner'] != author:
-            print(data['Winner'])
-            return await self.bot.say("Scram kid. You didn't win nothing yet.")
+        if data['Race Active']:
+            return
 
-        bank = self.bot.get_cog('Economy').bank
+        if data['Winner'] != author:
+            return await self.bot.say("Scram kid. You didn't win nothing yet.")
+        try:
+            bank = self.bot.get_cog('Economy').bank
+        except AttributeError:
+            return await self.bot.say("Economy is not loaded.")
+
         prize_range = settings['Prize']
         prize = random.randint(*prize_range)
 
@@ -360,8 +367,8 @@ class Race:
             self.save_settings()
             return self.config['Servers'][server.id]
 
-    def game_teardown(self, data):
-        if data['Winner'] == self.bot.user:
+    def game_teardown(self, data, force=False):
+        if data['Winner'] == self.bot.user or force:
             data['Winner'] = None
         data['Race Active'] = False
         data['Race Start'] = False
@@ -405,9 +412,9 @@ class Race:
                 position = player.get_position()
                 if position == 0:
                     if not data['Winner']:
+                        speed = player.turn + random.uniform(0.1, 0.88)
                         data['Winner'] = player.user
-                        data['First'] = (player.user, player.animal,
-                                         player.turn + random.uniform(0.1, 0.88))
+                        data['First'] = (player.user, player.animal, speed)
                         player.placed = True
                     elif not data['Second'] and not player.placed:
                         if data['First'][2] > player.turn:
