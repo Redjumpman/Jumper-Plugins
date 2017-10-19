@@ -51,7 +51,7 @@ server_default = {
         "Threshold":          10000,
         "Transfer Limit":     1000,
         "Transfer Cooldown":  30,
-        "Version":            1.720
+        "Version":            1.721
         },
     "Memberships": {},
     "Players": {},
@@ -205,7 +205,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.720
+        self.patch = 1.721
 
     def create_account(self, user):
         server = user.server
@@ -576,7 +576,7 @@ class Casino(CasinoBank):
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = bot.loop.create_task(self.membership_updater())
-        self.version = "1.7.20"
+        self.version = "1.7.21"
         super().__init__(self.bot, "data/JumperCogs/casino/casino.json")
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2439,7 +2439,7 @@ class Casino(CasinoBank):
         memberships = settings["Memberships"]
         memberships_met = []
         # Loop through the memberships and their requirements
-        col = ((membership, path[membership]["Requirements"]) for membership in memberships)
+        col = [(m, req) for m in memberships for req in path[m]["Requirements"]]
         for membership, req in col:
             # If the requirement is role, run role logic
             if req == "Role":
