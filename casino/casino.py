@@ -51,7 +51,7 @@ server_default = {
         "Threshold":          10000,
         "Transfer Limit":     1000,
         "Transfer Cooldown":  30,
-        "Version":            1.721
+        "Version":            1.722
         },
     "Memberships": {},
     "Players": {},
@@ -2363,7 +2363,7 @@ class Casino(CasinoBank):
             count = cls.count_hand(dh)
 
         # defines maximum hit score X
-        while count < 16:
+        while count < 17:
             cls.draw_card(dh, deck)
             count = cls.count_hand(dh)
         return dh
