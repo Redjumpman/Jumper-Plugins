@@ -1,6 +1,6 @@
 {
     "AUTHOR" : "Redjumpman",
-    "INSTALL_MSG" : "Thank you for install the Jumper Cogs Repo! These cogs are in constant development. Please update regularly to get the latest additions.If you wish to contribute or post an issue please do so on my github:\nhttps://github.com/Redjumpman/Jumper-Cogs",
+    "INSTALL_MSG" : "Thank you for installing the Jumper Cogs Repo! These cogs are in constant development. Please update regularly to get the latest additions.If you wish to contribute or post an issue please do so on my github:\nhttps://github.com/Redjumpman/Jumper-Cogs",
     "NAME" : "Jumper Cogs",
     "SHORT" : "Gaming related cogs",
     "DESCRIPTION" : "Mini games that integrate with economy, some game info cogs, and cogs that provide utility to game servers."
