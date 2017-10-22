@@ -205,7 +205,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.721
+        self.patch = 1.722
 
     def create_account(self, user):
         server = user.server
@@ -576,7 +576,7 @@ class Casino(CasinoBank):
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = bot.loop.create_task(self.membership_updater())
-        self.version = "1.7.21"
+        self.version = "1.7.22"
         super().__init__(self.bot, "data/JumperCogs/casino/casino.json")
 
     @commands.group(pass_context=True, no_pm=True)
