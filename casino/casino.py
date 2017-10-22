@@ -51,7 +51,7 @@ server_default = {
         "Threshold":          10000,
         "Transfer Limit":     1000,
         "Transfer Cooldown":  30,
-        "Version":            1.721
+        "Version":            1.722
         },
     "Memberships": {},
     "Players": {},
@@ -205,7 +205,7 @@ class CasinoBank:
     def __init__(self, bot, file_path):
         self.memberships = dataIO.load_json(file_path)
         self.bot = bot
-        self.patch = 1.721
+        self.patch = 1.722
 
     def create_account(self, user):
         server = user.server
@@ -576,7 +576,7 @@ class Casino(CasinoBank):
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = bot.loop.create_task(self.membership_updater())
-        self.version = "1.7.21"
+        self.version = "1.7.22"
         super().__init__(self.bot, "data/JumperCogs/casino/casino.json")
 
     @commands.group(pass_context=True, no_pm=True)
@@ -2363,7 +2363,7 @@ class Casino(CasinoBank):
             count = cls.count_hand(dh)
 
         # defines maximum hit score X
-        while count < 16:
+        while count < 17:
             cls.draw_card(dh, deck)
             count = cls.count_hand(dh)
         return dh
