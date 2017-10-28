@@ -52,7 +52,7 @@ class Lottery:
         self.bot = bot
         self.file_path = "data/lottery/lottery.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "3.0.06"
+        self.version = "3.0.07"
 
     @commands.group(name="lottery", pass_context=True)
     async def lottery(self, ctx):
@@ -677,7 +677,7 @@ class Lottery:
         self.save_system()
 
         await self.bot.say("Congratulations {}, you can now start tracking your lottery stats. "
-                           "To view yourstats use the command "
+                           "To view your stats use the command "
                            "{}lottery stats.".format(author.name, ctx.prefix))
 
     @lottery.command(name="start", pass_context=True)
@@ -932,7 +932,7 @@ class Lottery:
                     "Role": "@everyone",
                     "Lottery ID": 0,
                     "Tracker": 0,
-                    "Version": 3.06
+                    "Version": 3.07
                 },
                 "Members": {},
                 "Players": {},
