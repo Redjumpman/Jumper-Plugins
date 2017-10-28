@@ -677,7 +677,7 @@ class Lottery:
         self.save_system()
 
         await self.bot.say("Congratulations {}, you can now start tracking your lottery stats. "
-                           "To view yourstats use the command "
+                           "To view your stats use the command "
                            "{}lottery stats.".format(author.name, ctx.prefix))
 
     @lottery.command(name="start", pass_context=True)
