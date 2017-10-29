@@ -34,7 +34,7 @@ class Pokedex:
 
     def __init__(self, bot):
         self.bot = bot
-        self.version = "2.4.01"
+        self.version = "2.4.02"
 
     @commands.group(pass_context=True)
     async def pokemon(self, ctx):
