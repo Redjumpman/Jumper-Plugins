@@ -12,7 +12,7 @@ class Language:
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
-
+    
     def __unload(self):
         self.session.close()
 
