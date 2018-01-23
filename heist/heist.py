@@ -498,7 +498,6 @@ class Heist:
             return await self.bot.say(msg)
 
         if not settings["Config"]["Heist Planned"]:
-            self.subtract_costs(author, cost)
             settings["Config"]["Heist Planned"] = True
             settings["Crew"][author.id] = {}
             await self.bot.say("A {4} is being planned by {0}\nThe {4} "
@@ -511,6 +510,7 @@ class Heist:
                                    "{} has been cancelled.".format(t_crew, t_heist))
                 self.reset_heist(settings)
             else:
+                self.subtract_costs(author, cost)
                 await self.heist_game(settings, server, t_heist, t_crew, t_vault)
 
         else:
