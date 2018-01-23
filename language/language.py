@@ -11,6 +11,10 @@ class Language:
 
     def __init__(self, bot):
         self.bot = bot
+        self.session = aiohttp.ClientSession()
+    
+    def __unload(self):
+        self.session.close()
 
     @commands.command(pass_context=True, no_pm=False)
     async def jisho(self, ctx, word):
@@ -25,7 +29,7 @@ class Language:
         message = urllib.parse.quote(query, encoding='utf-8')
         url = "http://jisho.org/api/v1/search/words?keyword=" + str(message)
         try:
-            async with aiohttp.get(url) as response:
+            async with self.session.get(url) as response:
                 data = await response.json()
 
             results = data["data"][:limit]
