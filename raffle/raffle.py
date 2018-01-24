@@ -78,9 +78,6 @@ class Raffle:
             msg = "You need to pick a number higher than 0"
         elif not self.raffle["Config"]["Active"]:
             msg = "There is not a raffle currently active"
-        elif not bank.can_spend(user, credits):
-            msg = ("You do not have enough points to purchase that many raffle tickets\nRaffle "
-                   "tickets cost {} points each.".format(ticket_cost))
         elif number > max_tickets and max_tickets != 0:
             msg = ("You can't purchase that many tickets. A maximum of {} tickets per "
                    "user.".format(max_tickets))
@@ -90,24 +87,34 @@ class Raffle:
                 msg = ("You can't purchase that many tickets. A maximum of {} tickets per user.\n "
                        "You currently have {} tickets.".format(max_tickets, user_tickets))
             else:
-                bank.withdraw_credits(user, credits)
-                self.raffle["Players"][user.id]["Tickets"] += [code] * number
-                self.raffle["Config"]["Tickets"] += [code] * number
-                user_tickets = len(self.raffle["Players"][user.id]["Tickets"])
-                self.raffle["Players"][user.id]["Total Tickets"] = user_tickets
-                msg = ("{} has purchased {} raffle tickets for "
-                       "{}".format(user.mention, number, credits))
-                dataIO.save_json(self.file_path, self.raffle)
+                try:
+                    bank.withdraw_credits(user, credits)
+                except:
+                    msg = ("You either do not have a bank account or can't afford the tickets.\n"
+                           "Raffle tickets cost {} points each.".format(ticket_cost))
+                else:
+                    self.raffle["Players"][user.id]["Tickets"] += [code] * number
+                    self.raffle["Config"]["Tickets"] += [code] * number
+                    user_tickets = len(self.raffle["Players"][user.id]["Tickets"])
+                    self.raffle["Players"][user.id]["Total Tickets"] = user_tickets
+                    msg = ("{} has purchased {} raffle tickets for "
+                           "{}".format(user.mention, number, credits))
+                    dataIO.save_json(self.file_path, self.raffle)
         else:
-            bank.withdraw_credits(user, credits)
-            self.raffle["Players"][user.id] = {}
-            self.raffle["Players"][user.id] = {"Tickets": []}
-            self.raffle["Players"][user.id]["Tickets"] += [code] * number
-            tickets_num = len(self.raffle["Players"][user.id]["Tickets"])
-            self.raffle["Players"][user.id]["Total Tickets"] = tickets_num
-            self.raffle["Config"]["Tickets"] += [code] * number
-            msg = "{} has purchased {} raffle tickets for {}".format(user.mention, number, credits)
-            dataIO.save_json(self.file_path, self.raffle)
+            try:
+                bank.withdraw_credits(user, credits)
+            except:
+                msg = ("You either do not have a bank account or can't afford the tickets.\nRaffle "
+                       "tickets cost {} points each.".format(ticket_cost))
+            else:
+                self.raffle["Players"][user.id] = {}
+                self.raffle["Players"][user.id] = {"Tickets": []}
+                self.raffle["Players"][user.id]["Tickets"] += [code] * number
+                tickets_num = len(self.raffle["Players"][user.id]["Tickets"])
+                self.raffle["Players"][user.id]["Total Tickets"] = tickets_num
+                self.raffle["Config"]["Tickets"] += [code] * number
+                msg = "{} has purchased {} raffle tickets for {}".format(user.mention, number, credits)
+                dataIO.save_json(self.file_path, self.raffle)
         await self.bot.say(msg)
 
     @_raffle.command(pass_context=True, no_pm=True)
