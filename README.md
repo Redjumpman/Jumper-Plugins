@@ -4,8 +4,6 @@
 
 # Jumper Cogs
 
-[<img align="right" src="http://i.imgur.com/oNPyK9t.png">](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML)
-
 These cogs are designed to work with Red Bot designed by Twentysix26 and the Cog Creators team.    
 Some cogs will require a third party library to work, so please read over my requirements.txt and the info.json file before using.  
 Please stay tuned for all the latest stuff from jumper-cogs on my [Dev Tracker](https://github.com/Redjumpman/Jumper-Cogs/issues/76)  
@@ -62,5 +60,4 @@ Aikaterna for the invaluable amount of testing he does
 
 ## License
 
-Please see MIT License for details. This project is open source and you are free to modify my work so long as you credit me.
-
+Please refer to the GNU General Public License for more details on my terms and conditions.
