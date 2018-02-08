@@ -41,8 +41,8 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.4.01"
-        self.patch = 2.41
+        self.version = "2.4.02"
+        self.patch = 2.42
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
     @commands.group(pass_context=True, no_pm=True)
@@ -400,7 +400,7 @@ class Heist:
                                "```{}```".format(t_sentence, remaining))
             return
 
-        msg = ("You served your time. Enjoy the fresh air of freedom while you can.")
+        msg = "You served your time. Enjoy the fresh air of freedom while you can."
 
         if oob:
             msg = "You are no longer on probation! 3x penalty removed."
@@ -498,6 +498,7 @@ class Heist:
             return await self.bot.say(msg)
 
         if not settings["Config"]["Heist Planned"]:
+            self.subtract_costs(author, cost)
             settings["Config"]["Heist Planned"] = True
             settings["Crew"][author.id] = {}
             await self.bot.say("A {4} is being planned by {0}\nThe {4} "
@@ -510,7 +511,6 @@ class Heist:
                                    "{} has been cancelled.".format(t_crew, t_heist))
                 self.reset_heist(settings)
             else:
-                self.subtract_costs(author, cost)
                 await self.heist_game(settings, server, t_heist, t_crew, t_vault)
 
         else:
@@ -565,7 +565,8 @@ class Heist:
         self.save_system()
         await self.bot.say("Now setting the message output type to {}.".format(output))
 
-    def message_handler(self, settings, crew, players):
+    @staticmethod
+    def message_handler(settings, crew, players):
         message_type = settings["Config"]["Crew Output"]
         if message_type == "Short":
             name_list = '\n'.join(player.name for player in players[:5])
@@ -786,7 +787,8 @@ class Heist:
         success_chance = int(success_rate) + bonus
         return success_chance
 
-    def calculate_bonus(self, settings, target):
+    @staticmethod
+    def calculate_bonus(settings, target):
         max_crew = settings["Targets"][target]["Crew"]
         crew = len(settings["Crew"])
         percent = int(100 * crew / max_crew)
@@ -816,7 +818,8 @@ class Heist:
         self.save_system()
         return results
 
-    def get_theme(self, settings):
+    @staticmethod
+    def get_theme(settings):
         theme = settings["Config"]["Theme"]
         with open('data/heist/{}.txt'.format(theme)) as f:
             data = f.readlines()
@@ -853,7 +856,7 @@ class Heist:
             sentence = sentence_base * offenses
             bail = bail_base * offenses
             if settings["Players"][user.id]["OOB"]:
-                bail = bail * 3
+                bail *= 3
 
             settings["Players"][user.id]["Status"] = "Apprehended"
             settings["Players"][user.id]["Bail Cost"] = bail
@@ -865,7 +868,8 @@ class Heist:
         else:
             self.run_death(settings, user)
 
-    def heist_target(self, settings, crew):
+    @staticmethod
+    def heist_target(settings, crew):
         groups = sorted([(x, y["Crew"]) for x, y in settings["Targets"].items()], key=itemgetter(1))
         crew_sizes = [x[1] for x in groups]
         breakpoints = [x for x in crew_sizes if x != max(crew_sizes)]
@@ -1010,7 +1014,8 @@ class Heist:
             time_remaining = self.time_format(seconds)
             return time_remaining
 
-    def time_format(self, seconds):
+    @staticmethod
+    def time_format(seconds):
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
         data = PluralDict({'hour': h, 'minute': m, 'second': s})
@@ -1038,14 +1043,16 @@ class Heist:
         bank = self.bot.get_cog('Economy').bank
         amount = settings["Config"]["Heist Cost"]
         if bank.account_exists(user):
-            if bank.can_spend(user, amount):
-                return True
-            else:
+            try:
+                if bank.can_spend(user, amount):
+                    return True
+                else:
+                    return False
+            except:
                 return False
-        else:
-            return False
 
-    def criminal_level(self, level):
+    @staticmethod
+    def criminal_level(level):
         status = ["Greenhorn", "Renegade", "Veteran", "Commander", "War Chief", "Legend",
                   "Immortal"]
         breakpoints = [1, 10, 25, 50, 75, 100]
@@ -1092,7 +1099,7 @@ class Heist:
                                   "Wait Time": 20, "Hardcore": False, "Police Alert": 60,
                                   "Alert Time": 0, "Sentence Base": 600, "Bail Base": 500,
                                   "Death Timer": 86400, "Theme": "Heist", "Crew Output": "None",
-                                  "Version": 2.41},
+                                  "Version": 2.42},
                        "Theme": {"Jail": "jail", "OOB": "out on bail", "Police": "Police",
                                  "Bail": "bail", "Crew": "crew", "Sentence": "sentence",
                                  "Heist": "heist", "Vault": "vault"},
