@@ -354,10 +354,10 @@ class Shop:
         user = ctx.message.author
         settings = self.check_server_settings(user.server)
         item = item.title()
-        quantity = settings["Shop List"][item]["Quantity"]
         if item not in settings["Shop List"]:
-            msg = "That item is not in the shop."
-        elif quantity == "∞" or len(settings["Shop List"][item]["Buy Msg"]) < int(quantity):
+            return await self.bot.say("That item is not in the shop.")
+        quantity = settings["Shop List"][item]["Quantity"]
+        if quantity == "∞" or len(settings["Shop List"][item]["Buy Msg"]) < int(quantity):
             await self.bot.whisper("What msg do you want users to receive when purchasing, "
                                    "{}?".format(item))
             response = await self.bot.wait_for_message(timeout=25, author=user)
@@ -1001,11 +1001,13 @@ class Shop:
             await self.bot.say("You do not have a bank account.")
             return False
 
-    def role_check(self, role, ctx):
+    @staticmethod
+    def role_check(role, ctx):
         return [m.name for m in ctx.message.server.members if role.lower() in [str(r).lower()
                 for r in m.roles] and str(m.status) != "offline"]
 
-    def bordered(self, text):
+    @staticmethod
+    def bordered(text):
         lines = text.splitlines()
         width = max(len(s) + 9 for s in lines)
         res = ["+" + "-" * width + '+']
@@ -1014,7 +1016,8 @@ class Shop:
         res.append("+" + "-" * width + "+")
         return "\n".join(res)
 
-    def time_format(self, seconds):
+    @staticmethod
+    def time_format(seconds):
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
         if h > 0:
@@ -1060,7 +1063,8 @@ class Shop:
                                           "Trade Cooldown": 0, "Member": False}
             dataIO.save_json(self.file_path, self.system)
 
-    def discount_calc(self, settings, itemname, quantity):
+    @staticmethod
+    def discount_calc(settings, itemname, quantity):
         base_cost = settings["Shop List"][itemname]["Item Cost"]
         discount = settings["Shop List"][itemname]["Discount"]
         if discount > 0:
@@ -1193,7 +1197,7 @@ def check_folders():
 
 def check_files():
     default = {"Servers": {},
-               "Version": "2.2.9"
+               "Version": "2.2.10"
                }
 
     f = "data/JumperCogs/shop/system.json"
