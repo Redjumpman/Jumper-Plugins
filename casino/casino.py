@@ -13,8 +13,8 @@ from collections import namedtuple
 # Red
 from redbot.core.i18n import CogI18n
 from redbot.core import Config, bank
-from redbot.cogs.casino import utils
-from redbot.cogs.casino.deck import Deck
+from . import utils
+from .deck import Deck
 
 # Discord
 import discord
