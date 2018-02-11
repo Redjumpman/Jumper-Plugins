@@ -20,13 +20,13 @@
 </p>
 
 <p align="center">
-  <a href="#Overview">Overview</a> •
-  <a href="#Installation">Installation</a> •
+  <a href="#overview">Overview</a> •
+  <a href="#installation">Installation</a> •
   <a href="https://github.com/Redjumpman/Jumper-Cogs/projects">Roadmap</a> •
   <a href="https://github.com/Redjumpman/Jumper-Cogs/wiki">Documentation</a> •
-  <a href="#Features">Features</a> •
-  <a href="#Support">Support</a> •
-  <a href="#Credit">Credit</a>
+  <a href="#features">Features</a> •
+  <a href="#support">Support</a> •
+  <a href="#credit">Credit</a>
 </p>
 
 ---
@@ -36,12 +36,12 @@ The plugins in this repo are designed to work only for Red-DiscordBot. Most of t
 # Installation
 First make sure you have [Red Bot V3](https://github.com/Cog-Creators/Red-DiscordBot/tree/V3/develop) installed.
 
-Next add my repo using the following command `[p]repo add JumperCogs https://github.com/Redjumpman/Jumper-Cogs V3`  
+Next add my repo using the following command `[p]repo add jumpercogs https://github.com/Redjumpman/Jumper-Cogs V3`  
 [p] will be your prefix.
 
 Next, you will have to download each cog individually. For example, if you want to download Casino, you would enter the following command:
 
-`>cog install JumperCogs casino`
+`>cog install jumpercogs casino`
 
 Make sure that you use the `[p]cog update` command to periodically update my cogs. This will ensure that you are getting the latest bug fixes and features. You may also update a specific cog by typing `[p]cog update casino`.
 
