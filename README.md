@@ -12,7 +12,7 @@
   <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML">
     <img src="https://img.shields.io/badge/paypal-donate-red.svg">
   </a>
-  <a href="http://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg"><img src="http://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg">
+  <a href="https://www.python.org/downloads/release/python-355/"><img src="https://img.shields.io/badge/Made%20With-Python%203.5-blue.svg?style=for-the-badge">
 </a>
   <a href="https://github.com/Cog-Creators/Red-DiscordBot">
       <img src="https://img.shields.io/badge/Discord-Red%20Bot-red.svg">
