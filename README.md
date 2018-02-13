@@ -1,4 +1,5 @@
- [![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)](https://www.python.org/downloads/) 
+[![PyPI](https://img.shields.io/badge/Python-3.5-blue.svg)](https://www.python.org/downloads/) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FRedjumpman%2FJumper-Cogs.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FRedjumpman%2FJumper-Cogs?ref=badge_shield)
+
  [![PayPal donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML) 
 [![Red Bot](https://img.shields.io/badge/Discord-Red%20Bot-red.svg)](https://github.com/Twentysix26/Red-DiscordBot)
 
@@ -61,3 +62,6 @@ Aikaterna for the invaluable amount of testing he does
 ## License
 
 Please refer to the GNU General Public License for more details on my terms and conditions.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FRedjumpman%2FJumper-Cogs.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FRedjumpman%2FJumper-Cogs?ref=badge_large)
