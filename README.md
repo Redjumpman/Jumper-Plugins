@@ -60,4 +60,4 @@ Aikaterna for the invaluable amount of testing he does
 
 ## License
 
-Please refer to the GNU General Public License for more details on my terms and conditions.
+Please refer to the GNU General Public License v3.0 for more details on my terms and conditions.
