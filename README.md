@@ -24,7 +24,7 @@
   <a href="#installation">Installation</a> •
   <a href="https://github.com/Redjumpman/Jumper-Cogs/projects">Roadmap</a> •
   <a href="https://github.com/Redjumpman/Jumper-Cogs/wiki">Documentation</a> •
-  <a href="#features">Features</a> •
+  <a href="#plugins">Plugins</a> •
   <a href="#support">Support</a> •
   <a href="#credit">Credit</a>
 </p>
@@ -46,19 +46,19 @@ Next, you will have to download each cog individually. For example, if you want 
 Make sure that you use the `[p]cog update` command to periodically update my cogs. This will ensure that you are getting the latest bug fixes and features. You may also update a specific cog by typing `[p]cog update casino`.
 
 
-# Features
-* Anime List - Retrieves information on anime/manga via My Anime List as well as mal profiles.  
-* Casino - Provides a casino betting game.
-* Cookie - A game where cats steal cookies from other users.
-* Coupon - Creates coupon codes that are redeem-able for credits.
-* Dicetable - A dice rolling plugin that can roll several types of die at once.
-* Heist - A bank robbery style game inspired by deepbot.
-* Language - A translate and look-up plugin for Japanese.
-* Lottery - Hosts lotteries and allows for several different conditions.
-* Pokedex - Look-up pokemon, catch locations, tms, movesets, and more.
-* Race - Allows users to bet and race animals.
-* Russian Roulette - A traditional game of russian roulette integrated with Economy.
-* Shop - A plugin that allows items to be bought and sold.
+# Plugins
+
+| ![Casino](https://i.imgur.com/vkpfJug.png) 	| ![Heist](https://i.imgur.com/r1ln0DH.png) 	| ![Pokedex](https://i.imgur.com/9PDfJi1.png) 	| ![Shop](https://cdn3.iconfinder.com/data/icons/shopping-icons-14/128/17_Store-128.png) 	| ![Race](https://i.imgur.com/RtDpIqP.png) 	|
+|--------------------------------------------	|-------------------------------------------	|---------------------------------------------	|----------------------------------------------------------------------------------------	|------------------------------------------	|
+| [Casino](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino-RedV3) 	| [Heist](https://github.com/Redjumpman/Jumper-Cogs/wiki/Heist) 	| [Pokedex](https://github.com/Redjumpman/Jumper-Cogs/wiki/Pokedex) 	| [Shop](https://github.com/Redjumpman/Jumper-Cogs/wiki/Shop-System) 	| [Race]() 	|
+
+| ![Anime List](https://i.imgur.com/nq0RLrd.png) 	| ![Cookie](https://i.imgur.com/K7d1Bnj.png) 	| ![Lottery](https://i.imgur.com/AoOjGnp.png) 	| ![Russian Roulette](https://i.imgur.com/c8AUxpF.png) 	| ![Raffle](https://i.imgur.com/nFEY62O.png) 	|
+|------------------------------------------------	|--------------------------------------------	|---------------------------------------------	|------------------------------------------------------	|--------------------------------------------	|
+| [Anime List](https://github.com/Redjumpman/Jumper-Cogs/wiki/Animelist) 	| [Cookie]() 	| [Lottery](https://github.com/Redjumpman/Jumper-Cogs/wiki/Lottery) 	| [Russian Roulette](https://github.com/Redjumpman/Jumper-Cogs/wiki/Russianroulette) 	| [Raffle](https://github.com/Redjumpman/Jumper-Cogs/wiki/Raffle) 	|
+
+| ![Coupon](https://i.imgur.com/mEfCe2G.png) 	| ![Dice Table](https://i.imgur.com/0kIaU1s.png) 	| ![Coupon](https://i.imgur.com/1oDD3T9.png) 	|
+|--------------------------------------------	|------------------------------------------------	|--------------------------------------------	|
+| [Language](https://github.com/Redjumpman/Jumper-Cogs/wiki/Language) 	| [Dice Table](https://github.com/Redjumpman/Jumper-Cogs/wiki/Dicetable) 	| [Coupon](https://github.com/Redjumpman/Jumper-Cogs/wiki/Coupon) 	|
 
 # Support
 If you have an issue with one of my cogs, then create an issue. **DO NOT DM ME ON DISCORD.** I get a ton of DMs and I can't manage to answer all of them. Posting an issue will be the fastest way for me to resolve your problem. If you have questions about a particular cog feel free to talk to me via my [support channel](https://discord.gg/c6HQUb7). I receive notifications for that channel and will respond as soon as I am able. 
