@@ -1,4 +1,5 @@
 from collections import Sequence
+import discord
 
 
 class PluralDict(dict):
@@ -87,3 +88,9 @@ def time_formatter(seconds):
     else:
         msg = "None"
     return msg
+
+
+def build_embed(msg, game):
+    embed = discord.Embed(colour=0xFF0000, description=msg)
+    embed.title = "Casino | {}".format(game)
+    return embed
