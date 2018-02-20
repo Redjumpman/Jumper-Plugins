@@ -37,10 +37,14 @@ class Deck:
         except KeyError:
             return card[0]
 
-    def bj_count(self, hand: list):
+    def bj_count(self, hand: list, hole=False):
         hand = self._hand_type(hand)
-        count = sum([self.bj_vals[y] if isinstance(y, str) else y for x, y in hand])
+        if hole:
+            card = hand[0][1]
+            count = self.bj_vals[card] if isinstance(card, str) else card
+            return count if count > 0 else 11
 
+        count = sum([self.bj_vals[y] if isinstance(y, str) else y for x, y in hand])
         for x in hand:
             if x[1] == 'Ace' and count + 11 > 21:
                 count += 1
