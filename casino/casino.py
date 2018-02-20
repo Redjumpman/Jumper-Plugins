@@ -23,7 +23,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.0"
+__version__ = "2.0.4"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -627,9 +627,9 @@ class Casino(Data):
             return await ctx.send(_("This user has no assigned membership."))
         else:
             await instance.Membership.Assigned.set(False)
-        return await ctx.send(_("{} has unassigned {}'s membership. It will now calculate "
-                                "based on the requirements set for that "
-                                "membership.").format(author.name, user.name))
+        return await ctx.send(_("{} has unassigned {}'s membership. It will calculate "
+                                "the appropriate membership during the next cycle."
+                                "").format(author.name, user.name))
 
     @casino.command()
     @global_permissions()
@@ -727,7 +727,7 @@ class Casino(Data):
     @guild_required_or_global()
     async def memprocess(self, ctx: commands.Context):
         """A process to create, edit, and delete memberships."""
-        timeout = ctx.send(_("Process timed out. Exiting membership process. "))
+        timeout = ctx.send(_("Process timed out. Exiting membership process."))
 
         await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
 
@@ -1186,12 +1186,12 @@ class Engine(Data):
             return msg
 
     async def game_teardown(self, result):
-        win, amount, msg = result
+        win, amount, embed = result
         if not win:
             bal_msg = await self.get_bal_msg()
-            loss = _("{}\n{}\nSorry, you didn't win anything.\n{}").format(self.player.mention,
-                                                                           msg, bal_msg)
-            return await self.ctx.send(loss)
+            loss = _("Sorry, you didn't win anything.\n{}").format(bal_msg)
+            embed.add_field(name='-' * 90, value=loss)
+            return await self.ctx.send(self.player.mention, embed=embed)
 
         coro = await super().get_instance(self.ctx, settings=True)
         settings = await coro.Settings.all()
@@ -1199,29 +1199,32 @@ class Engine(Data):
         await self.stats_update(method='Won')
 
         if self.limit_check(settings, amount):
-            return await self.limit_handler(msg, amount, player_instance, coro)
+            return await self.limit_handler(embed, amount, player_instance, coro)
 
         if self.game == 'Allin':
             await self.deposit_winnings(amount, player_instance, coro)
             bal_msg = await self.get_bal_msg()
-            return await self.ctx.send("{}\n{}\n{}".format(self.player.mention, msg, bal_msg))
+            txt = "{}".format(bal_msg)
+            embed.add_field(name='-' * 90, value=txt)
+            return await self.ctx.send(self.player.mention, embed=embed)
         else:
             total, bonus = await self.deposit_winnings(amount, player_instance, coro)
             currency = await bank.get_currency_name(self.guild)
             bal_msg = await self.get_bal_msg()
-            return await self.ctx.send(_("{}\n{}\nCongratulations, you just won {} {} {}!\n"
-                                         "{}").format(self.player.mention, msg, total, bonus,
-                                                      currency, bal_msg))
+            txt = _("Congratulations, you just won {} {} {}!\n"
+                    "{}").format(total, bonus, currency, bal_msg)
+            embed.add_field(name='-' * 90, value=txt)
+            return await self.ctx.send(self.player.mention, embed=embed)
 
     async def get_bal_msg(self):
         balance = await bank.get_balance(self.player)
-        bal_msg = _("```Python\nRemaining Balance: {0:g}```").format(balance)
+        bal_msg = _("**Remaining Balance:** {0:g}").format(balance)
         return bal_msg
 
-    async def limit_handler(self, msg, amount, player_instance, coro):
+    async def limit_handler(self, embed, amount, player_instance, coro):
         await player_instance.Pending.set(amount)
 
-        await self.ctx.send(msg)
+        await self.ctx.send(self.player.mention, embed=embed)
         limit = await coro.Settings.Payout_Limit()
         msg = _("{} Your winnings exceeded the maximum credit limit allowed ({}). The amount "
                 "of {} credits will be pending on your account until reviewed. Until an "
@@ -1659,7 +1662,7 @@ class Core:
     async def play_allin(self, ctx, bet, multiplier):
         await ctx.send(_("You put all your chips into the machine and pull the lever..."))
         await asyncio.sleep(3)
-        outcome = random.randint(0, multiplier + 1)
+        outcome = random.randint(0, 0)
         if outcome == 0:
             msg = "```Python\n"
             msg += "▂▃▅▇█▓▒░ [♠]  [♥]  [♦]  [♣] ░▒▓█▇▅▃▂\n"
@@ -1668,21 +1671,24 @@ class Core:
             bet *= multiplier
         else:
             msg = _("Nothing happens. You stare at the machine contemplating your decision.")
-        return outcome == 0, bet, msg
+        embed = utils.build_embed(msg, "Allin")
+        return outcome == 0, bet, embed
 
     @game_engine("Coin", (_("heads"), _("tails")))
     async def play_coin(self, ctx, bet, choice):
         await ctx.send(_("The coin flips into the air..."))
         await asyncio.sleep(2)
         outcome = random.choice((_("heads"), _("tails")))
-        return choice.lower() in outcome, bet, _("The coin landed on {}!").format(outcome)
+        embed = utils.build_embed(_("The coin landed on {}!").format(outcome), "Coin")
+        return choice.lower() in outcome, bet, embed
 
     @game_engine("Cups", ('1', '2', '3'))
     async def play_cups(self, ctx, bet, choice):
         await ctx.send(_("The cups start shuffling along the table..."))
         await asyncio.sleep(3)
         outcome = random.randint(1, 3)
-        return int(choice) == outcome, bet, _("The coin was under cup {}!").format(outcome)
+        embed = utils.build_embed(_("The coin was under cup {}!").format(outcome), "Cups")
+        return int(choice) == outcome, bet, embed
 
     @game_engine("Dice")
     async def play_dice(self, ctx, bet):
@@ -1694,7 +1700,8 @@ class Core:
         outcome = die_one + die_two
 
         msg = _("The dice landed on {} and {} ({}).").format(die_one, die_two, outcome)
-        return outcome in (2, 7, 11, 12), bet, msg
+        embed = utils.build_embed(msg, "Dice")
+        return outcome in (2, 7, 11, 12), bet, embed
 
 
 class Craps:
@@ -1714,31 +1721,33 @@ class Craps:
 
         if comeout == 7:
             bet *= 7
-            return True, bet, msg.format(d1, d2)
+            return True, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
         elif comeout == 11:
-            return True, bet, msg.format(d1, d2)
+            return True, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
         elif comeout in (2, 3, 12):
-            return False, bet, msg.format(d1, d2)
+            return False, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
         await ctx.send("{}\nI will keep rolling the dice until you match your comeout roll or "
-                       "you crap out by rolling a 7 or 11".format(msg.format(d1, d2)))
-        await asyncio.sleep(2)
+                       "you crap out by rolling a 7 or 11.".format(msg.format(d1, d2)))
+        await asyncio.sleep(5)
         return await self.point_loop(ctx, bet, comeout, roll_msg, msg)
 
     async def point_loop(self, ctx, bet, comeout, roll_msg, msg):
         count = 0
         while True:
-            m = _("Point: {}").format(comeout)
+            m = _("**Point:** {}").format(comeout)
             if count > 0:
-                m += _(" Rolling again.")
+                m += _("\nRolling again.")
                 await asyncio.sleep(2)
+            count += 1
             await ctx.send("{}\n{}".format(m, roll_msg))
             await asyncio.sleep(2)
             d1, d2 = self.roll_dice()
-            roll = d1 + d2
-            if roll == comeout:
-                return True, bet, msg.format(d1, d2)
-            elif roll in (7, 11):
-                return False, bet, msg.format(d1, d2)
+            await ctx.send(_("You rolled a {} and {}").format(d1, d2))
+            if (d1 + d2) == comeout or (d1 + d2) in (7, 11) or count >= 3:
+                if count >= 3:
+                    msg += "\nYou automatically lost, because you exceeded the 3 re-roll limit."
+                return (d1 + d2) == comeout, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
+            await asyncio.sleep(1)
 
     @staticmethod
     def roll_dice():
@@ -1756,17 +1765,19 @@ class Blackjack(Data):
 
     @game_engine(name="Blackjack")
     async def play(self, ctx, bet):
-        dhand = self.dealer()
-        ph, dh, amt = await self.blackjack_game(ctx, dhand, ctx.author, bet)
-        result = await self.blackjack_results(ctx, ctx.author, amt, ph, dh)
+        instance = await super().get_instance(ctx, settings=True)
+        casino_name = await instance.Settings.Casino_Name()
+        ph, dh, amt = await self.blackjack_game(ctx, casino_name, bet)
+        result = await self.blackjack_results(ctx, amt, ph, dh, casino_name)
         return result
 
-    async def blackjack_game(self, ctx, dh, author, amount):
+    async def blackjack_game(self, ctx, casino_name, amount):
         ph = deck.deal(num=2)
-        count = deck.bj_count(ph)
+        ph_count = deck.bj_count(ph)
+        dh = deck.deal(num=2)
 
         # End game if player has 21
-        if count == 21:
+        if ph_count == 21:
             return ph, dh, amount
 
         def condition1(m):
@@ -1776,76 +1787,48 @@ class Blackjack(Data):
         def condition2(m):
             return m.author == ctx.author and m.content.lower() in (_("hit"), _("stay"))
 
-        await ctx.send(_("{}\nYour cards: {}\nYour score: {}\nDealer is showing: "
-                         "{}\nHit, stay, or double?"
-                         "").format(author.mention, ", ".join(deck.fmt_hand(ph)), count,
-                                    deck.fmt_card(dh[0])))
+        embed = self.bj_embed(ctx, casino_name, ph, dh, ph_count, initial=True)
+        await ctx.send(ctx.author.mention, embed=embed)
 
         try:
-            choice = await ctx.bot.wait_for('message', check=condition1, timeout=15.0)
+            choice = await ctx.bot.wait_for('message', check=condition1, timeout=35.0)
         except asyncio.TimeoutError:
             return ph, dh, amount
 
         if choice.content.lower() == _("stay"):
             return ph, dh, amount
 
-        elif choice.content.lower() == _("double"):
-            try:
-                await bank.withdraw_credits(author, amount)
-            except ValueError:
-                await ctx.send(_("You can not cover the bet. Please choose hit or stay."))
-
-                try:
-                    choice2 = await ctx.bot.wait_for('message', check=condition2, timeout=15.0)
-                except asyncio.TimeoutError:
-                    return ph, dh, amount
-
-                if choice2.content.lower() == _("stay"):
-                    return ph, dh, amount
-                elif choice2.content.title() == _("Hit"):
-                    ph, dh = await self.bj_loop(ctx, ph, dh, count, author, condition2)
-                    return ph, dh, amount
-            else:
-                deck.deal(hand=ph)
-                amount *= 2
-                return ph, dh, amount
+        if choice.content.lower() == _("double"):
+            return await self.double_down(ctx, ph, dh, amount, condition2, casino_name)
         else:
-            ph, dh = await self.bj_loop(ctx, ph, dh, count, author, condition2)
+            ph, dh = await self.bj_loop(ctx, ph, dh, ph_count, condition2, casino_name)
             return ph, dh, amount
 
-    @staticmethod
-    async def bj_loop(ctx, ph, dh, count, author, condition2):
-        while count < 21:
-            ph = deck.deal(hand=ph)
-            count = deck.bj_count(hand=ph)
+    async def double_down(self, ctx, ph, dh, amount, condition2, casino_name):
+        try:
+            await bank.withdraw_credits(ctx.author, amount)
+        except ValueError:
+            await ctx.send(_("{} You can not cover the bet. Please choose "
+                             "hit or stay.").format(ctx.author.mention))
 
-            if count >= 21:
-                break
-            msg = _("{}\nYour cards: {}\nYour score: {}\nThe dealer shows: {}\nHit or stay?"
-                    "").format(author.mention, ", ".join(deck.fmt_hand(ph)), count,
-                               deck.fmt_card(dh[0]))
-            await ctx.send(msg)
             try:
-                resp = await ctx.bot.wait_for("message", check=condition2, timeout=15.0)
+                choice2 = await ctx.bot.wait_for('message', check=condition2, timeout=35.0)
             except asyncio.TimeoutError:
-                break
+                return ph, dh, amount
 
-            if resp.content.lower() == _("stay"):
-                break
-            else:
-                continue
+            if choice2.content.lower() == _("stay"):
+                return ph, dh, amount
+            elif choice2.content.title() == _("Hit"):
+                ph, dh = await self.bj_loop(ctx, ph, dh, count, condition2, casino_name)
+                return ph, dh, amount
+        else:
+            deck.deal(hand=ph)
+            amount *= 2
+            return ph, dh, amount
 
-        # Return player hand & dealer hand when count >= 21 or the player picks stay.
-        return ph, dh
-
-    async def blackjack_results(self, ctx, author, amount, ph, dh):
+    async def blackjack_results(self, ctx, amount, ph, dh, casino_name):
         dc = deck.bj_count(dh)
         pc = deck.bj_count(ph)
-        hand1 = 'Your hand: {}'.format(", ".join(deck.fmt_hand(ph)))
-        hand2 = 'Dealer\'s hand: {}'.format(", ".join(deck.fmt_hand(dh)))
-        header = "{0}".format('=' * (int(max(len(hand1), len(hand2)) / 2)))
-        msg = _("{}\n{}\n{}\nYour score: {}\n{}\nDealer's "
-                "score: {}\n").format(header, author.mention, hand1, pc, hand2, dc)
 
         if dc > 21 >= pc or dc < pc <= 21:
             outcome = _("Winner!")
@@ -1863,15 +1846,34 @@ class Blackjack(Data):
         else:
             outcome = _("House Wins!")
             result = False
-        msg += 'Result: {}\n'.format(outcome)
-        msg += header
-        return result, amount, msg
+        embed = self.bj_embed(ctx, casino_name, ph, dh, pc, outcome=outcome)
+        return result, amount, embed
+
+    async def bj_loop(self, ctx, ph, dh, count, condition2, casino_name):
+        while count < 21:
+            ph = deck.deal(hand=ph)
+            count = deck.bj_count(hand=ph)
+
+            if count >= 21:
+                break
+            embed = self.bj_embed(ctx, casino_name, ph, dh, count, initial=False)
+            await ctx.send(ctx.author.mention, embed=embed)
+            try:
+                resp = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
+            except asyncio.TimeoutError:
+                break
+
+            if resp.content.lower() == _("stay"):
+                break
+            else:
+                continue
+
+        # Return player hand & dealer hand when count >= 21 or the player picks stay.
+        return ph, dh
 
     @staticmethod
-    def dealer():
-        dh = deck.deal(num=2)
+    def dealer(dh):
         count = deck.bj_count(dh)
-
         # forces hit if ace in first two cards without 21
         if deck.hand_check(dh, 'Ace') and count != 21:
             deck.deal(hand=dh)
@@ -1881,7 +1883,28 @@ class Blackjack(Data):
         while count < 16:
             deck.deal(hand=dh)
             count = deck.bj_count(dh)
-        return dh
+        return dh, count
+
+    @staticmethod
+    def bj_embed(ctx, casino_name, ph, dh, count1, initial=False, outcome=None):
+        hand = _("{}\n**Score:** {}")
+        footer = _("Cards in Deck: {}")
+        start = _("**Options:** hit, stay, or double")
+        after = _("**Options:** hit or stay")
+        options = "**Outcome:** " + outcome if outcome else start if initial else after
+        count2 = deck.bj_count(dh, hole=True) if not outcome else deck.bj_count(dh)
+        hole = " ".join(deck.fmt_hand([dh[0]]))
+        dealer_hand = hole if not outcome else ", ".join(deck.fmt_hand(dh))
+
+        embed = discord.Embed(colour=0xFF0000)
+        embed.title = _("{} Casino | Blackjack").format(casino_name)
+        embed.add_field(name=_("{}'s Hand").format(ctx.author.name),
+                        value=hand.format(", ".join(deck.fmt_hand(ph)), count1))
+        embed.add_field(name=_("{}'s Hand").format(ctx.bot.user.name),
+                        value=hand.format(dealer_hand, count2))
+        embed.add_field(name='\u200b', value=options, inline=False)
+        embed.set_footer(text=footer.format(len(deck)))
+        return embed
 
 
 class Hilo:
@@ -1897,11 +1920,12 @@ class Hilo:
         result = die_one + die_two
         outcome = self.hilo_lookup(result)
         msg = _("The outcome was {} ({[0]})!").format(result, outcome)
+        embed = utils.build_embed(msg, "Hilo")
 
         if outcome == result == 7:
             bet *= 5
 
-        return choice.lower() in outcome, bet, msg
+        return choice.lower() in outcome, bet, embed
 
     @staticmethod
     def hilo_lookup(result):
@@ -1948,7 +1972,7 @@ class War:
                          "be pushed.").format(deck.fmt_card(player_card)))
 
         try:
-            choice = await ctx.bot.wait_for('message', check=condition, timeout=15.0)
+            choice = await ctx.bot.wait_for('message', check=condition, timeout=35.0)
         except asyncio.TimeoutError:
             return "Surrender", player_card, dealer_card, bet
 
@@ -1971,19 +1995,20 @@ class War:
 
     @staticmethod
     async def war_results(outcome, player_card, dealer_card, amount):
-        msg = _("====================\nPlayer Card: {}\nDealer Card: {}\n"
+        msg = _("**Player Card:** {}\n**Dealer Card:** {}\n"
                 "").format(deck.fmt_card(player_card), deck.fmt_card(dealer_card))
         if outcome == "Win":
-            msg += _("**\*\*\*\*\*\*Winner!\*\*\*\*\*\***")
+            msg += _("**Result**: Winner")
             result = True
 
         elif outcome == "Loss":
-            msg += _("======House Wins!======")
+            msg += _("**Result**: Loser")
             result = False
         else:
-            msg += _("==========:flag_white: Surrendered :flag_white:==========")
+            msg += _("**Result**: Surrendered")
             result = False
-        return result, amount, msg
+        embed = utils.build_embed(msg, 'War')
+        return result, amount, embed
 
     @staticmethod
     def get_count(pc, dc):
