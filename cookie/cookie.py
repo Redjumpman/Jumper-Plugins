@@ -181,6 +181,7 @@ class Cookie:
         if settings["Players"][user.id]["Cookies"] == 0:
             msg = ("ω(=｀ｪ ´=)ω Nyaa! Neko-chan is sorry, nothing but crumbs in this human's "
                    ":cookie: jar!")
+            return msg
         else:
             if success_chance <= 90:
                 cookie_jar = settings["Players"][user.id]["Cookies"]
