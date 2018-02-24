@@ -4,7 +4,7 @@
 
 # Jumper Plugins
 
-These plugins are designed to work with Red Bot designed by Twentysix26 and the Plugin Creators team.    
+These plugins are designed to work with Red Bot designed by Twentysix26 and the Core Developer team.    
 Some plugins will require a third party library to work, so please read over my requirements.txt and the info.json file before using.  
 Please stay tuned for all the latest stuff from jumper-plugins on my [Dev Tracker](https://github.com/Redjumpman/Jumper-plugins/issues/76)  
 If you wish to donate please click on the donation jar. TY :D  
