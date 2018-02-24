@@ -1,8 +1,9 @@
 {
-    "AUTHOR" : "Redjumpman (Redjumpman#1337)",
-    "INSTALL_MSG" : "Thank you for installing my repo.\nFor issues/bugs/suggestions contact me in the discord support server here: https://discord.gg/c6HQUb7\nFor more information on my cogs go to my github here: https://github.com/Redjumpman/Jumper-Cogs/tree/V3",
-    "NAME" : "JumperCogs",
-    "SHORT" : "Games and community development plugins.",
-    "DESCRIPTION" : "Contains several games for the community such has Casino, Heist, and Race. Also contains community tools like lottery and shop.",
-    "TAGS" : ["Games", "Economy", "Fun"]
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing my repo.\nFor issues/bugs/suggestions contact me in the discord support server here: https://discord.gg/c6HQUb7\nFor more information on my cogs go to my github here: https://github.com/Redjumpman/Jumper-Cogs/tree/V3",
+    "name" : "JumperCogs",
+    "short" : "Games and community development plugins.",
+    "requirements" : ["tabulate"],
+    "description" : "Contains several games for the community such has Casino, Heist, and Race. Also contains community tools like lottery and shop.",
+    "tags" : ["Games", "Economy", "Fun"]
 }
