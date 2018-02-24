@@ -2,7 +2,7 @@
  [![PayPal donate button](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML) 
 [![Red Bot](https://img.shields.io/badge/Discord-Red%20Bot-red.svg)](https://github.com/Twentysix26/Red-DiscordBot)
 
-# Jumper Cogs
+# Jumper Plugins
 
 These cogs are designed to work with Red Bot designed by Twentysix26 and the Cog Creators team.    
 Some cogs will require a third party library to work, so please read over my requirements.txt and the info.json file before using.  
