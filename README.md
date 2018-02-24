@@ -2,7 +2,7 @@
   <br>
   <a href="https://github.com/Redjumpman/Jumper-Cogs/"><img src="http://pressthebuttons.typepad.com/.a/6a00d83452033569e2011570acd014970b-800wi" alt="Jumper Cogs" width="200"></a>
   <br>
-  Jumper Cogs
+  Jumper Plugins
   <br>
 </h1>
 
