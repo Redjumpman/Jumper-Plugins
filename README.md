@@ -4,7 +4,7 @@
 
 # Jumper Plugins
 
-These plugins are designed to work with Red Bot designed by Twentysix26 and the Cog Creators team.    
+These plugins are designed to work with Red Bot designed by Twentysix26 and the Plugin Creators team.    
 Some plugins will require a third party library to work, so please read over my requirements.txt and the info.json file before using.  
 Please stay tuned for all the latest stuff from jumper-plugins on my [Dev Tracker](https://github.com/Redjumpman/Jumper-plugins/issues/76)  
 If you wish to donate please click on the donation jar. TY :D  
@@ -13,7 +13,7 @@ I accept commission work, but please contact me on discord for details.
 ## Installation
 
 To install my plugins add my repo with the following command:  
-```cog repo add jumper-cogs https://github.com/Redjumpman/Jumper-Plugins```  
+```cog repo add jumper-plugins https://github.com/Redjumpman/Jumper-Plugins```  
 Then check to see if the plugin has any library dependencies and peform a pip3 install.  
 Please look over the installation section and my wiki for more details on library installations  
 
