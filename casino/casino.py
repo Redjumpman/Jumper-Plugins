@@ -614,7 +614,8 @@ class Casino(Data):
             return await ctx.send(_("{} is not a registered membership.").format(membership))
 
         player_instance = await super().get_instance(ctx, user=user)
-        await player_instance.Membership.set({'Name': membership, 'Assigned': True})
+        await player_instance.Membership.set({'Name': membership.replace(' ', '_'),
+                                              'Assigned': True})
 
         msg = _("{0.name} ({0.id}) manually assigned {1.name} ({1.id}) the "
                 "{2} membership.").format(author, user, membership)
