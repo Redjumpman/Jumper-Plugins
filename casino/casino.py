@@ -23,7 +23,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.5"
+__version__ = "2.0.6"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -321,20 +321,28 @@ class Data:
 
     # -------------------HELPERS---------------------------
 
-    async def get_perks(self, ctx, membership):
+    async def get_perks(self, ctx, player, membership):
+        basic = {"Reduction": 0, "Access": 0, "Color": "grey", "Bonus": 1}
+        if membership == 'Basic':
+            return basic, "Basic"
+
         instance = await self.get_instance(ctx, settings=True)
         memberships = await instance.Memberships.all()
         try:
             perks = memberships[membership]
         except KeyError:
-            perks = {"Reduction": 0, "Access": 0, "Color": "grey", "Bonus": 1}
+            player_db = await self.get_instance(ctx, user=player)
+            await player_db.Membership.set({"Name": "Basic", "Assigned": False})
+            perks, mem = basic, "Basic"
+        else:
+            mem = membership
 
-        return perks
+        return perks, mem
 
     async def get_reduction(self, ctx, player):
         instance = await self.get_instance(ctx, user=player)
         membership = await instance.Membership.Name()
-        perks = await self.get_perks(ctx, membership)
+        perks, _ = await self.get_perks(ctx, player, membership)
         return perks["Reduction"]
 
     async def casino_is_global(self):
@@ -363,13 +371,15 @@ class Casino(Data):
     @commands.guild_only()
     async def blackjack(self, ctx: commands.Context, bet: int):
         """Play a game of blackjack.
-        Blackjack supports doubling down, but not split."""
+
+        Blackjack supports doubling down, but not split.
+        """
         await Blackjack().play(ctx, bet)
 
     @commands.command()
     @commands.guild_only()
     async def allin(self, ctx: commands.Context, multiplier: int):
-        """Bets all your credits for a chance to win big!
+        """Bets all your currency for a chance to win big!
 
         The higher your multiplier the lower your odds of winning.
         """
@@ -383,28 +393,36 @@ class Casino(Data):
     @commands.guild_only()
     async def coin(self, ctx: commands.Context, bet: int, choice: str):
         """Coin flip game with a 50/50 chance to win.
-        Pick heads or tails and place your bet."""
+
+        Pick heads or tails and place your bet.
+        """
         await Core().play_coin(ctx, bet, choice)
 
     @commands.command()
     @commands.guild_only()
     async def dice(self, ctx: commands.Context, bet: int):
         """Roll a set of dice and win on 2, 7, 11, 12.
-        Just place a bet. No need to pick a number."""
+
+        Just place a bet. No need to pick a number.
+        """
         await Core().play_dice(ctx, bet)
 
     @commands.command()
     @commands.guild_only()
     async def cups(self, ctx: commands.Context, bet: int, cup: str):
-        """Guess which 3 cups is hiding the coin.
-        Must pick 1, 2, or 3."""
+        """Guess which cup of three is hiding the coin.
+
+        Must pick 1, 2, or 3.
+        """
         await Core().play_cups(ctx, bet, cup)
 
     @commands.command(aliases=['hl'])
     @commands.guild_only()
     async def hilo(self, ctx: commands.Context, bet: int, choice: str):
-        """Pick high, Low, or 7 in a dice rolling game.
-        Acceptable choices are high, hi, low, lo, 7, or seven."""
+        """Pick high, low, or 7 in a dice rolling game.
+
+        Acceptable choices are high, hi, low, lo, 7, or seven.
+        """
         await Hilo().play(ctx, bet, choice)
 
     @commands.command()
@@ -432,9 +450,9 @@ class Casino(Data):
 
     @commands.group()
     async def casino(self, ctx: commands.Context):
-        """Interacts with the Casino system
+        """Interacts with the Casino system.
 
-        Use help on Casino (uppper case) for more commands
+        Use help on Casino (uppper case) for more commands.
         """
         if ctx.invoked_subcommand is None:
             await ctx.send_help()
@@ -442,7 +460,7 @@ class Casino(Data):
     @casino.command()
     @commands.guild_only()
     async def memberships(self, ctx: commands.Context):
-        """Displays a list of server/global memberships"""
+        """Displays a list of server/global memberships."""
         instance = await super().get_instance(ctx, settings=True)
         memberships = await instance.Memberships.all()
 
@@ -637,9 +655,9 @@ class Casino(Data):
         if not await instance.Membership.Assigned():
             return await ctx.send(_("This user has no assigned membership."))
         else:
-            await instance.Membership.Assigned.set(False)
-        return await ctx.send(_("{} has unassigned {}'s membership. It will calculate "
-                                "the appropriate membership during the next cycle."
+            await instance.Membership.set({"Name": "Basic", "Assigned": False})
+        return await ctx.send(_("{} has unassigned {}'s membership. They have been set "
+                                "to `Basic` until the next membership update cycle."
                                 "").format(author.name, user.name))
 
     @casino.command()
@@ -670,7 +688,7 @@ class Casino(Data):
         Displays a list of games with their set parameters:
         Access Levels, Maximum and Minimum bets, if it's open to play,
         cooldowns, and multipliers. It also displays settings for the
-        server or global if enabled.
+        server (or global) if enabled.
         """
         instance = await super().get_instance(ctx, settings=True)
         settings = await instance.Settings.all()
@@ -701,10 +719,10 @@ class Casino(Data):
         casino = await super().get_instance(ctx, settings=True)
         casino_name = await casino.Settings.Casino_Name()
 
-        instance = await super().get_instance(ctx)
+        instance = await super().get_instance(ctx, user=author)
         player = await instance.all()
 
-        perks = await super().get_perks(ctx, player['Membership']["Name"])
+        perks, mem = await super().get_perks(ctx, author, player['Membership']["Name"])
         color = utils.color_lookup(perks['Color'])
 
         # FIXME Fix this fucking mess
@@ -717,7 +735,6 @@ class Casino(Data):
         reduction = await super().get_reduction(ctx, author)
         fmt_reduct = utils.cooldown_formatter(reduction)
         cooldowns = self.parse_cooldowns(ctx, cool_items, reduction)
-        mem = player['Membership']["Name"].replace('_', ' ').title()
         description = _("Membership: {0}\nAccess Level: {Access}\nCooldown Reduction: "
                         "{1}\nBonus Multiplier {Bonus}x").format(mem, fmt_reduct, **perks)
 
@@ -779,7 +796,7 @@ class Casino(Data):
     @casinoset.command(name='mode')
     @commands.is_owner()
     async def mode(self, ctx: commands.Context):
-        """Toggles if Casino between global and local modes
+        """Toggles Casino between global and local modes.
 
         When casino is set to local mode, each server will have its own
         unique data, and admin level commands can be used on that server.
@@ -843,7 +860,8 @@ class Casino(Data):
         """Turns on a payout limit.
 
         The payout limit will withhold winnings from players until they are approved by the
-        appropriate authority. To set the limit, use payoutlimit."""
+        appropriate authority. To set the limit, use payoutlimit.
+        """
         author = ctx.author
         instance = await super().get_instance(ctx, settings=True)
         status = await instance.Settings.Payout_Switch()
@@ -1025,7 +1043,12 @@ class Casino(Data):
             for user in users:
                 user_obj = self.bot.get_user(user)
                 if await self.db.user(user_obj).Membership.Assigned():
-                    continue
+                    user_mem = await self.db.user(user_obj).Membership.Name()
+                    if user_mem not in memberships:
+                        basic = {"Name": "Basic", "Assigned": False}
+                        await self.db.user(user_obj).Membership.set(basic)
+                    else:
+                        continue
                 await self.process_user(memberships, user_obj, _global=True)
 
             break
@@ -1046,7 +1069,12 @@ class Casino(Data):
                 for user in users:
                     user_obj = guild_obj.get_member(user)
                     if await self.db.member(user_obj).Membership.Assigned():
-                        continue
+                        user_mem = await self.db.member(user_obj).Membership.Name()
+                        if user_mem not in memberships:
+                            basic = {"Name": "Basic", "Assigned": False}
+                            await self.db.member(user_obj).Membership.set(basic)
+                        else:
+                            continue
                     await self.process_user(memberships, user_obj)
             break
 
@@ -1435,16 +1463,8 @@ class Membership(Data):
         async with self.coro() as mem:
             mem[valid_name] = data
 
-        await self.ctx.send(_("Membership sucessfully created.\n"
-                              "-------------------------------------\n"
-                              "Name: {0}\n"
-                              "Access: {Access}\n"
-                              "Bonus: {Bonus}x\n"
-                              "Reduction: {Reduction}\n"
-                              "Color: {Color}\n"
-                              "Credits Required: {Credits}\n"
-                              "Role Required: {Role}\n"
-                              "Days on Server Required: {DOS}").format(name, **data))
+        embed = self.build_embed(name, data)
+        await self.ctx.send(embed=embed)
         raise ExitProcess()
 
     async def editor(self):
@@ -1656,6 +1676,19 @@ class Membership(Data):
             membership_data[membership]['DOS'] = int(days.content)
         await self.ctx.send(_('Time on server requirement set to {}.').format(days.content))
 
+    @staticmethod
+    def build_embed(name, data):
+        description = _("Membership sucessfully created.\n\n"
+                        "**Name:** {0}\n"
+                        "**Access:** {Access}\n"
+                        "**Bonus:** {Bonus}x\n"
+                        "**Reduction:** {Reduction}\n"
+                        "**Color:** {Color}\n"
+                        "**Credits Required:** {Credits}\n"
+                        "**Role Required:** {Role}\n"
+                        "**Days on Server Required:** {DOS}").format(name, **data)
+        return discord.Embed(colour=0x2CD22C, description=description)
+
 
 class Core:
     """
@@ -1677,7 +1710,7 @@ class Core:
     async def play_allin(self, ctx, bet, multiplier):
         await ctx.send(_("You put all your chips into the machine and pull the lever..."))
         await asyncio.sleep(3)
-        outcome = random.randint(0, 0)
+        outcome = random.randint(0, multiplier + 1)
         if outcome == 0:
             msg = "```Python\n"
             msg += "▂▃▅▇█▓▒░ [♠]  [♥]  [♦]  [♣] ░▒▓█▇▅▃▂\n"
