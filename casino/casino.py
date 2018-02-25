@@ -23,7 +23,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.4"
+__version__ = "2.0.5"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -223,6 +223,14 @@ class Data:
         instance = await self.get_instance(ctx, settings=True)
         await instance.Settings.clear()
         msg = _("{0.name} ({0.id}) reset all settings.").format(author)
+        log.info(msg)
+        await ctx.send(msg)
+
+    async def reset_server_memberships(self, ctx):
+        author = ctx.author
+        instance = await self.get_instance(ctx, settings=True)
+        await instance.Memberships.clear()
+        msg = _("{0.name} ({0.id}) cleared all memberships.").format(author)
         log.info(msg)
         await ctx.send(msg)
 
@@ -455,7 +463,7 @@ class Casino(Data):
             return await ctx.send(_("No Response."))
 
         games = await instance.Games.all()
-        data = memberships[membership.content]
+        data = memberships[membership.content.replace(' ', '_')]
         playable = [x for x, y in games.items() if y['Access'] <= data['Access']]
         reqs = _("Credits: {Credits}\nRole: {Role}\nDays on Server: {DOS}").format(**data)
         color = utils.color_lookup(data['Color'])
@@ -541,12 +549,12 @@ class Casino(Data):
     @global_permissions()
     @guild_required_or_global()
     async def resetinstance(self, ctx: commands.Context):
-        """Reset global/server cooldowns, settings, or everything."""
+        """Reset global/server cooldowns, settings, memberships, or everything."""
         author = ctx.author
 
         if not await ctx.bot.is_owner(author):
             return await ctx.send(_("You don't have permissions to delete a server."))
-        options = (_("cooldowns"), _("settings"), _("games"),  _("all"))
+        options = (_("cooldowns"), _("settings"), _("games"), _("memberships"),  _("all"))
 
         def predicate(m):
             return m.author == ctx.author and m.content.lower() in options
@@ -564,6 +572,8 @@ class Casino(Data):
             await super().reset_server_settings(ctx)
         elif choice.content.lower() == _('games'):
             await super().reset_server_games(ctx)
+        elif choice.content.lower() == _('memberships'):
+            await super().reset_server_memberships(ctx)
         else:
             await super().reset_server_all(ctx)
 
@@ -1378,15 +1388,17 @@ class Membership(Data):
             await self.ctx.send(_("Process exited."))
 
     async def delete(self):
-        memberships = await self.coro.all()
+        memberships_raw = await self.coro.all()
+
+        memberships = [x.replace('_', ' ') for x in memberships_raw]
 
         def mem_check(m):
-            valid_name = m.content.replace(' ', '_')
+            valid_name = m.content
             return m.author == self.ctx.author and \
                 valid_name in memberships or valid_name == self.cancel
 
         await self.ctx.send(_("Which membership would you like to delete?\n"
-                              "{}.").format(utils.fmt_join(list(memberships))))
+                              "{}.").format(utils.fmt_join(memberships)))
         membership = await self.ctx.bot.wait_for('message', timeout=15.0, check=mem_check)
 
         if membership.content == self.cancel:
@@ -1412,7 +1424,7 @@ class Membership(Data):
 
         data = dict.fromkeys(("Access", "Bonus", "Color", "Credits", "Role", "DOS", "Reduction"))
 
-        valid_name, name = await self.set_name()
+        name, valid_name = await self.set_name()
         await self.set_access(data)
         await self.set_color(data)
         await self.set_reduction(data)
@@ -1435,14 +1447,16 @@ class Membership(Data):
         raise ExitProcess()
 
     async def editor(self):
-        memberships = await self.coro.all()
+        memberships_raw = await self.coro.all()
+
+        memberships = [x.replace('_', ' ') for x in memberships_raw]
 
         def mem_check(m):
-            name = m.content.lower().replace(' ', '_')
-            return m.author == self.ctx.author and name in memberships or name == self.cancel
+            return m.author == self.ctx.author and m.content in memberships or \
+                   m.content == self.cancel
 
         await self.ctx.send(_("Which of the following memberships would you like to edit?\n"
-                              "{}.").format(utils.fmt_join(list(memberships))))
+                              "{}.").format(utils.fmt_join(memberships)))
 
         membership = await self.ctx.bot.wait_for("message", timeout=15.0, check=mem_check)
         if membership.content == self.cancel:
