@@ -785,6 +785,10 @@ class Casino(CasinoBank):
         chip_name = settings["System Config"]["Chip Name"]
         casino_name = settings["System Config"]["Casino Name"]
 
+        if not bank.account_exists(user):
+            return await self.bot.say(_("I can't make an exchange, because you don't have a bank "
+                                        "account."))
+
         # Logic checks
         if not super().membership_exists(user):
             return await self.bot.say(_("You need to register to the {} Casino. To register type "
@@ -2158,7 +2162,7 @@ class Casino(CasinoBank):
             # Create a try/except block to catch when people are dumb and don't have enough chips
             try:
                 super().withdraw_chips(user, amount)
-                amount = amount * 2
+                amount *= 2
                 ph = self.draw_card(ph, deck)
                 count = self.count_hand(ph)
                 return ph, dh, amount
@@ -2283,7 +2287,7 @@ class Casino(CasinoBank):
         if dicetotal in list(range(1, 7)):
             return [_("Low"), _("Lo")]
         elif dicetotal == 7:
-            return [_("Seven"), _("7")]
+            return [_("Seven"), "7"]
         else:
             return [_("High"), _("Hi")]
 
