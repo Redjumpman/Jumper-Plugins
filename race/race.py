@@ -51,7 +51,7 @@ class Racer:
                         Racer.track[max(0, self.position - distance):])
 
     def update_position(self):
-        self.turn = self.turn + 1
+        self.turn += 1
         self.update_track()
         self.position = self.get_position()
 
@@ -98,7 +98,7 @@ class Race:
         self.bot = bot
         self.system = {}
         self.config = dataIO.load_json('data/race/race.json')
-        self.version = "1.1.02"
+        self.version = "1.1.03"
 
     @commands.group(pass_context=True, no_pm=True)
     async def race(self, ctx):
@@ -250,7 +250,7 @@ class Race:
         data['Race Start'] = True
 
         racers = self.game_setup(author, data, settings['Mode'])
-        race_msg = await self.bot.say('\n'.join([player.field() for player in racers]))
+        race_msg = await self.bot.say('\u200b'+'\n'+'\n'.join([player.field() for player in racers]))
         await self.run_game(racers, race_msg, data)
 
         footer = "Type {}race claim to receive prize money. You must claim it before the next race!"
@@ -431,7 +431,7 @@ class Race:
                         data['Third'] = (player.user, player.animal, speed)
                         player.placed = True
             field = [player.field() for player in racers]
-            await self.bot.edit_message(game, '\n'.join(field))
+            await self.bot.edit_message(game, '\u200b'+'\n'+'\n'.join(field))
 
             if [player.get_position() for player in racers].count(0) == len(racers):
                 break
