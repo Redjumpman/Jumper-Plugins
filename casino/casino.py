@@ -23,7 +23,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.6"
+__version__ = "2.0.7"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -173,8 +173,8 @@ class Data:
             "Hilo": {
                 "Access": 0,
                 "Cooldown": 5,
-                "Min": 75,
-                "Max": 25,
+                "Min": 25,
+                "Max": 75,
                 "Multiplier": 1.7,
                 "Open": True
             },
@@ -918,7 +918,7 @@ class Casino(Data):
         if not self.basic_check(ctx, game, games, multiplier):
             return
 
-        await instance.Games.get_attr(game.title(), resolve=False).Multiplier.set(multiplier)
+        await instance.Games.set_raw(game.title(), 'Multiplier', value=multiplier)
         msg = _("{0.name} ({0.id}) set "
                 "{1}'s multiplier to {2}.").format(author, game.title(), multiplier)
         log.info(msg)
@@ -951,7 +951,7 @@ class Casino(Data):
             return await ctx.send(_("Invalid game name. Must be on of the following:\n"
                                   "{}.").format(utils.fmt_join(list(games))))
 
-        await instance.Games.get_attr(game.title(), resolve=False).Cooldown.set(seconds)
+        await instance.Games.set_raw(game.title(), 'Cooldown', value=seconds)
         cool = utils.cooldown_formatter(seconds)
         msg = _("{0.name} ({0.id}) set {1}'s cooldown to {2}.").format(author, game.title(), cool)
         log.info(msg)
@@ -973,8 +973,8 @@ class Casino(Data):
         if minimum > games[game.title()]["Max"]:
             return await ctx.send(_("You can't set a minimum higher than the game's maximum bid."))
 
-        await instance.Games.get_attr(game.title(), resolve=False).Min.set(minimum)
-        msg = _("{0.name} ({0.id}) set {1}'s"
+        await instance.Games.set_raw(game.title(), "Min", value=minimum)
+        msg = _("{0.name} ({0.id}) set {1}'s "
                 "minimum bid to {2}.").format(author, game.title(), minimum)
         log.info(msg)
         await ctx.send(msg)
@@ -995,8 +995,8 @@ class Casino(Data):
         if maximum < games[game.title()]["Min"]:
             return await ctx.send(_("You can't set a maximum lower than the game's minimum bid."))
 
-        await instance.Games.get_attr(game.title(), resolve=False).Max.set(maximum)
-        msg = _("{0.name} ({0.id}) set {1}'s"
+        await instance.Games.set_raw(game.title(), "Max", value=maximum)
+        msg = _("{0.name} ({0.id}) set {1}'s "
                 "maximum bid to {2}.").format(author, game.title(), maximum)
         log.info(msg)
         await ctx.send(msg)
@@ -1014,7 +1014,7 @@ class Casino(Data):
         if not self.basic_check(ctx, game, games, access):
             return
 
-        await instance.Games.get_attr(game.title(), resolve=False).Access.set(access)
+        await instance.Games.set_raw(game.title(), 'Access', value=access)
         msg = _("{0.name} ({0.id}) changed the access level "
                 "for {1} to {2}.").format(author, game, access)
         log.info(msg)
@@ -1194,7 +1194,7 @@ class Engine(Data):
         elif not await bank.can_spend(self.player, self.bet):
             error = _("You do not have enough credits to cover the bet.")
         else:
-            error = await self.check_cooldown(game_data)
+            error = await self.check_cooldown(game_data, user_instance)
 
         if error:
             await self.ctx.send(error)
@@ -1206,17 +1206,17 @@ class Engine(Data):
 
     async def stats_update(self, method):
         instance = await self.get_instance(self.ctx, user=self.player)
-        current = await instance.get_attr(method, resolve=False).get_attr(self.game)
-        await instance.get_attr(method, resolve=False).set_attr(self.game, current + 1)
+        current = await instance.get_raw(method, self.game)
+        await instance.set_raw(method, self.game, value=current+1)
 
-    async def check_cooldown(self, game_data):
-        user_time = await self.db.member(self.player).Cooldowns.get_attr(self.game)
+    async def check_cooldown(self, game_data, user_instance):
+        user_time = await user_instance.get_raw("Cooldowns", self.game)
         now = calendar.timegm(self.ctx.message.created_at.utctimetuple())
         base = game_data["Cooldown"]
         reduction = await super().get_reduction(self.ctx, self.player)
 
         if now >= user_time - reduction:
-            await self.db.member(self.player).Cooldowns.set_attr(self.game, now + base)
+            await user_instance.set_raw("Cooldowns", self.game, value=now + base)
         else:
             seconds = int((user_time + reduction - now))
             remaining = utils.time_formatter(seconds)
@@ -1285,7 +1285,7 @@ class Engine(Data):
             await bank.deposit_credits(self.player, total)
             return total, msg
 
-        multiplier = await coro.Games.get_attr(self.game, resolve=False).Multiplier()
+        multiplier = await coro.Games.get_raw(self.game, "Multiplier")
         initial = round(amount * multiplier)
         total, amt, msg = await self.calculate_bonus(initial, player_instance, coro)
         await bank.deposit_credits(self.player, total)
