@@ -23,7 +23,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.7"
+__version__ = "2.0.8"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -117,7 +117,7 @@ class Data:
             "Casino_Name": "Redjumpman's",
             "Casino_Open": True,
             "Payout_Switch": False,
-            "Payout_Limit": 10000,
+            "Payout_Limit": 10000
         },
         "Memberships": {},
         "Games": {
@@ -1082,18 +1082,27 @@ class Casino(Data):
         qualified = []
         bal = await bank.get_balance(user)
         for name, requirements in memberships.items():
-            if bal < requirements['Credits'] is not None:
-                continue
-            elif requirements['Role'] is not None and requirements['Role'] \
-                    not in [x.name for x in user.roles]:
-                continue
-            elif requirements['DOS'] is not None > user.joined_at.day:
-                continue
+            if _global:
+                if requirements['Credits'] and bal < requirements['Credits']:
+                    continue
+                elif (requirements['DOS'] and
+                      requirements['DOS'] > (user.created_at.now() - user.created_at).days):
+                    continue
+                else:
+                    qualified.append((name, requirements['Access']))
             else:
-                qualified.append((name, requirements['Access']))
+                if requirements['Credits'] and bal < requirements['Credits']:
+                    continue
+                elif (requirements['Role'] and requirements['Role'] not in
+                      [x.name for x in user.roles]):
+                    continue
+                elif (requirements['DOS'] and requirements['DOS'] >
+                      user.joined_at.now() - user.joined_at):
+                    continue
+                else:
+                    qualified.append((name, requirements['Access']))
 
         membership = max(qualified)[0] if qualified else 'Basic'
-
         if _global:
             async with self.db.user(user).Membership() as data:
                 data['Name'] = membership
@@ -1652,7 +1661,9 @@ class Membership(Data):
         await self.ctx.send(_('Credits requirement set to {}.').format(amount.content))
 
     async def role_requirement(self, membership):
-        await self.ctx.send(_("What role does this membership require?"))
+        await self.ctx.send(_("What role does this membership require?\n"
+                              "*Note this is skipped in global mode. If you set this as the only "
+                              "requirement in global, it will be accessible to everyone!*"))
         role = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.role_check)
 
         if self.mode == "create":
@@ -1665,7 +1676,9 @@ class Membership(Data):
         await self.ctx.send(_('Role requirement set to {}.').format(role.content))
 
     async def dos_requirement(self, membership):
-        await self.ctx.send(_("How many days on server does this membership require?"))
+        await self.ctx.send(_("How many days on server does this membership require?\n"
+                              "*Note in global mode this will calculate based on when the user "
+                              "account was created.*"))
         days = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validint)
 
         if self.mode == "create":
@@ -1674,7 +1687,7 @@ class Membership(Data):
 
         async with self.coro() as membership_data:
             membership_data[membership]['DOS'] = int(days.content)
-        await self.ctx.send(_('Time on server requirement set to {}.').format(days.content))
+        await self.ctx.send(_('Time requirement set to {}.').format(days.content))
 
     @staticmethod
     def build_embed(name, data):
@@ -1686,7 +1699,7 @@ class Membership(Data):
                         "**Color:** {Color}\n"
                         "**Credits Required:** {Credits}\n"
                         "**Role Required:** {Role}\n"
-                        "**Days on Server Required:** {DOS}").format(name, **data)
+                        "**Days on Server/Discord Required:** {DOS}").format(name, **data)
         return discord.Embed(colour=0x2CD22C, description=description)
 
 
