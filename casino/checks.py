@@ -49,6 +49,6 @@ class Checks:
 
     def content(self, m):
         try:
-            return self.same(m) and m.content in self.custom
+            return self.same(m) and m.content.lower() in self.custom
         except TypeError:
             raise ValueError("A custom iterable was not set in Checks.")
