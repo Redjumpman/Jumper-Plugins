@@ -24,7 +24,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.9"
+__version__ = "2.0.10"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -476,7 +476,7 @@ class Casino(Data):
 
         checks = Checks(ctx, names)
         try:
-            membership = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
+            membership = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
         except asyncio.TimeoutError:
             await msg.delete()
             return await ctx.send(_("No Response."))
@@ -524,7 +524,7 @@ class Casino(Data):
                          "Would you like to release this amount?").format(user.name, amount))
 
         try:
-            choice = ctx.bot.wait_for('message', timeout=15.0, check=Checks.confirm)
+            choice = ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -551,7 +551,7 @@ class Casino(Data):
 
         checks = Checks(ctx, options)
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -578,7 +578,7 @@ class Casino(Data):
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -601,7 +601,7 @@ class Casino(Data):
                          "sure this is what you wish to do?"))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=Checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response. Action canceled."))
 
@@ -757,7 +757,7 @@ class Casino(Data):
 
         checks = Checks(ctx, (_('edit'), _('create'), _('delete')))
         try:
-            choice = await ctx.bot.wait_for('Message', timeout=15.0, check=checks.content)
+            choice = await ctx.bot.wait_for('Message', timeout=25.0, check=checks.content)
         except asyncio.TimeoutError:
             return await timeout
 
@@ -806,7 +806,7 @@ class Casino(Data):
                          "mode instead?").format(mode, alt))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -815,7 +815,7 @@ class Casino(Data):
         await ctx.send(_("Changing casino to {0} will **DELETE ALL** current casino data. Are "
                          "you sure you wish to make casino {0}?").format(alt))
         try:
-            final = await ctx.bot.wait_for('message', timeout=15.0, check=checks.confirm)
+            final = await ctx.bot.wait_for('message', timeout=25.0, check=checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -1395,14 +1395,14 @@ class Membership(Data):
 
         await self.ctx.send(_("Which membership would you like to delete?\n"
                               "{}.").format(utils.fmt_join(memberships)))
-        membership = await self.ctx.bot.wait_for('message', timeout=15.0, check=mem_check)
+        membership = await self.ctx.bot.wait_for('message', timeout=25.0, check=mem_check)
 
         if membership.content == self.cancel:
             raise ExitProcess()
         await self.ctx.send(_("Are you sure you wish to delete {}? "
                               "This cannot be reverted.").format(membership.content))
 
-        choice = await self.ctx.bot.wait_for('message', timeout=15.0, check=Checks(ctx).confirm)
+        choice = await self.ctx.bot.wait_for('message', timeout=25.0, check=Checks(self.ctx).confirm)
         if choice.content.lower() == self.cancel:
             raise ExitProcess()
         elif choice.content.lower() == "yes":
@@ -1446,7 +1446,7 @@ class Membership(Data):
         await self.ctx.send(_("Which of the following memberships would you like to edit?\n"
                               "{}.").format(utils.fmt_join(memberships)))
 
-        membership = await self.ctx.bot.wait_for("message", timeout=15.0, check=mem_check)
+        membership = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
         if membership.content == self.cancel:
             raise ExitProcess()
 
@@ -1454,9 +1454,9 @@ class Membership(Data):
         await self.ctx.send(_("Which of the following attributes would you like to edit?\n"
                               "{}.").format(utils.fmt_join(attrs)))
 
-        check = Checks(ctx, (_('requirements'), _('access'), _('color'), _('name'), _('reduction'),
-                       self.cancel))
-        attribute = await self.ctx.bot.wait_for("message", timeout=15.0, check=check.content)
+        check = Checks(self.ctx, (_('requirements'), _('access'), _('color'), _('name'),
+                       _('reduction'), self.cancel))
+        attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=check.content)
 
         valid_name = membership.content.replace(' ', '_')
         if attribute.content.lower() == self.cancel:
@@ -1478,7 +1478,7 @@ class Membership(Data):
 
         await self.ctx.send(_("Would you like to edit another membership?"))
 
-        choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).confirm)
+        choice = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).confirm)
         if choice.content.lower() == _("yes"):
             await self.editor()
         else:
@@ -1487,8 +1487,8 @@ class Membership(Data):
     async def set_color(self, membership):
         await self.ctx.send(_("What color would you like to set?\n"
                               "{}").format(utils.fmt_join(list(self.colors))))
-        checks = Checks(ctx, self.colors)
-        color = await self.ctx.bot.wait_for("message", timeout=15.0, check=checks.content)
+        checks = Checks(self.ctx, self.colors)
+        color = await self.ctx.bot.wait_for("message", timeout=25.0, check=checks.content)
 
         if color.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1518,7 +1518,7 @@ class Membership(Data):
                 return False
 
         await self.ctx.send(_("What name would you like to set?"))
-        name = await self.ctx.bot.wait_for("message", timeout=15.0, check=mem_check)
+        name = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
 
         if name.content == self.cancel:
             raise ExitProcess()
@@ -1534,7 +1534,7 @@ class Membership(Data):
 
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
-        access = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
+        access = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
 
         if access.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1550,7 +1550,7 @@ class Membership(Data):
 
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership?"))
-        reduction = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
+        reduction = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
 
         if reduction.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1565,7 +1565,7 @@ class Membership(Data):
     async def set_bonus(self, membership):
         await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n"
                               "*Defaults to one*"))
-        bonus = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).valid_float)
+        bonus = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).valid_float)
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
@@ -1584,8 +1584,9 @@ class Membership(Data):
             await self.ctx.send(_("Which requirement would you like to add or modify?\n"
                                   "{}.").format(utils.fmt_join(self.requirements)))
 
-            chk = Checks(ctx, (_('credits'), _('role'), _('dos'), _('days on server'), self.cancel))
-            req = await self.ctx.bot.wait_for("message", timeout=15.0, check=chk.content)
+            chk = Checks(self.ctx, (_('credits'), _('role'), _('dos'), _('days on server'),
+                                    self.cancel))
+            req = await self.ctx.bot.wait_for("message", timeout=25.0, check=chk.content)
             if req.content.lower() == self.cancel:
                 raise ExitProcess()
             elif req.content.lower() == _("credits"):
@@ -1597,7 +1598,7 @@ class Membership(Data):
 
             await self.ctx.send(_("Would you like to continue adding or modifying requirements?"))
 
-            choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).confirm)
+            choice = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).confirm)
             if choice.content.lower() == _("no"):
                 break
             elif choice.content.lower() == self.cancel:
@@ -1608,7 +1609,7 @@ class Membership(Data):
     async def credits_requirement(self, membership):
         await self.ctx.send(_("How many credits does this membership require?"))
 
-        amount = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
+        amount = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
 
         if amount.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1626,7 +1627,7 @@ class Membership(Data):
         await self.ctx.send(_("What role does this membership require?\n"
                               "*Note this is skipped in global mode. If you set this as the only "
                               "requirement in global, it will be accessible to everyone!*"))
-        role = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).role)
+        role = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).role)
 
         if self.mode == "create":
             membership['Role'] = role.content
@@ -1641,7 +1642,7 @@ class Membership(Data):
         await self.ctx.send(_("How many days on server does this membership require?\n"
                               "*Note in global mode this will calculate based on when the user "
                               "account was created.*"))
-        days = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
+        days = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
 
         if self.mode == "create":
             membership['DOS'] = int(days.content)
