@@ -90,7 +90,6 @@ def time_formatter(seconds):
     return msg
 
 
-def build_embed(msg, game):
+def build_embed(msg):
     embed = discord.Embed(colour=0xFF0000, description=msg)
-    embed.title = "Casino | {}".format(game)
     return embed
