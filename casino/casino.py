@@ -15,6 +15,7 @@ from redbot.core.i18n import CogI18n
 from redbot.core import Config, bank
 from . import utils
 from .deck import Deck
+from .checks import Checks
 
 # Discord
 import discord
@@ -23,7 +24,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.8"
+__version__ = "2.0.9"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -361,6 +362,8 @@ class Data:
 
 class Casino(Data):
 
+    __slots__ = ('bot', 'cycle_task')
+
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = self.bot.loop.create_task(self.membership_updater())
@@ -471,11 +474,9 @@ class Casino(Data):
         msg = await ctx.send(_("Which of the following memberships would you like to know more "
                                "about?\n{}.").format(utils.fmt_join(names)))
 
-        def predicate(m):
-            return m.author == ctx.author and m.content in names
-
+        checks = Checks(ctx, names)
         try:
-            membership = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            membership = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
         except asyncio.TimeoutError:
             await msg.delete()
             return await ctx.send(_("No Response."))
@@ -523,7 +524,7 @@ class Casino(Data):
                          "Would you like to release this amount?").format(user.name, amount))
 
         try:
-            choice = ctx.bot.wait_for('message', timeout=15.0, check=None)
+            choice = ctx.bot.wait_for('message', timeout=15.0, check=Checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -548,11 +549,9 @@ class Casino(Data):
 
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
-        def predicate(m):
-            return m.author == ctx.author and m.content.lower() in options
-
+        checks = Checks(ctx, options)
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -574,13 +573,12 @@ class Casino(Data):
             return await ctx.send(_("You don't have permissions to delete a server."))
         options = (_("cooldowns"), _("settings"), _("games"), _("memberships"),  _("all"))
 
-        def predicate(m):
-            return m.author == ctx.author and m.content.lower() in options
+        checks = Checks(ctx, options)
 
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -602,10 +600,8 @@ class Casino(Data):
         await ctx.send(_("You are about to delete all casino and user data from the bot. Are you "
                          "sure this is what you wish to do?"))
 
-        def predicate(m):
-            return m.author == ctx.author and m.content.lower() in ('yes', 'no')
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            choice = await ctx.bot.wait_for('message', timeout=15.0, check=Checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response. Action canceled."))
 
@@ -759,11 +755,9 @@ class Casino(Data):
 
         await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
 
-        def check(m):
-            return m.author == ctx.author and m.content.lower() in (_('edit'), _('create'),
-                                                                    _('delete'))
+        checks = Checks(ctx, (_('edit'), _('create'), _('delete')))
         try:
-            choice = await ctx.bot.wait_for('Message', timeout=15.0, check=check)
+            choice = await ctx.bot.wait_for('Message', timeout=15.0, check=checks.content)
         except asyncio.TimeoutError:
             return await timeout
 
@@ -811,11 +805,8 @@ class Casino(Data):
         await ctx.send(_("Casino is currently set to {} mode. Would you like to change to {} "
                          "mode instead?").format(mode, alt))
 
-        def predicate(m):
-            return m.author == ctx.author and m.content.lower() in (_("yes"), _("no"))
-
         try:
-            choice = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            choice = await ctx.bot.wait_for('message', timeout=15.0, check=checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -824,7 +815,7 @@ class Casino(Data):
         await ctx.send(_("Changing casino to {0} will **DELETE ALL** current casino data. Are "
                          "you sure you wish to make casino {0}?").format(alt))
         try:
-            final = await ctx.bot.wait_for('message', timeout=15.0, check=predicate)
+            final = await ctx.bot.wait_for('message', timeout=15.0, check=checks.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -915,7 +906,7 @@ class Casino(Data):
         if game.title() == 'allin':
             return await ctx.send(_("Allin's multiplier is determined by the user."))
 
-        if not self.basic_check(ctx, game, games, multiplier):
+        if not await self.basic_check(ctx, game, games, multiplier):
             return
 
         await instance.Games.set_raw(game.title(), 'Multiplier', value=multiplier)
@@ -964,7 +955,7 @@ class Casino(Data):
         instance = await super().get_instance(ctx, settings=True)
         games = await instance.Games.all()
 
-        if not self.basic_check(ctx, game, games, minimum):
+        if not await self.basic_check(ctx, game, games, minimum):
             return
 
         if game.title() == "Allin":
@@ -986,7 +977,7 @@ class Casino(Data):
         instance = await super().get_instance(ctx, settings=True)
         games = await instance.Games.all()
 
-        if not self.basic_check(ctx, game, games, maximum):
+        if not await self.basic_check(ctx, game, games, maximum):
             return
 
         if game.title() == "Allin":
@@ -1011,7 +1002,7 @@ class Casino(Data):
         instance = await super().get_instance(ctx, settings=True)
         games = await instance.Games.all()
 
-        if not self.basic_check(ctx, game, games, access):
+        if not await self.basic_check(ctx, game, games, access):
             return
 
         await instance.Games.set_raw(game.title(), 'Access', value=access)
@@ -1102,7 +1093,7 @@ class Casino(Data):
                 else:
                     qualified.append((name, requirements['Access']))
 
-        membership = max(qualified)[0] if qualified else 'Basic'
+        membership = max(qualified, key=itemgetter(1))[0] if qualified else 'Basic'
         if _global:
             async with self.db.user(user).Membership() as data:
                 data['Name'] = membership
@@ -1169,6 +1160,8 @@ class Engine(Data):
             The amount the player has wagered.
 
     """
+    __slots__ = ('game', 'choice', 'choices', 'ctx', 'bet', 'player', 'guild')
+
     def __init__(self, game, choice, choices, ctx, bet):
         self.game = game
         self.choice = choice
@@ -1234,15 +1227,17 @@ class Engine(Data):
             return msg
 
     async def game_teardown(self, result):
+        coro = await super().get_instance(self.ctx, settings=True)
+        settings = await coro.Settings.all()
+        casino_name = settings['Casino_Name']
         win, amount, embed = result
+        embed.title = _("{} Casino | {}").format(casino_name, self.game)
         if not win:
             bal_msg = await self.get_bal_msg()
             loss = _("Sorry, you didn't win anything.\n{}").format(bal_msg)
             embed.add_field(name='-' * 90, value=loss)
             return await self.ctx.send(self.player.mention, embed=embed)
 
-        coro = await super().get_instance(self.ctx, settings=True)
-        settings = await coro.Settings.all()
         player_instance = await super().get_instance(self.ctx, user=self.player)
         await self.stats_update(method='Won')
 
@@ -1351,6 +1346,9 @@ class Engine(Data):
 
 class Membership(Data):
     """This class handles membership processing."""
+
+    __slots__ = ('ctx', 'timeout', 'cancel', 'mode', 'coro')
+
     colors = {_("blue"): "blue", _("red"): "red", _("green"): "green", _("orange"): "orange",
               _("purple"): "purple", _("yellow"): "yellow", _("turquoise"): "turquoise",
               _("teal"): "teal", _("magenta"): "magenta", _("pink"): "pink",
@@ -1365,46 +1363,6 @@ class Membership(Data):
         self.mode = mode
         self.coro = None
         super().__init__()
-
-    # --------------------------------Predicates------------------------------------------------
-
-    def role_check(self, m):
-        choices = [r.name for r in self.ctx.guild.roles if r.name != "Bot"]
-        return m.author == self.ctx.author and \
-            m.content in choices or m.content.lower == self.cancel
-
-    def req_check(self, m):
-        choices = (_('credits'), _('role'), _('dos'), _('days on server'), self.cancel)
-        return m.author == self.ctx.author and m.content.lower() in choices
-
-    def color_check(self, m):
-        return m.author == self.ctx.author and m.content.lower() in self.colors or \
-               m.content.lower() == self.cancel
-
-    def yesno(self, m):
-        return m.author == self.ctx.author and m.content.lower() in (_("yes"), _("no"), self.cancel)
-
-    def validint(self, m):
-        return m.author == self.ctx.author and m.content.isdigit() and int(m.content) > -1 or \
-            m.content.lower() == self.cancel
-
-    def validfloat(self, m):
-        if m.author == self.ctx.author:
-            try:
-                val = float(m.content)
-            except ValueError:
-                return False
-            else:
-                return val >= 1
-        else:
-            return False
-
-    def attr_check(self, m):
-        choices = (_('requirements'), _('access'), _('color'),  _('name'), _('reduction'),
-                   self.cancel)
-        return m.author == self.ctx.author and m.content.lower() in choices
-
-    # ------------------------------------------------------------------------------------------
 
     def switcher(self):
         if self.mode == "edit":
@@ -1444,7 +1402,7 @@ class Membership(Data):
         await self.ctx.send(_("Are you sure you wish to delete {}? "
                               "This cannot be reverted.").format(membership.content))
 
-        choice = await self.ctx.bot.wait_for('message', timeout=15.0, check=self.yesno)
+        choice = await self.ctx.bot.wait_for('message', timeout=15.0, check=Checks(ctx).confirm)
         if choice.content.lower() == self.cancel:
             raise ExitProcess()
         elif choice.content.lower() == "yes":
@@ -1496,7 +1454,9 @@ class Membership(Data):
         await self.ctx.send(_("Which of the following attributes would you like to edit?\n"
                               "{}.").format(utils.fmt_join(attrs)))
 
-        attribute = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.attr_check)
+        check = Checks(ctx, (_('requirements'), _('access'), _('color'), _('name'), _('reduction'),
+                       self.cancel))
+        attribute = await self.ctx.bot.wait_for("message", timeout=15.0, check=check.content)
 
         valid_name = membership.content.replace(' ', '_')
         if attribute.content.lower() == self.cancel:
@@ -1518,7 +1478,7 @@ class Membership(Data):
 
         await self.ctx.send(_("Would you like to edit another membership?"))
 
-        choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.yesno)
+        choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).confirm)
         if choice.content.lower() == _("yes"):
             await self.editor()
         else:
@@ -1527,7 +1487,8 @@ class Membership(Data):
     async def set_color(self, membership):
         await self.ctx.send(_("What color would you like to set?\n"
                               "{}").format(utils.fmt_join(list(self.colors))))
-        color = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.color_check)
+        checks = Checks(ctx, self.colors)
+        color = await self.ctx.bot.wait_for("message", timeout=15.0, check=checks.content)
 
         if color.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1573,7 +1534,7 @@ class Membership(Data):
 
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
-        access = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validint)
+        access = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
 
         if access.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1589,7 +1550,7 @@ class Membership(Data):
 
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership?"))
-        reduction = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validint)
+        reduction = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
 
         if reduction.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1604,7 +1565,7 @@ class Membership(Data):
     async def set_bonus(self, membership):
         await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n"
                               "*Defaults to one*"))
-        bonus = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validfloat)
+        bonus = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).valid_float)
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
@@ -1623,7 +1584,8 @@ class Membership(Data):
             await self.ctx.send(_("Which requirement would you like to add or modify?\n"
                                   "{}.").format(utils.fmt_join(self.requirements)))
 
-            req = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.req_check)
+            chk = Checks(ctx, (_('credits'), _('role'), _('dos'), _('days on server'), self.cancel))
+            req = await self.ctx.bot.wait_for("message", timeout=15.0, check=chk.content)
             if req.content.lower() == self.cancel:
                 raise ExitProcess()
             elif req.content.lower() == _("credits"):
@@ -1635,7 +1597,7 @@ class Membership(Data):
 
             await self.ctx.send(_("Would you like to continue adding or modifying requirements?"))
 
-            choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.yesno)
+            choice = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).confirm)
             if choice.content.lower() == _("no"):
                 break
             elif choice.content.lower() == self.cancel:
@@ -1646,7 +1608,7 @@ class Membership(Data):
     async def credits_requirement(self, membership):
         await self.ctx.send(_("How many credits does this membership require?"))
 
-        amount = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validint)
+        amount = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
 
         if amount.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1664,7 +1626,7 @@ class Membership(Data):
         await self.ctx.send(_("What role does this membership require?\n"
                               "*Note this is skipped in global mode. If you set this as the only "
                               "requirement in global, it will be accessible to everyone!*"))
-        role = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.role_check)
+        role = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).role)
 
         if self.mode == "create":
             membership['Role'] = role.content
@@ -1679,7 +1641,7 @@ class Membership(Data):
         await self.ctx.send(_("How many days on server does this membership require?\n"
                               "*Note in global mode this will calculate based on when the user "
                               "account was created.*"))
-        days = await self.ctx.bot.wait_for("message", timeout=15.0, check=self.validint)
+        days = await self.ctx.bot.wait_for("message", timeout=15.0, check=Checks(ctx).positive)
 
         if self.mode == "create":
             membership['DOS'] = int(days.content)
@@ -1732,7 +1694,7 @@ class Core:
             bet *= multiplier
         else:
             msg = _("Nothing happens. You stare at the machine contemplating your decision.")
-        embed = utils.build_embed(msg, "Allin")
+        embed = utils.build_embed(msg)
         return outcome == 0, bet, embed
 
     @game_engine("Coin", (_("heads"), _("tails")))
@@ -1740,7 +1702,7 @@ class Core:
         await ctx.send(_("The coin flips into the air..."))
         await asyncio.sleep(2)
         outcome = random.choice((_("heads"), _("tails")))
-        embed = utils.build_embed(_("The coin landed on {}!").format(outcome), "Coin")
+        embed = utils.build_embed(_("The coin landed on {}!").format(outcome))
         return choice.lower() in outcome, bet, embed
 
     @game_engine("Cups", ('1', '2', '3'))
@@ -1748,7 +1710,7 @@ class Core:
         await ctx.send(_("The cups start shuffling along the table..."))
         await asyncio.sleep(3)
         outcome = random.randint(1, 3)
-        embed = utils.build_embed(_("The coin was under cup {}!").format(outcome), "Cups")
+        embed = utils.build_embed(_("The coin was under cup {}!").format(outcome))
         return int(choice) == outcome, bet, embed
 
     @game_engine("Dice")
@@ -1761,7 +1723,7 @@ class Core:
         outcome = die_one + die_two
 
         msg = _("The dice landed on {} and {} ({}).").format(die_one, die_two, outcome)
-        embed = utils.build_embed(msg, "Dice")
+        embed = utils.build_embed(msg)
         return outcome in (2, 7, 11, 12), bet, embed
 
 
@@ -1782,11 +1744,11 @@ class Craps:
 
         if comeout == 7:
             bet *= 7
-            return True, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
+            return True, bet, utils.build_embed(msg.format(d1, d2))
         elif comeout == 11:
-            return True, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
+            return True, bet, utils.build_embed(msg.format(d1, d2))
         elif comeout in (2, 3, 12):
-            return False, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
+            return False, bet, utils.build_embed(msg.format(d1, d2))
         await ctx.send("{}\nI will keep rolling the dice until you match your comeout roll or "
                        "you crap out by rolling a 7 or 11.".format(msg.format(d1, d2)))
         await asyncio.sleep(5)
@@ -1807,7 +1769,7 @@ class Craps:
             if (d1 + d2) == comeout or (d1 + d2) in (7, 11) or count >= 3:
                 if count >= 3:
                     msg += "\nYou automatically lost, because you exceeded the 3 re-roll limit."
-                return (d1 + d2) == comeout, bet, utils.build_embed(msg.format(d1, d2), 'Craps')
+                return (d1 + d2) == comeout, bet, utils.build_embed(msg.format(d1, d2))
             await asyncio.sleep(1)
 
     @staticmethod
@@ -1826,13 +1788,11 @@ class Blackjack(Data):
 
     @game_engine(name="Blackjack")
     async def play(self, ctx, bet):
-        instance = await super().get_instance(ctx, settings=True)
-        casino_name = await instance.Settings.Casino_Name()
-        ph, dh, amt = await self.blackjack_game(ctx, casino_name, bet)
-        result = await self.blackjack_results(ctx, amt, ph, dh, casino_name)
+        ph, dh, amt = await self.blackjack_game(ctx, bet)
+        result = await self.blackjack_results(ctx, amt, ph, dh)
         return result
 
-    async def blackjack_game(self, ctx, casino_name, amount):
+    async def blackjack_game(self, ctx, amount):
         ph = deck.deal(num=2)
         ph_count = deck.bj_count(ph)
         dh = deck.deal(num=2)
@@ -1841,31 +1801,30 @@ class Blackjack(Data):
         if ph_count == 21:
             return ph, dh, amount
 
-        def condition1(m):
-            return m.author == ctx.author and m.content.lower() in \
-                                              (_("hit"), _("stay"), _("double"))
+        condition1 = Checks(ctx, (_("hit"), _("stay"), _("double")))
+        condition2 = Checks(ctx, (_("hit"), _("stay")))
 
-        def condition2(m):
-            return m.author == ctx.author and m.content.lower() in (_("hit"), _("stay"))
-
-        embed = self.bj_embed(ctx, casino_name, ph, dh, ph_count, initial=True)
+        embed = self.bj_embed(ctx, ph, dh, ph_count, initial=True)
         await ctx.send(ctx.author.mention, embed=embed)
 
         try:
-            choice = await ctx.bot.wait_for('message', check=condition1, timeout=35.0)
+            choice = await ctx.bot.wait_for('message', check=condition1.content, timeout=35.0)
         except asyncio.TimeoutError:
+            dh = self.dealer(dh)
             return ph, dh, amount
 
         if choice.content.lower() == _("stay"):
+            dh = self.dealer(dh)
             return ph, dh, amount
 
         if choice.content.lower() == _("double"):
-            return await self.double_down(ctx, ph, dh, amount, condition2, casino_name)
+            return await self.double_down(ctx, ph, dh, amount, condition2)
         else:
-            ph, dh = await self.bj_loop(ctx, ph, dh, ph_count, condition2, casino_name)
+            ph, dh = await self.bj_loop(ctx, ph, dh, ph_count, condition2)
+            dh = self.dealer(dh)
             return ph, dh, amount
 
-    async def double_down(self, ctx, ph, dh, amount, condition2, casino_name):
+    async def double_down(self, ctx, ph, dh, amount, condition2):
         try:
             await bank.withdraw_credits(ctx.author, amount)
         except ValueError:
@@ -1873,21 +1832,24 @@ class Blackjack(Data):
                              "hit or stay.").format(ctx.author.mention))
 
             try:
-                choice2 = await ctx.bot.wait_for('message', check=condition2, timeout=35.0)
+                choice2 = await ctx.bot.wait_for('message', check=condition2.content, timeout=35.0)
             except asyncio.TimeoutError:
                 return ph, dh, amount
 
             if choice2.content.lower() == _("stay"):
+                dh = self.dealer(dh)
                 return ph, dh, amount
             elif choice2.content.title() == _("Hit"):
-                ph, dh = await self.bj_loop(ctx, ph, dh, count, condition2, casino_name)
+                ph, dh = await self.bj_loop(ctx, ph, dh, count, condition2)
+                dh = self.dealer(dh)
                 return ph, dh, amount
         else:
             deck.deal(hand=ph)
+            dh = self.dealer(dh)
             amount *= 2
             return ph, dh, amount
 
-    async def blackjack_results(self, ctx, amount, ph, dh, casino_name):
+    async def blackjack_results(self, ctx, amount, ph, dh):
         dc = deck.bj_count(dh)
         pc = deck.bj_count(ph)
 
@@ -1907,20 +1869,20 @@ class Blackjack(Data):
         else:
             outcome = _("House Wins!")
             result = False
-        embed = self.bj_embed(ctx, casino_name, ph, dh, pc, outcome=outcome)
+        embed = self.bj_embed(ctx, ph, dh, pc, outcome=outcome)
         return result, amount, embed
 
-    async def bj_loop(self, ctx, ph, dh, count, condition2, casino_name):
+    async def bj_loop(self, ctx, ph, dh, count, condition2):
         while count < 21:
             ph = deck.deal(hand=ph)
             count = deck.bj_count(hand=ph)
 
             if count >= 21:
                 break
-            embed = self.bj_embed(ctx, casino_name, ph, dh, count, initial=False)
+            embed = self.bj_embed(ctx, ph, dh, count, initial=False)
             await ctx.send(ctx.author.mention, embed=embed)
             try:
-                resp = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
+                resp = await ctx.bot.wait_for("message", check=condition2.content, timeout=35.0)
             except asyncio.TimeoutError:
                 break
 
@@ -1944,10 +1906,10 @@ class Blackjack(Data):
         while count < 16:
             deck.deal(hand=dh)
             count = deck.bj_count(dh)
-        return dh, count
+        return dh
 
     @staticmethod
-    def bj_embed(ctx, casino_name, ph, dh, count1, initial=False, outcome=None):
+    def bj_embed(ctx, ph, dh, count1, initial=False, outcome=None):
         hand = _("{}\n**Score:** {}")
         footer = _("Cards in Deck: {}")
         start = _("**Options:** hit, stay, or double")
@@ -1958,7 +1920,6 @@ class Blackjack(Data):
         dealer_hand = hole if not outcome else ", ".join(deck.fmt_hand(dh))
 
         embed = discord.Embed(colour=0xFF0000)
-        embed.title = _("{} Casino | Blackjack").format(casino_name)
         embed.add_field(name=_("{}'s Hand").format(ctx.author.name),
                         value=hand.format(", ".join(deck.fmt_hand(ph)), count1))
         embed.add_field(name=_("{}'s Hand").format(ctx.bot.user.name),
@@ -1981,7 +1942,7 @@ class Hilo:
         result = die_one + die_two
         outcome = self.hilo_lookup(result)
         msg = _("The outcome was {} ({[0]})!").format(result, outcome)
-        embed = utils.build_embed(msg, "Hilo")
+        embed = utils.build_embed(msg)
 
         if outcome == result == 7:
             bet *= 5
@@ -2022,18 +1983,14 @@ class War:
                 outcome = "Loss"
             return outcome, player_card, dealer_card, bet
 
-        def condition(m):
-            return m.author == ctx.author and m.content.lower() in \
-                                              (_("war"), _("surrender"), _("ffs"))
-
         await ctx.send(_("The player and dealer are both showing a **{}**!\nTHIS MEANS "
                          "WAR! You may choose to surrender and forfeit half your bet, or "
                          "you can go to war.\nIf you go to war your bet will be doubled, "
                          "but the multiplier is only applied to your original bet, the rest will "
                          "be pushed.").format(deck.fmt_card(player_card)))
-
+        checks = Checks(ctx, (_("war"), _("surrender"), _("ffs")))
         try:
-            choice = await ctx.bot.wait_for('message', check=condition, timeout=35.0)
+            choice = await ctx.bot.wait_for('message', check=checks.content, timeout=35.0)
         except asyncio.TimeoutError:
             return "Surrender", player_card, dealer_card, bet
 
@@ -2068,7 +2025,7 @@ class War:
         else:
             msg += _("**Result**: Surrendered")
             result = False
-        embed = utils.build_embed(msg, 'War')
+        embed = utils.build_embed(msg)
         return result, amount, embed
 
     @staticmethod
