@@ -24,7 +24,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.10"
+__version__ = "2.0.11"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1402,7 +1402,8 @@ class Membership(Data):
         await self.ctx.send(_("Are you sure you wish to delete {}? "
                               "This cannot be reverted.").format(membership.content))
 
-        choice = await self.ctx.bot.wait_for('message', timeout=25.0, check=Checks(self.ctx).confirm)
+        choice = await self.ctx.bot.wait_for('message', timeout=25.0,
+                                             check=Checks(self.ctx).confirm)
         if choice.content.lower() == self.cancel:
             raise ExitProcess()
         elif choice.content.lower() == "yes":
@@ -1478,7 +1479,8 @@ class Membership(Data):
 
         await self.ctx.send(_("Would you like to edit another membership?"))
 
-        choice = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).confirm)
+        choice = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                             check=Checks(self.ctx).confirm)
         if choice.content.lower() == _("yes"):
             await self.editor()
         else:
@@ -1534,7 +1536,8 @@ class Membership(Data):
 
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
-        access = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
+        access = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                             check=Checks(self.ctx).positive)
 
         if access.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1550,7 +1553,8 @@ class Membership(Data):
 
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership?"))
-        reduction = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
+        reduction = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                                check=Checks(self.ctx).positive)
 
         if reduction.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1565,7 +1569,8 @@ class Membership(Data):
     async def set_bonus(self, membership):
         await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n"
                               "*Defaults to one*"))
-        bonus = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).valid_float)
+        bonus = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                            check=Checks(self.ctx).valid_float)
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
@@ -1598,7 +1603,8 @@ class Membership(Data):
 
             await self.ctx.send(_("Would you like to continue adding or modifying requirements?"))
 
-            choice = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).confirm)
+            choice = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                                 check=Checks(self.ctx).confirm)
             if choice.content.lower() == _("no"):
                 break
             elif choice.content.lower() == self.cancel:
@@ -1609,7 +1615,8 @@ class Membership(Data):
     async def credits_requirement(self, membership):
         await self.ctx.send(_("How many credits does this membership require?"))
 
-        amount = await self.ctx.bot.wait_for("message", timeout=25.0, check=Checks(self.ctx).positive)
+        amount = await self.ctx.bot.wait_for("message", timeout=25.0,
+                                             check=Checks(self.ctx).positive)
 
         if amount.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1840,7 +1847,7 @@ class Blackjack(Data):
             if choice2.content.lower() == _("stay"):
                 dh = self.dealer(dh)
                 return ph, dh, amount
-            elif choice2.content.title() == _("Hit"):
+            elif choice2.content.title() == _("hit"):
                 ph, dh = await self.bj_loop(ctx, ph, dh, count, condition2)
                 dh = self.dealer(dh)
                 return ph, dh, amount
