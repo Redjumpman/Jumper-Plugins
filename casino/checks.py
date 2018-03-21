@@ -19,36 +19,40 @@ class Checks:
     def same(self, m):
         return self.ctx.author == m.author
 
+    def cancel(self, m):
+        return m.content.lower() == (self.ctx.prefix + 'cancel')
+
     def confirm(self, m):
-        return self.same(m) and m.content.lower() in ('yes', 'no')
+        return self.same(m) and m.content.lower() in ('yes', 'no') or self.cancel(m)
 
     def valid_int(self, m):
-        return self.same(m) and m.content.isdigit()
+        return self.same(m) and m.content.isdigit() or self.cancel(m)
 
     def valid_float(self, m):
         try:
             return self.same(m) and float(m.content) >= 1
         except ValueError:
-            return False
+            return self.cancel(m)
 
     def positive(self, m):
-        return self.same(m) and m.content.isdigit() and int(m.content) >= 0
+        return self.same(m) and m.content.isdigit() and int(m.content) >= 0 or self.cancel(m)
 
     def role(self, m):
         roles = [r.name for r in self.ctx.guild.roles if r.name != "Bot"]
-        return self.same(m) and m.content in roles
+        return self.same(m) and m.content in roles or self.cancel(m)
 
     def member(self, m):
-        return self.same(m) and m.content in [x.name for x in self.ctx.guild.members]
+        return (self.same(m) and m.content in [x.name for x in self.ctx.guild.members]
+                or self.cancel(m))
 
     def length_under(self, m):
         try:
-            return self.same(m) and len(m.content) <= self.length
+            return self.same(m) and len(m.content) <= self.length or self.cancel(m)
         except TypeError:
             raise ValueError("Length was not specified in Checks.")
 
     def content(self, m):
         try:
-            return self.same(m) and m.content.lower() in self.custom
+            return self.same(m) and m.content.lower() in self.custom or self.cancel(m)
         except TypeError:
             raise ValueError("A custom iterable was not set in Checks.")
