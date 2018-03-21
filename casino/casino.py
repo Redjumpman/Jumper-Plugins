@@ -10,12 +10,14 @@ from functools import wraps
 from operator import itemgetter
 from collections import namedtuple
 
-# Red
-from redbot.core.i18n import CogI18n
-from redbot.core import Config, bank
+# Casino
 from . import utils
 from .deck import Deck
 from .checks import Checks
+
+# Red
+from redbot.core.i18n import CogI18n
+from redbot.core import Config, bank
 
 # Discord
 import discord
@@ -24,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.11"
+__version__ = "2.0.12"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1508,10 +1510,12 @@ class Membership(Data):
         memberships = await self.coro.all()
 
         def mem_check(m):
-            n = m.content
+            raw_name = m.content
             if m.author == self.ctx.author:
+                if raw_name == self.cancel:
+                    raise ExitProcess
                 conditions = (m.content.replace(' ', '_') not in memberships,
-                              (True if re.match('^[a-zA-Z0-9 _]*$', n) else False))
+                              (True if re.match('^[a-zA-Z0-9 _]*$', raw_name) else False))
                 if all(conditions):
                     return True
                 else:
@@ -1870,10 +1874,10 @@ class Blackjack(Data):
         elif pc > 21:
             outcome = _("BUST!")
             result = False
-
         elif dc == pc <= 21:
             outcome = _("Pushed")
-            result = True
+            await bank.deposit_credits(ctx.author, amount)
+            result = False
         else:
             outcome = _("House Wins!")
             result = False
