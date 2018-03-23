@@ -1,0 +1,9 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing casino. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3",
+    "name" : "Casino",
+    "short" : "Casino style mini games.",
+    "requirements" : ["tabulate"],
+    "description" : "Play up to 7 unique games and earn currency.",
+    "tags" : ["Games", "Economy", "Fun", "Casino"]
+}
