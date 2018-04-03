@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.13"
+__version__ = "2.0.14"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -476,7 +476,7 @@ class Casino(Data):
         msg = await ctx.send(_("Which of the following memberships would you like to know more "
                                "about?\n{}.").format(utils.fmt_join(names)))
 
-        checks = Checks(ctx, names)
+        checks = Checks(ctx, custom=[x.lower() for x in names])
         try:
             membership = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
         except asyncio.TimeoutError:
