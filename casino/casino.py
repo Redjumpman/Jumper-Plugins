@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.12"
+__version__ = "2.0.13"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -806,7 +806,7 @@ class Casino(Data):
         alt = 'local' if mode == 'global' else 'global'
         await ctx.send(_("Casino is currently set to {} mode. Would you like to change to {} "
                          "mode instead?").format(mode, alt))
-
+        checks = Checks(ctx)
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.confirm)
         except asyncio.TimeoutError:
