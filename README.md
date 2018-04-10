@@ -58,7 +58,7 @@ Make sure that you use the `[p]cog update` command to periodically update my cog
 
 | ![Coupon](https://i.imgur.com/mEfCe2G.png) 	| ![Dice Table](https://i.imgur.com/0kIaU1s.png) 	| ![Coupon](https://i.imgur.com/1oDD3T9.png) 	|
 |--------------------------------------------	|------------------------------------------------	|--------------------------------------------	|
-| [Language](https://github.com/Redjumpman/Jumper-Cogs/wiki/Language) 	| [Dice Table](https://github.com/Redjumpman/Jumper-Cogs/wiki/Dicetable) 	| [Coupon](https://github.com/Redjumpman/Jumper-Cogs/wiki/Coupon) 	|
+| [Jisho](https://github.com/Redjumpman/Jumper-Cogs/wiki/Jisho) 	| [Dice Table](https://github.com/Redjumpman/Jumper-Cogs/wiki/Dicetable) 	| [Coupon](https://github.com/Redjumpman/Jumper-Cogs/wiki/Coupon) 	|
 
 # Support
 If you have an issue with one of my cogs, then create an issue. **DO NOT DM ME ON DISCORD.** I get a ton of DMs and I can't manage to answer all of them. Posting an issue will be the fastest way for me to resolve your problem. If you have questions about a particular cog feel free to talk to me via my [support channel](https://discord.gg/c6HQUb7). I receive notifications for that channel and will respond as soon as I am able. 
@@ -66,7 +66,7 @@ If you have an issue with one of my cogs, then create an issue. **DO NOT DM ME O
 If you wish to support this project click on the paypal shield at the top. Thank you so much in advance!! I don't recieve any sort of paypal notifications at the moment, so feel free to send me a DM.
 
 # Credit
-jonnyli1125 for allowing me to adapt his jisho plugin into the Language Cog.
+jonnyli1125 for allowing me to adapt his jisho plugin into the Jisho Cog.
 
 A special thanks to a few outstanding members of my unofficial test flight: Aikaterna, Claire, and Yukirin.
 
