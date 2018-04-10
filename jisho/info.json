@@ -1,0 +1,8 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing jisho. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Jisho-RedV3",
+    "name" : "Jisho",
+    "short" : "Translate English to Japanese",
+    "description" : "Romaji, Hiragana, Kanji, and Katakana",
+    "tags" : ["Translation", "Japanese", "Utility"]
+}
