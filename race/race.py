@@ -98,7 +98,7 @@ class Race:
         self.bot = bot
         self.system = {}
         self.config = dataIO.load_json('data/race/race.json')
-        self.version = "1.1.03"
+        self.version = "1.1.04"
 
     @commands.group(pass_context=True, no_pm=True)
     async def race(self, ctx):
@@ -272,7 +272,7 @@ class Race:
         embed.add_field(name='-' * 99, value='{} is the winner!'.format(data['Winner']))
         embed.title = "Race Results"
         embed.set_footer(text=footer.format(ctx.prefix))
-        await self.bot.say(embed=embed)
+        await self.bot.say(content=data['Winner'].mention, embed=embed)
         self.game_teardown(data)
 
     @race.command(name="enter", pass_context=True)
