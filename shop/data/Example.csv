@@ -1,0 +1,11 @@
+Shop,Item,Type,Cost,Qty,Info,Role,Messages
+Holy Temple,Bread,basic,25,12,Hard as a rock.,,
+Holy Temple,Holy Water,basic,30,8,Strong against Demons.,,
+Holy Temple,Divine Training,role,500,5,Grants the Priest role.,Priest,
+Holy Temple,Healing Potion,basic,85,10,Recovers some health.,,
+Holy Temple,Enchanted Stave,basic,900,1,Divine blunt weapon.,,
+Holy Temple,Box of faith,random,100,0,Pray for prosperity.,,
+Holy Temple,Angelic Whisper,auto,5,6,Your prayers answered.,,"msg1, msg2, msg3, msg4, msg5, msg6"
+Holy Temple,Robes,basic,25,18,Simple cloth robes.,,
+Mage Tower,Wand of Inferno,basic,9000,1,Fiery magic implement.,,
+Mage Tower,Magic Beans,basic,5,3,These might be useful.,,
