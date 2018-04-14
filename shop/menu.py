@@ -105,8 +105,10 @@ class ShopMenu:
 
     async def parse_data(self, data):
         if self.shop is None and self.mode == 0:
+            perms = self.ctx.author.guild_permissions.administrator
             author_roles = [r.name for r in self.ctx.author.roles]
-            return [x for x, y in data.items() if y['Role'] in author_roles and y['Items']]
+            return [x for x, y in data.items() if (y['Role'] in author_roles or perms)
+                    and y['Items']]
         else:
             try:
                 return list(data.items())
