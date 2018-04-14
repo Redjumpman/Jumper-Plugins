@@ -68,6 +68,6 @@ If you wish to support this project click on the paypal shield at the top. Thank
 # Credit
 jonnyli1125 for allowing me to adapt his jisho plugin into the Jisho Cog.
 
-A special thanks to a few outstanding members of my unofficial test flight: Aikaterna, Claire, and Yukirin.
+A special thanks to a few outstanding members of my unofficial test flight: Aikaterna, Claire, ASSASSIN0831, and Yukirin.
 
 Also I want to thank everyone in the Red bot community who uses my plugins. Without you guys I would have never continued making these plugins!
