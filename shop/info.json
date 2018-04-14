@@ -1,0 +1,9 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing shop. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Shop-Red-V3",
+    "name" : "Shop",
+    "short" : "Create, buy, trade, and redeem items.",
+    "requirements" : ["tabulate"],
+    "description" : "Shop system that allows for multiple shops with their own list of items for sale. Players can purchase these items with economy currency and redeem them for roles, or other server defined value.",
+    "tags" : ["Economy", "Fun", "Shop"]
+}
