@@ -24,7 +24,7 @@ from redbot.core import Config, bank
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 __author__ = "Redjumpman"
 
 
@@ -586,7 +586,6 @@ class Shop:
     async def build_data(ctx, instance):
         shops = await instance.Shops.all()
         author_roles = [r.name for r in ctx.author.roles]
-        print([y['Role'] for x, y in shops.items()])
         if [x for x, y in shops.items() if y['Role'] in author_roles and y['Items']]:
             return shops
         else:
@@ -604,7 +603,7 @@ class Shop:
                 if not p[str(user.id)]:
                     del p[str(user.id)]
             await ctx.send('{} was cleared from {}\'s pending by {}.'.format(item_name, user.name,
-                                                                            ctx.author.name))
+                                                                             ctx.author.name))
             await user.send("{} cleared your pending {}!".format(ctx.author.name, item_name))
         else:
             await ctx.send("Action canceled.")
@@ -749,7 +748,6 @@ class Shop:
             return await ctx.send("Response timed out. Shop creation ended.")
 
         role_name = role.content if role.content != 'all' else '@everyone'
-        print(role_name)
         async with instance.Shops() as shops:
             shops[name.content] = {'Items': {}, 'Role': role_name}
         await ctx.send("Added {} to the list of shops.\n"
@@ -1010,7 +1008,7 @@ class ItemManager:
             return await self.ctx.send("You can only add messages to auto type items.")
         await self.ctx.send("Auto items require a message to be stored per quantity. Separate each "
                             "message with a new line using a code block.")
-        msgs = await self.ctx.bot.wait_for('message', timeout=25, check=Checks(self.ctx).same)
+        msgs = await self.ctx.bot.wait_for('message', timeout=120, check=Checks(self.ctx).same)
         auto_msgs = [x.strip() for x in msgs.content.strip('`').split('\n') if x]
         if item:
             async with self.instance.Shops() as shops:
@@ -1101,7 +1099,7 @@ class ItemManager:
     async def set_info(self, item=None, shop=None):
         await self.ctx.send("Specify the info text for this item.\n"
                             "*Note* cannot be longer than 24 characters.")
-        info = await self.ctx.bot.wait_for('message', timeout=25,
+        info = await self.ctx.bot.wait_for('message', timeout=40,
                                            check=Checks(self.ctx, length=24).length_under)
         if item:
             async with self.instance.Shops() as shops:
