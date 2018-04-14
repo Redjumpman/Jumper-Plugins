@@ -24,7 +24,7 @@ from redbot.core import Config, bank
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.3"
+__version__ = "3.0.4"
 __author__ = "Redjumpman"
 
 
@@ -123,14 +123,14 @@ class Shop:
         [p]shop buy Junkyard tire
         [p]shop buy \"Holy Temple\" \"Healing Potion\"
         """
-        perms = ctx.author.guild_permissions.administrator
         instance = await self.get_instance(ctx, settings=True)
         if not await instance.Shops():
             return await ctx.send("No shops have been created yet.")
         if await instance.Settings.Closed():
             return await ctx.send("The shop system is currently closed.")
 
-        col = await self.build_data(ctx, instance)
+        shops = await instance.Shops.all()
+        col = await self.check_availability(ctx, shops)
         if not col:
             return await ctx.send("Either no items have been created, or you need a "
                                   "higher role.")
@@ -140,15 +140,12 @@ class Shop:
             except ValueError:
                 return await ctx.send("Too many parameters passed. Use help on this command for "
                                       "more information.")
-            author_roles = [r.name for r in ctx.author.roles]
-            valid = [x for x, y in col.items() if (y['Role'] in author_roles or perms)
-                     and y['Items']]
-            if shop not in valid:
+            if shop not in shops:
                 return await ctx.send("Either that shop does not exist, or you don't have access "
                                       "to it.")
 
         else:
-            menu = ShopMenu(ctx, col)
+            menu = ShopMenu(ctx, shops)
             try:
                 shop, item = await menu.display()
             except RuntimeError:
@@ -365,11 +362,11 @@ class Shop:
         """Completely clears a user's inventory."""
         await ctx.send("Are you sure you want to completely wipe {}'s inventory?".format(user.name))
         choice = await ctx.bot.wait_for('message', timeout=25, check=Checks(ctx).confirm)
-        if choice.content.lower() == 'yes':
-            instance = await self.get_instance(ctx=ctx, user=user)
-            await instance.Inventory.clear()
-            return await ctx.send("Done. Inventory wiped for {}.".format(user.name))
-        await ctx.send("Cancled inventory wipe.")
+        if choice.content.lower() != 'yes':
+            return await ctx.send("Canceled inventory wipe.")
+        instance = await self.get_instance(ctx=ctx, user=user)
+        await instance.Inventory.clear()
+        await ctx.send("Done. Inventory wiped for {}.".format(user.name))
 
     @shop.command()
     @global_permissions()
@@ -388,27 +385,6 @@ class Shop:
                 await self.delete_shop(ctx, instance)
         except asyncio.TimeoutError:
             await ctx.send("Shop manager timed out.")
-
-    @shop.command()
-    @global_permissions()
-    @guild_required_or_global()
-    async def role(self, ctx, role: discord.Role):
-        """Changes the role required to use a specific shop.
-
-        If you wish to change a shop to be used by everyone, you will
-        need to use the `@everyone` role.
-        """
-        await ctx.send("Which shop would you like to add a role restriction to?")
-        instance = await self.get_instance(ctx, settings=True)
-        shops = await instance.Shops.all()
-        check = Checks(ctx, custom=shops)
-        try:
-            choice = await ctx.bot.wait_for('message', timeout=25, check=check.content)
-        except asyncio.TimeoutError:
-            return await ctx.send("Response timed out.")
-        await instance.set_raw('Shops', choice.content, 'Role', value=role.name)
-        await ctx.send("{} is now restricted to only users "
-                       "with the {} role.".format(choice.content, role.name))
 
     @shop.command()
     @global_permissions()
@@ -585,13 +561,10 @@ class Shop:
     # -------------------------------------------------------------------------------
 
     @staticmethod
-    async def build_data(ctx, instance):
-        shops = await instance.Shops.all()
+    async def check_availability(ctx, shops):
+        perms = ctx.author.guild_permissions.administrator
         author_roles = [r.name for r in ctx.author.roles]
-        if [x for x, y in shops.items() if y['Role'] in author_roles and y['Items']]:
-            return shops
-        else:
-            return None
+        return [x for x, y in shops.items() if (y['Role'] in author_roles or perms) and y['Items']]
 
     @staticmethod
     async def clear_single_pending(ctx, instance, data, item, user):
@@ -1131,8 +1104,7 @@ class ItemManager:
             if shop not in shops:
                 if new_allowed:
                     shops[shop] = {'Items': {item: data}, 'Role': '@everyone'}
-                    log.info('Created the shop: {} and added {}.'.format(shop, item))
-                    return
+                    return log.info('Created the shop: {} and added {}.'.format(shop, item))
                 log.error('{} could not be added to {}, '
                           'because it does not exist.'.format(item, shop))
             elif item in shops[shop]["Items"]:
