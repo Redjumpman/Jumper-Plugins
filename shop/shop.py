@@ -24,7 +24,7 @@ from redbot.core import Config, bank
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 __author__ = "Redjumpman"
 
 
@@ -123,6 +123,7 @@ class Shop:
         [p]shop buy Junkyard tire
         [p]shop buy \"Holy Temple\" \"Healing Potion\"
         """
+        perms = ctx.author.guild_permissions.administrator
         instance = await self.get_instance(ctx, settings=True)
         if not await instance.Shops():
             return await ctx.send("No shops have been created yet.")
@@ -140,7 +141,8 @@ class Shop:
                 return await ctx.send("Too many parameters passed. Use help on this command for "
                                       "more information.")
             author_roles = [r.name for r in ctx.author.roles]
-            valid = [x for x, y in col.items() if y['Role'] in author_roles and y['Items']]
+            valid = [x for x, y in col.items() if (y['Role'] in author_roles or perms)
+                     and y['Items']]
             if shop not in valid:
                 return await ctx.send("Either that shop does not exist, or you don't have access "
                                       "to it.")
@@ -1012,11 +1014,10 @@ class ItemManager:
         auto_msgs = [x.strip() for x in msgs.content.strip('`').split('\n') if x]
         if item:
             async with self.instance.Shops() as shops:
-                current = len(shops[shop]['Items'][item]['Messages'])
                 shops[shop]['Items'][item]['Messages'].extend(auto_msgs)
-                shops[shop]['Items'][item]['qty'] = len(auto_msgs) + current
-                return await self.ctx.send("{} now has {} messages "
-                                           "set.".format(item, current + len(auto_msgs)))
+                shops[shop]['Items'][item]['Qty'] += len(auto_msgs)
+            return await self.ctx.send("{} messages were added to {}."
+                                       "".format(len(auto_msgs), item))
         return auto_msgs
 
     async def set_name(self, item=None, shop=None):
@@ -1055,7 +1056,11 @@ class ItemManager:
 
         await self.ctx.send("What quantity do you want to set this item to?\n"
                             "Type 0 for infinite.")
-        qty = await self.ctx.bot.wait_for('message', timeout=25, check=Checks(self.ctx).positive)
+
+        def check(m):
+            return m.author == self.ctx.author and m.content.isdigit() and int(m.content) >= 0
+
+        qty = await self.ctx.bot.wait_for('message', timeout=25, check=check)
         qty = int(qty.content) if int(qty.content) > 0 else '--'
         if item:
             async with self.instance.Shops() as shops:
