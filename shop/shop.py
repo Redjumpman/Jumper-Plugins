@@ -24,7 +24,7 @@ from redbot.core import Config, bank
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 __author__ = "Redjumpman"
 
 
@@ -1013,7 +1013,7 @@ class ItemManager:
         if item:
             async with self.instance.Shops() as shops:
                 current = len(shops[shop]['Items'][item]['Messages'])
-                shops[shop]['Items'][item]['Messages'].append(auto_msgs)
+                shops[shop]['Items'][item]['Messages'].extend(auto_msgs)
                 shops[shop]['Items'][item]['qty'] = len(auto_msgs) + current
                 return await self.ctx.send("{} now has {} messages "
                                            "set.".format(item, current + len(auto_msgs)))
