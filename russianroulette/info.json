@@ -1,0 +1,8 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing Russian Roulette.",
+    "name" : "Russian Roulette",
+    "short" : "Play a game of Russian Roulette!",
+    "description" : "Play a game of russian roulette where the winner takes all. You can change the chamber size of the weapon, the wait time before starting the game, and the cost to play.",
+    "tags" : ["Games", "Economy", "Fun", "Russian"]
+}
