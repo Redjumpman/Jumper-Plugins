@@ -91,9 +91,7 @@ class Cookie:
         self.account_check(settings, author)
         self.account_check(settings, user)
         sender_cookies = settings["Players"][author.id]["Cookies"]
-        if cookies == 0:
-            msg = "_Neko-chan scratched you for trying to give nothing_"
-        elif 0 < cookies <= sender_cookies:
+        if 0 < cookies <= sender_cookies:
             settings["Players"][author.id]["Cookies"] -= cookies
             settings["Players"][user.id]["Cookies"] += cookies
             dataIO.save_json(self.file_path, self.system)
