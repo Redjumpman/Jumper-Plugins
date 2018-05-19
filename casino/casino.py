@@ -16,7 +16,7 @@ from .deck import Deck
 from .checks import Checks
 
 # Red
-from redbot.core.i18n import CogI18n
+from redbot.core.i18n import Translator
 from redbot.core import Config, bank
 
 # Discord
@@ -26,11 +26,11 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.15"
+__version__ = "2.0.16"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
-_ = CogI18n("Casino", __file__)
+_ = Translator("Casino", __file__)
 
 deck = Deck()
 
