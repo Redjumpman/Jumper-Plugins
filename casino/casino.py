@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.16"
+__version__ = "2.0.17"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1851,7 +1851,7 @@ class Blackjack(Data):
             if choice2.content.lower() == _("stay"):
                 dh = self.dealer(dh)
                 return ph, dh, amount
-            elif choice2.content.title() == _("hit"):
+            elif choice2.content.lower() == _("hit"):
                 ph, dh = await self.bj_loop(ctx, ph, dh, deck.bj_count(ph), condition2)
                 dh = self.dealer(dh)
                 return ph, dh, amount
