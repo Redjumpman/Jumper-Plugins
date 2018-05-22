@@ -18,7 +18,7 @@ from redbot.core import Config
 import discord
 from discord.ext import commands
 
-switcher = ['english', 'score', 'type', 'episodes', 'volumes', 'chapters', 'status', 'type',
+switcher = ['english', 'score', 'type', 'episodes', 'volumes', 'chapters', 'status',
             'start_date', 'end_date']
 
 
