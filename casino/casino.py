@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.0.17"
+__version__ = "2.1.0"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1012,6 +1012,22 @@ class Casino(Data):
                 "for {1} to {2}.").format(author, game, access)
         log.info(msg)
         await ctx.send(msg)
+    
+    @casinoset.command()
+    async def gametoggle(self, ctx, game: str):
+        """Opens/Closes a specific game for use."""
+        author = ctx.author
+        instance = await super().get_instance(ctx, settings=True)
+        games = await instance.Games.all()
+        if game.title() not in games:
+            return await ctx.send("Invalid game name.")
+
+        status = await instance.Games.get_raw(game.title(), 'Open')
+        await instance.Games.set_raw(game.title(), 'Open', value=(not status))
+        msg = _("{0.name} ({0.id}) {2} the game "
+                "{1}.").format(author, game, "closed" if status else "opened")
+        log.info(msg)
+        await ctx.send(msg)
 
 # --------------------------------------------------------------------------------------------------
 
@@ -1035,6 +1051,8 @@ class Casino(Data):
                 continue
             for user in users:
                 user_obj = self.bot.get_user(user)
+                if user_obj is None:
+                    continue
                 if await self.db.user(user_obj).Membership.Assigned():
                     user_mem = await self.db.user(user_obj).Membership.Name()
                     if user_mem not in memberships:
@@ -1053,6 +1071,8 @@ class Casino(Data):
                 break
             for guild in guilds:
                 guild_obj = self.bot.get_guild(guild)
+                if not guild_obj:
+                    continue
                 users = await self.db.all_members(guild_obj)
                 if not users:
                     continue
@@ -1061,6 +1081,8 @@ class Casino(Data):
                     continue
                 for user in users:
                     user_obj = guild_obj.get_member(user)
+                    if user_obj is None:
+                        continue
                     if await self.db.member(user_obj).Membership.Assigned():
                         user_mem = await self.db.member(user_obj).Membership.Name()
                         if user_mem not in memberships:
@@ -1090,7 +1112,7 @@ class Casino(Data):
                       [x.name for x in user.roles]):
                     continue
                 elif (requirements['DOS'] and requirements['DOS'] >
-                      user.joined_at.now() - user.joined_at):
+                      (user.joined_at.now() - user.joined_at).days):
                     continue
                 else:
                     qualified.append((name, requirements['Access']))
@@ -1189,6 +1211,8 @@ class Engine(Data):
                       "\n{}.").format(utils.fmt_join(self.choices))
         elif not guild_data["Settings"]["Casino_Open"]:
             error = _("The Casino is closed.")
+        elif game_data['Open']:
+            error = _("{} is closed.".format(self.game))
         elif game_data['Access'] > user_access:
             error = (_("{} requires an access level of {}. Your current access level is {}. Obtain "
                        "a higher membership to play this "
@@ -1225,7 +1249,7 @@ class Engine(Data):
             seconds = int((user_time + reduction - now))
             remaining = utils.time_formatter(seconds)
             msg = _("{} is still on a cooldown. You still have: {} "
-                    "remaining").format(self.game, remaining)
+                    "remaining.").format(self.game, remaining)
             return msg
 
     async def game_teardown(self, result):
