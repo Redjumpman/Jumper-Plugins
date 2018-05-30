@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.0"
+__version__ = "2.1.01"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1211,7 +1211,7 @@ class Engine(Data):
                       "\n{}.").format(utils.fmt_join(self.choices))
         elif not guild_data["Settings"]["Casino_Open"]:
             error = _("The Casino is closed.")
-        elif game_data['Open']:
+        elif not game_data['Open']:
             error = _("{} is closed.".format(self.game))
         elif game_data['Access'] > user_access:
             error = (_("{} requires an access level of {}. Your current access level is {}. Obtain "
