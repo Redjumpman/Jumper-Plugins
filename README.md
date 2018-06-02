@@ -36,10 +36,13 @@ The plugins in this repo are designed to work only for Red-DiscordBot. Most of t
 # Installation
 First make sure you have [Red Bot V3](https://github.com/Cog-Creators/Red-DiscordBot/tree/V3/develop) installed.
 
-Next add my repo using the following command `[p]repo add jumperplugins https://github.com/Redjumpman/Jumper-Plugins V3`  
-[p] will be your prefix.
+Next add my repo using the following command:  
 
-Next, you will have to download each cog individually. For example, if you want to download Casino, you would enter the following command:
+`[p]repo add jumperplugins https://github.com/Redjumpman/Jumper-Plugins V3`    
+
+> [p] will be your prefix.
+
+Then, you will have to download each cog individually. For example, if you want to download Casino, you would enter the following command:
 
 `>cog install jumperplugins casino`
 
