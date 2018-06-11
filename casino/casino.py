@@ -453,14 +453,12 @@ class Casino(Data):
         await Craps().play(ctx, bet)
 # --------------------------------------------------------------------------------------------------
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def casino(self, ctx: commands.Context):
         """Interacts with the Casino system.
 
         Use help on Casino (uppper case) for more commands.
         """
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
 
     @casino.command()
     @commands.guild_only()
@@ -781,13 +779,11 @@ class Casino(Data):
 
 # --------------------------------------------------------------------------------------------------
 
-    @commands.group()
+    @commands.group(autohelp=True)
     @global_permissions()
     @guild_required_or_global()
     async def casinoset(self, ctx: commands.Context):
         """Changes Casino settings"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
 
     @casinoset.command(name='mode')
     @commands.is_owner()

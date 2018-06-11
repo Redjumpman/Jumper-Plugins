@@ -64,11 +64,9 @@ class RussianRoulette:
     async def russianversion(self, ctx):
         await ctx.send("You are using russian roulette version {}".format(__version__))
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def setrussian(self, ctx):
         """Russian Roulette Settings group."""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
 
     @setrussian.command()
     @is_administrator()

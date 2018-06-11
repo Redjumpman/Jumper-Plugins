@@ -53,12 +53,9 @@ class AnimeList:
         cmd = "manga"
         await self.search_command(ctx, cmd, title)
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def mal(self, ctx):
         """MAL Search Commands"""
-
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
 
     @mal.command(name="anime")
     async def _anime(self, ctx, user: discord.Member=None):
