@@ -26,7 +26,7 @@ from discord.ext import commands
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.01"
+__version__ = "2.1.02"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -484,7 +484,10 @@ class Casino(Data):
             return await ctx.send(_("No Response."))
 
         games = await instance.Games.all()
-        data = memberships[membership.content.replace(' ', '_')]
+        try:
+            data = memberships[membership.content.title().replace(' ', '_')]
+        except KeyError:
+            return await ctx.send("Could not find this membership.")
         playable = [x for x, y in games.items() if y['Access'] <= data['Access']]
         reqs = _("Credits: {Credits}\nRole: {Role}\nDays on Server: {DOS}").format(**data)
         color = utils.color_lookup(data['Color'])
