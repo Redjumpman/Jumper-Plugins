@@ -53,7 +53,7 @@ Make sure that you use the `[p]cog update` command to periodically update my plu
 
 | ![Casino](https://i.imgur.com/vkpfJug.png) 	| ![Heist](https://i.imgur.com/r1ln0DH.png) 	| ![Pokedex](https://i.imgur.com/9PDfJi1.png) 	| ![Shop](https://cdn3.iconfinder.com/data/icons/shopping-icons-14/128/17_Store-128.png) 	| ![Race](https://i.imgur.com/RtDpIqP.png) 	|
 |--------------------------------------------	|-------------------------------------------	|---------------------------------------------	|----------------------------------------------------------------------------------------	|------------------------------------------	|
-| [Casino](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3) 	| [Heist](https://github.com/Redjumpman/Jumper-Plugins/wiki/Heist) 	| [Pokedex](https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex) 	| [Shop](https://github.com/Redjumpman/Jumper-Plugins/wiki/Shop-Red-V3) 	| [Race]() 	|
+| [Casino](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3) 	| [Heist](https://github.com/Redjumpman/Jumper-Plugins/wiki/Heist) 	| [Pokedex](https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex-RedV3) 	| [Shop](https://github.com/Redjumpman/Jumper-Plugins/wiki/Shop-Red-V3) 	| [Race]() 	|
 
 | ![Anime List](https://i.imgur.com/nq0RLrd.png) 	| ![Cookie](https://i.imgur.com/K7d1Bnj.png) 	| ![Lottery](https://i.imgur.com/AoOjGnp.png) 	| ![Russian Roulette](https://i.imgur.com/c8AUxpF.png) 	| ![Raffle](https://i.imgur.com/nFEY62O.png) 	|
 |------------------------------------------------	|--------------------------------------------	|---------------------------------------------	|------------------------------------------------------	|--------------------------------------------	|
