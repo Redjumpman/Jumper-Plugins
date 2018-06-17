@@ -1,0 +1,9 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing pokedex. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex-RedV3",
+    "name" : "Pokedex",
+    "short" : "Look-up info on Pokemon",
+    "requirements" : ["tabulate"],
+    "description" : "View standard pokemon information, Movesets, TM learn-sets, search items, and pokemon locations.",
+    "tags" : ["Pokemon", "Information"]
+}
