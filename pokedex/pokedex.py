@@ -16,7 +16,7 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.01"
+__version__ = "3.0.02"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -54,7 +54,7 @@ class Pokedex:
             Returns:
                 Text ouput of your installed version of Pokedex
         """
-        await ctx.send("You are running pokedex version {}.".format(self.version))
+        await ctx.send("You are running pokedex version {}.".format(__version__))
 
     @commands.command(aliases=['dex'])
     async def pokedex(self, ctx, *, pokemon: str):
