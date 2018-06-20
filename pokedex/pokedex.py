@@ -7,16 +7,19 @@ import os
 import re
 from collections import namedtuple
 
-# Discord and Redbot
+# Discord
 import discord
 from discord.ext import commands
+
+# Redbot
+from redbot.core.data_manager import cog_data_path
 from redbot.core.utils.menus import menu, DEFAULT_CONTROLS
 from redbot.core.utils.chat_formatting import box
 
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.02"
+__version__ = "3.0.03"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -67,7 +70,7 @@ class Pokedex:
                 Forms:      [p]pokedex hoopa-unbound
                 Variants:   [p]pokedex floette-orange
         """
-        poke = self.build_data('Pokemon', pokemon.title())
+        poke = self.build_data('Pokemon.csv', pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -103,7 +106,7 @@ class Pokedex:
         """
 
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data('Pokemon', pokemon.title())
+        poke = self.build_data('Pokemon.csv', pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -154,7 +157,7 @@ class Pokedex:
         if pokemon.title() in tm_exceptions:
             return await ctx.send("This Pokémon cannot learn TMs.")
 
-        poke = self.build_data('Pokemon', pokemon.title())
+        poke = self.build_data('Pokemon.csv', pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -184,7 +187,7 @@ class Pokedex:
         Example !pokedex location voltorb
         """
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data('Pokemon', pokemon.title())
+        poke = self.build_data('Pokemon.csv', pokemon.title())
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
         link_name = self.link_builder(poke.Pokemon)
@@ -245,8 +248,8 @@ class Pokedex:
 
     @staticmethod
     def item_search(name):
-        cwd = os.path.dirname(os.path.realpath(__file__))
-        fp = "{}\\data\\Items.csv".format(cwd)
+        data_path = cog_data_path()
+        fp = os.path.join(data_path, 'CogManager', 'cogs', 'pokedex', 'data', 'Items.csv')
         try:
             with open(fp, 'rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
@@ -260,8 +263,8 @@ class Pokedex:
 
     @staticmethod
     def build_data(file_name, name):
-        fp = os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'Red-DiscordBot', 'Red-DiscordBot', 'cogs',
-                                                   'CogManager', 'cogs', 'pokedex', 'data', file_name + '.csv')
+        data_path = cog_data_path()
+        fp = os.path.join(data_path, 'CogManager', 'cogs', 'pokedex', 'data', file_name)
         try:
             with open(fp, 'rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
