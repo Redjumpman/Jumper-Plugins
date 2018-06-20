@@ -9,7 +9,7 @@
 <h4 align="center">A set of plugins for Red Discord-Bot by Redjumpman</h4>
 
 <p align="center">
-  <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DYU6WYL5K5YML">
+  <a href="paypal.me/redjumpman">
     <img src="https://img.shields.io/badge/paypal-donate-red.svg">
   </a>
   <a href="https://www.python.org/downloads/release/python-355/"><img src="https://img.shields.io/badge/Made%20With-Python%203.5-blue.svg?style=for-the-badge">
@@ -31,7 +31,7 @@
 
 ---
 # Overview
-The plugins in this repo are designed to work only for Red-DiscordBot. Most of these cogs are designed around giving your bot a pseudo-gaming experience to help promote your discord community. Please read over the installation instructions and documenatation for more information on how to use these cogs.
+The plugins in this repo are work exclusively for Red Bot. Most of these cogs are designed around giving your bot a pseudo-gaming experience to help promote your discord community. Please read over the installation instructions and documenatation for more information on how to use these cogs.
 
 # Installation
 First make sure you have [Red Bot V3](https://github.com/Cog-Creators/Red-DiscordBot/tree/V3/develop) installed.
