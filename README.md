@@ -31,7 +31,7 @@
 
 ---
 # Overview
-The plugins in this repo are work exclusively for Red Bot. Most of these cogs are designed around giving your bot a pseudo-gaming experience to help promote your discord community. Please read over the installation instructions and documenatation for more information on how to use these cogs.
+The plugins in this repo are exclusively for Red Bot. Most of these cogs are designed around giving your bot a pseudo-gaming experience to help promote your discord community. Please read over the installation instructions and documenatation for more information on how to use these cogs.
 
 # Installation
 First make sure you have [Red Bot V3](https://github.com/Cog-Creators/Red-DiscordBot/tree/V3/develop) installed.
