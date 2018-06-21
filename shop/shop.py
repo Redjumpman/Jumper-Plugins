@@ -21,10 +21,11 @@ from discord.ext import commands
 
 # Red
 from redbot.core import Config, bank
+from redbot.core.data_manager import cog_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.4"
+__version__ = "3.0.05"
 __author__ = "Redjumpman"
 
 
@@ -469,8 +470,8 @@ class Shop:
         instance = await self.get_instance(ctx, settings=True)
         parser = Parser(ctx, instance, msg)
         if style.lower() == 'file':
-            cwd = os.path.dirname(os.path.realpath(__file__))
-            fp = "{}\\data\\{}.csv".format(cwd, entry)
+            data_path = cog_data_path()
+            fp = os.path.join(data_path, 'CogManager', 'cogs', 'shop', 'data', entry + '.csv')
             await parser.search_csv(fp)
         else:
             await parser.parse_text_entry(entry)
