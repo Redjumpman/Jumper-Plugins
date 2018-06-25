@@ -19,7 +19,7 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.03"
+__version__ = "3.0.04"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -116,9 +116,11 @@ class Pokedex:
         except KeyError:
             generation = '7'
             move_set = ast.literal_eval(poke.Moves)[generation]
-        table = tabulate(move_set, headers=['Level', 'Moves', 'Type', 'Power', 'Accuracy'])
+        table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Accuracy'], numalign='right'))
         color = self.color_lookup(poke.Types.split('/')[0])
-        embed = discord.Embed(title=poke.Pokemon, colour=color, description="```{}```".format(table))
+        embed = discord.Embed(colour=color)
+        embed.set_author(name=poke.Pokemon, icon_url=poke.Image)
+        embed.add_field(name='\u200b', value=table, inline=False)
         embed.add_field(name="Versions", value='\n'.join(self.game_version(generation)))
         embed.set_footer(text="This moveset is based on generation {}.".format(generation))
 
@@ -172,12 +174,14 @@ class Pokedex:
         headers = ('TM', 'Name', 'Type', 'Power', 'Accuracy')
         embeds = []
         for i in range(0, len(tm_set), 12):
-            e = discord.Embed(title=poke.Pokemon, colour=color,
-                              description='TMs based on generation {}'.format(switcher[generation]))
-            e.set_thumbnail(url=poke.Image)
-            e.add_field(name='\u200b', value=box(tabulate(tm_set[i:i + 12], headers=headers)))
+            table = box(tabulate(tm_set[i:i + 12], headers=headers, numalign='right'))
+            e = discord.Embed(colour=color)
+            e.set_author(name=poke.Pokemon, icon_url=poke.Image)
+            e.add_field(name='\u200b', value=table, inline=False)
+            e.add_field(name='\u200b', value='\u200b')  # This is needed to format the table correctly.
             embeds.append(e)
-        embeds = [x.set_footer(text='You are viewing page {} of {}'.format(idx, len(embeds)))
+        embeds = [x.set_footer(text='TMs based on generation {}.\n'
+                                    'You are viewing page {} of {}'.format(switcher[generation], idx, len(embeds)))
                   for idx, x in enumerate(embeds, 1)]
         await menu(ctx, embeds, DEFAULT_CONTROLS)
 
