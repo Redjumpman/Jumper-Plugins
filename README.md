@@ -57,7 +57,7 @@ Make sure that you use the `[p]cog update` command to periodically update my plu
 
 | ![Anime List](https://i.imgur.com/nq0RLrd.png) 	| ![Cookie](https://i.imgur.com/K7d1Bnj.png) 	| ![Lottery](https://i.imgur.com/AoOjGnp.png) 	| ![Russian Roulette](https://i.imgur.com/c8AUxpF.png) 	| ![Raffle](https://i.imgur.com/nFEY62O.png) 	|
 |------------------------------------------------	|--------------------------------------------	|---------------------------------------------	|------------------------------------------------------	|--------------------------------------------	|
-| [Anime List](https://github.com/Redjumpman/Jumper-Plugins/wiki/Animelist) 	| [Cookie]() 	| [Lottery](https://github.com/Redjumpman/Jumper-Plugins/wiki/Lottery) 	| [Russian Roulette](https://github.com/Redjumpman/Jumper-Plugins/wiki/Russianroulette) 	| [Raffle](https://github.com/Redjumpman/Jumper-Plugins/wiki/Raffle) 	|
+| [Anime List](https://github.com/Redjumpman/Jumper-Plugins/wiki/Animelist) 	| [Cookie]() 	| [Russian Roulette](https://github.com/Redjumpman/Jumper-Plugins/wiki/Russianroulette) 	| [Raffle](https://github.com/Redjumpman/Jumper-Plugins/wiki/Raffle-RedV3) 	|
 
 | ![Coupon](https://i.imgur.com/mEfCe2G.png) 	| ![Dice Table](https://i.imgur.com/0kIaU1s.png) 	| ![Coupon](https://i.imgur.com/1oDD3T9.png) 	|
 |--------------------------------------------	|------------------------------------------------	|--------------------------------------------	|
