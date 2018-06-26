@@ -55,7 +55,7 @@ Make sure that you use the `[p]cog update` command to periodically update my plu
 |--------------------------------------------	|-------------------------------------------	|---------------------------------------------	|----------------------------------------------------------------------------------------	|------------------------------------------	|
 | [Casino](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3) 	| [Heist](https://github.com/Redjumpman/Jumper-Plugins/wiki/Heist) 	| [Pokedex](https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex-RedV3) 	| [Shop](https://github.com/Redjumpman/Jumper-Plugins/wiki/Shop-Red-V3) 	| [Race]() 	|
 
-| ![Anime List](https://i.imgur.com/nq0RLrd.png) 	| ![Cookie](https://i.imgur.com/K7d1Bnj.png) 	| ![Lottery](https://i.imgur.com/AoOjGnp.png) 	| ![Russian Roulette](https://i.imgur.com/c8AUxpF.png) 	| ![Raffle](https://i.imgur.com/nFEY62O.png) 	|
+| ![Anime List](https://i.imgur.com/nq0RLrd.png) 	| ![Cookie](https://i.imgur.com/K7d1Bnj.png) 	| ![Russian Roulette](https://i.imgur.com/c8AUxpF.png) 	| ![Raffle](https://i.imgur.com/nFEY62O.png) 	|
 |------------------------------------------------	|--------------------------------------------	|---------------------------------------------	|------------------------------------------------------	|--------------------------------------------	|
 | [Anime List](https://github.com/Redjumpman/Jumper-Plugins/wiki/Animelist) 	| [Cookie]() 	| [Russian Roulette](https://github.com/Redjumpman/Jumper-Plugins/wiki/Russianroulette) 	| [Raffle](https://github.com/Redjumpman/Jumper-Plugins/wiki/Raffle-RedV3) 	|
 
