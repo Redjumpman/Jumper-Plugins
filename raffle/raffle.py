@@ -17,7 +17,7 @@ from redbot.core import Config
 log = logging.getLogger("red.raffle")
 
 __author__ = 'Redjumpman'
-__version__ = '4.0.0'
+__version__ = '4.0.01'
 
 
 class Raffle:
@@ -144,13 +144,15 @@ class Raffle:
     @setraffle.command()
     async def dos(self, ctx, days: int = None):
         """Set the days on server required to enter. Leave blank for none."""
-        if days <= 0:
-            return await ctx.send("Really? You can't do that.")
-        if days:
+        if not days:
+            await self.db.guild(ctx.guild).DOS.clear()
+            await ctx.send("DOS requirement for entering a raffle was disabled.")
+        elif days < 0:
+            await ctx.send("You can't do that.")
+        else:
             await self.db.guild(ctx.guild).DOS.set(days)
-            return await ctx.send(f"Users must have {days} days on the server to enter a raffle.")
-        await self.db.guild(ctx.guild).DOS.clear()
-        await ctx.send("DOS requirement for entering a raffle was disabled.")
+            await ctx.send(f"Users must have {days} days on the server to enter a raffle.")
+        
 
     @setraffle.command()
     async def channel(self, ctx, channel: discord.TextChannel = None):
