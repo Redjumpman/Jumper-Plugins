@@ -19,12 +19,9 @@ __author__ = "Redjumpman"
 class DiceTable:
     """Rolls a table of dice"""
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def dtable(self, ctx: commands.Context):
         """Dice Table Group"""
-
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
 
     @dtable.command()
     async def version(self, ctx: commands.Context):
