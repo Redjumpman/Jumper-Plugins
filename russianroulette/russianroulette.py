@@ -45,6 +45,7 @@ class RussianRoulette:
         self.players = []
         self.active = False
 
+    @commands.guild_only()
     @commands.command()
     async def russian(self, ctx):
         """Start or join a game of russian roulette.
@@ -64,6 +65,7 @@ class RussianRoulette:
     async def russianversion(self, ctx):
         await ctx.send("You are using russian roulette version {}".format(__version__))
 
+    @commands.guild_only()
     @commands.group()
     async def setrussian(self, ctx):
         """Russian Roulette Settings group."""
