@@ -12,7 +12,7 @@ from discord.ext import commands
 from tabulate import tabulate
 
 
-__version__ = "2.0.0"
+__version__ = "2.0.01"
 __author__ = "Redjumpman"
 
 
@@ -58,11 +58,13 @@ class DiceTable:
             sign = "+"
 
         rolls = [("{}".format(x), self.roll_dice(die, maximum), sign + str(modifier))
-                 for idx, x in range(1, times + 1)]
+                 for idx, x in enumerate(range(1, times + 1))]
         final = [x + (str(x[1] + modifier),) for x in rolls]
         headers = ["Roll", "Result", "Modifier", "Total"]
         t = '**Dice:** {}\n```{}```'.format(dice, tabulate(final, headers=headers))
-        embed = discord.Embed(title='Dice Table Output', color=0x3366FF, description=t)
+        embed = discord.Embed(title='Dice Table Output', color=0x3366FF)
+        embed.add_field(name='\u200b', value=t)
+        embed.add_field(name='\u200b', value='\u200b')
         await ctx.message.delete()
         await ctx.send(embed=embed)
 
