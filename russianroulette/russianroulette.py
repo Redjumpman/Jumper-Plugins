@@ -7,10 +7,8 @@ import random
 from .kill import outputs
 
 # Red
-from redbot.core import Config, bank
+from redbot.core import Config, bank, commands
 
-# Discord
-from discord.ext import commands
 
 __version__ = "3.0.1"
 __author__ = "Redjumpman"
