@@ -17,10 +17,9 @@ from .checks import Checks
 
 # Discord.py
 import discord
-from discord.ext import commands
 
 # Red
-from redbot.core import Config, bank
+from redbot.core import Config, bank, commands
 from redbot.core.data_manager import cog_data_path
 
 log = logging.getLogger("red.shop")
