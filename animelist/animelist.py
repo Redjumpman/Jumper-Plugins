@@ -12,11 +12,10 @@ from xml.etree import ElementTree
 from collections import namedtuple
 
 # Red
-from redbot.core import Config
+from redbot.core import Config, commands
 
 # Discord
 import discord
-from discord.ext import commands
 
 switcher = ['english', 'score', 'type', 'episodes', 'volumes', 'chapters', 'status',
             'start_date', 'end_date']
