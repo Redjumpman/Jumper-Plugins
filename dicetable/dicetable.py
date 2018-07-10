@@ -4,9 +4,11 @@
 import random
 import re
 
+# Red
+from redbot.core import commands
+
 # Discord
 import discord
-from discord.ext import commands
 
 # Third Party Libraries
 from tabulate import tabulate

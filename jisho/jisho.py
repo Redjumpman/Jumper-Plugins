@@ -6,9 +6,11 @@ import aiohttp
 import re
 import urllib.parse
 
+# Red
+from redbot.core import commands
+
 # Discord
 import discord
-from discord.ext import commands
 
 
 class Jisho:
