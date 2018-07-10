@@ -17,11 +17,10 @@ from .checks import Checks
 
 # Red
 from redbot.core.i18n import Translator
-from redbot.core import Config, bank
+from redbot.core import Config, bank, commands
 
 # Discord
 import discord
-from discord.ext import commands
 
 # Third-Party Libraries
 from tabulate import tabulate
