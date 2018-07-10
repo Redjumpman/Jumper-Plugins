@@ -9,10 +9,9 @@ from datetime import datetime
 
 # Discord.py
 import discord
-from discord.ext import commands
 
 # Red
-from redbot.core import Config
+from redbot.core import Config, commands
 
 log = logging.getLogger("red.raffle")
 
