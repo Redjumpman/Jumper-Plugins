@@ -12,7 +12,7 @@
   <a href="paypal.me/redjumpman">
     <img src="https://img.shields.io/badge/paypal-donate-red.svg">
   </a>
-  <a href="https://www.python.org/downloads/release/python-355/"><img src="https://img.shields.io/badge/Made%20With-Python%203.5-blue.svg?style=for-the-badge">
+  <a href="https://www.python.org/downloads/release/python-366/"><img src="https://img.shields.io/badge/Made%20With-Python%203.6-blue.svg?style=for-the-badge">
 </a>
   <a href="https://github.com/Cog-Creators/Red-DiscordBot">
       <img src="https://img.shields.io/badge/Discord-Red%20Bot-red.svg">
