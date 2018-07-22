@@ -24,7 +24,7 @@ from redbot.core.data_manager import cog_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.05"
+__version__ = "3.0.06"
 __author__ = "Redjumpman"
 
 
@@ -100,11 +100,10 @@ class Shop:
             return
         await self.pending_prompt(ctx, instance, data, item)
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def shop(self, ctx):
         """Shop group command"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @shop.command()
     async def buy(self, ctx, *purchase):
@@ -477,11 +476,10 @@ class Shop:
 
     # -----------------------------------------------------------------------------
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def setshop(self, ctx):
         """Shop Settings group command"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @setshop.command()
     @commands.is_owner()

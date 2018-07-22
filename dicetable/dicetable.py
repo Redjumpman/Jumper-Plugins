@@ -14,19 +14,17 @@ import discord
 from tabulate import tabulate
 
 
-__version__ = "2.0.01"
+__version__ = "2.0.02"
 __author__ = "Redjumpman"
 
 
 class DiceTable:
     """Rolls a table of dice"""
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def dtable(self, ctx: commands.Context):
         """Dice Table Group"""
-
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @dtable.command()
     async def version(self, ctx: commands.Context):
