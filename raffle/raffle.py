@@ -16,7 +16,7 @@ from redbot.core import Config, commands
 log = logging.getLogger("red.raffle")
 
 __author__ = 'Redjumpman'
-__version__ = '4.0.01'
+__version__ = '4.0.02'
 
 
 class Raffle:
@@ -35,13 +35,12 @@ class Raffle:
         self.db.register_guild(**self.raffle_defaults)
         self.load_check = self.bot.loop.create_task(self.raffle_worker())
 
-    @commands.group()
+    @commands.group(autohelp=True)
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def raffle(self, ctx):
         """Raffle group command"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @raffle.command()
     async def version(self, ctx):
@@ -132,13 +131,12 @@ class Raffle:
             return await ctx.send("Nice try slim. You can't add a reaction to a random msg and think that I am "
                                   "stupid enough to say you won something.")
 
-    @commands.group()
+    @commands.group(autohelp=True)
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def setraffle(self, ctx):
         """Set Raffle group command"""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @setraffle.command()
     async def dos(self, ctx, days: int = None):
