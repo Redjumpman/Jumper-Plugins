@@ -10,7 +10,7 @@ from .kill import outputs
 from redbot.core import Config, bank, commands
 
 
-__version__ = "3.0.1"
+__version__ = "3.0.02"
 __author__ = "Redjumpman"
 
 
@@ -64,11 +64,10 @@ class RussianRoulette:
         await ctx.send("You are using russian roulette version {}".format(__version__))
 
     @commands.guild_only()
-    @commands.group()
+    @commands.group(autohelp=True)
     async def setrussian(self, ctx):
         """Russian Roulette Settings group."""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @setrussian.command()
     @is_administrator()
