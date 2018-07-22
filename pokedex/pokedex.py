@@ -19,7 +19,7 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.04"
+__version__ = "3.0.05"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -44,11 +44,10 @@ class Pokedex:
     def __init__(self):
         pass
 
-    @commands.group()
+    @commands.group(autohelp=True)
     async def pokemon(self, ctx):
         """This is the list of Pokémon queries you can perform."""
-        if ctx.invoked_subcommand is None:
-            await ctx.send_help()
+        pass
 
     @pokemon.command()
     async def version(self, ctx):
