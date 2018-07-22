@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.02"
+__version__ = "2.1.03"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
