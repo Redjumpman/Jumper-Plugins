@@ -142,6 +142,8 @@ class Cookie:
 
         if user == "Fail":
             pass
+        elif user == author:
+            return await self.bot.say("Hold up mate! I don't know what you're smoking, but I can't allow that")
         elif user.bot:
             return await self.bot.say("Stealing failed because the picked target is a bot.\nYou "
                                       "can retry stealing again, your cooldown is not consumed.")
