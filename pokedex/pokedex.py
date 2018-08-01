@@ -12,14 +12,14 @@ import discord
 
 # Redbot
 from redbot.core import commands
-from redbot.core.data_manager import cog_data_path
+from redbot.core.data_manager import bundled_data_path
 from redbot.core.utils.menus import menu, DEFAULT_CONTROLS
 from redbot.core.utils.chat_formatting import box
 
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.05"
+__version__ = "3.0.06"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -249,12 +249,10 @@ class Pokedex:
             else:
                 return '', ''
 
-    @staticmethod
-    def item_search(name):
-        data_path = cog_data_path()
-        fp = os.path.join(data_path, 'CogManager', 'cogs', 'pokedex', 'data', 'Items.csv')
+    def item_search(self, name):
+        fp = bundled_data_path(self) / 'Items.csv'
         try:
-            with open(fp, 'rt', encoding='iso-8859-15') as f:
+            with fp.open('rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
                 for row in reader:
                     if row['Item'] == name:
@@ -264,12 +262,10 @@ class Pokedex:
             print("The csv file could not be found in pokedex data folder.")
             return None
 
-    @staticmethod
-    def build_data(file_name, name):
-        data_path = cog_data_path()
-        fp = os.path.join(data_path, 'CogManager', 'cogs', 'pokedex', 'data', file_name)
+    def build_data(self, file_name, name):
+        fp = bundled_data_path(self) / file_name
         try:
-            with open(fp, 'rt', encoding='iso-8859-15') as f:
+            with fp.open('rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
                 for row in reader:
                     if row['Pokemon'] == name:
