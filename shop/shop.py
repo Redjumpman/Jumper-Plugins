@@ -731,7 +731,7 @@ class Shop:
         if data[item]['Type'].lower() == 'Role':
             await ctx.send("Do you wish to redeem {}? This will grant you the role assigned to "
                            "this item and it will be removed from your inventory "
-                           "premenantly.".format(item))
+                           "permanently.".format(item))
         else:
             await ctx.send("Do you wish to redeem {}? This will add the item to the pending list "
                            "for an admin to review and grant. The item will be removed from your "
