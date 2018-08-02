@@ -129,9 +129,9 @@ class RussianRoulette:
         chamber = await self.db.guild(ctx.guild).Chamber_Size()
 
         if len(self.players) == 1:
-            await ctx.send("{0.author.mention} is gathering players for a game of russian "
-                           "roulette!\nType `{0.prefix}russian` to enter.".format(ctx))
             wait = await self.db.guild(ctx.guild).Wait_Time()
+            await ctx.send("{0.author.mention} is gathering players for a game of russian "
+                           "roulette!\nType `{0.prefix}russian` to enter. The round will start in {1} seconds.".format(ctx, wait))
             await asyncio.sleep(wait)
             await self.start_game(ctx)
         else:
