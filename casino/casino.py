@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.03"
+__version__ = "2.1.04"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1281,13 +1281,14 @@ class Engine(Data):
             currency = await bank.get_currency_name(self.guild)
             bal_msg = await self.get_bal_msg()
             txt = _("Congratulations, you just won {} {} {}!\n"
-                    "{}").format(total, bonus, currency, bal_msg)
+                    "{}").format(total, currency, bonus, bal_msg)
             embed.add_field(name='-' * 90, value=txt)
             return await self.ctx.send(self.player.mention, embed=embed)
 
     async def get_bal_msg(self):
         balance = await bank.get_balance(self.player)
-        bal_msg = _("**Remaining Balance:** {0:g}").format(balance)
+        currency = await bank.get_currency_name(self.guild)
+        bal_msg = _("**Remaining Balance:** {} {}").format(balance, currency)
         return bal_msg
 
     async def limit_handler(self, embed, amount, player_instance, coro):
