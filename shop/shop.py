@@ -24,7 +24,7 @@ from redbot.core.data_manager import cog_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.06"
+__version__ = "3.0.07"
 __author__ = "Redjumpman"
 
 
@@ -99,6 +99,32 @@ class Shop:
         except RuntimeError:
             return
         await self.pending_prompt(ctx, instance, data, item)
+
+    async def inv_hook(self, user):
+        """Inventory Hook for outside cogs
+
+        Parameters
+        ----------
+        user : discord.Member or discord.User
+
+        Returns
+        -------
+        dict
+            Returns a dict of the user's inventory or empty if the user
+            is not found.
+        """
+        try:
+            instance = await self._inv_hook_instance(user)
+        except AttributeError:
+            return {}
+        else:
+            return await instance.Inventory.all()
+
+    async def _inv_hook_instance(self, user):
+        if await self.db.Global():
+            return self.db.user(user)
+        else:
+            return self.db.member(user)
 
     @commands.group(autohelp=True)
     async def shop(self, ctx):
