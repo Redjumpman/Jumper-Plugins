@@ -10,7 +10,7 @@ from .kill import outputs
 from redbot.core import Config, bank, commands
 
 
-__version__ = "3.0.02"
+__version__ = "3.0.03"
 __author__ = "Redjumpman"
 
 
