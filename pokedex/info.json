@@ -1,6 +1,6 @@
 {
     "author" : "Redjumpman (Redjumpman#1337)",
-    "install_msg" : "Thank you for installing pokedex. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex-RedV3",
+    "install_msg" : "Thank you for installing pokedex. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Pokedex-RedV3\nThis cog comes bundled with two CSV files for pokemon data.",
     "name" : "Pokedex",
     "short" : "Look-up info on Pokemon",
     "requirements" : ["tabulate"],
