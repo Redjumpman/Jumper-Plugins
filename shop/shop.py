@@ -2,7 +2,6 @@
 import asyncio
 import csv
 import logging
-import os
 import random
 import textwrap
 import uuid
@@ -20,11 +19,11 @@ import discord
 
 # Red
 from redbot.core import Config, bank, commands
-from redbot.core.data_manager import cog_data_path
+from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.07"
+__version__ = "3.0.08"
 __author__ = "Redjumpman"
 
 
@@ -494,8 +493,9 @@ class Shop:
         instance = await self.get_instance(ctx, settings=True)
         parser = Parser(ctx, instance, msg)
         if style.lower() == 'file':
-            data_path = cog_data_path()
-            fp = os.path.join(data_path, 'CogManager', 'cogs', 'shop', 'data', entry + '.csv')
+            if not ctx.bot.is_owner(ctx.author):
+                return await ctx.send("Only the owner can add items via csv files.")
+            fp = bundled_data_path(self) / f'{entry}.csv'
             await parser.search_csv(fp)
         else:
             await parser.parse_text_entry(entry)
@@ -757,7 +757,7 @@ class Shop:
         if data[item]['Type'].lower() == 'Role':
             await ctx.send("Do you wish to redeem {}? This will grant you the role assigned to "
                            "this item and it will be removed from your inventory "
-                           "premenantly.".format(item))
+                           "permanently.".format(item))
         else:
             await ctx.send("Do you wish to redeem {}? This will add the item to the pending list "
                            "for an admin to review and grant. The item will be removed from your "
@@ -1037,9 +1037,20 @@ class ItemManager:
             return await self.ctx.send("This item now costs {}.".format(cost.content))
         return int(cost.content)
 
+    def hierarchy_check(self, m):
+        roles = [r.name for r in self.ctx.guild.roles if r.name != "Bot"]
+        if self.ctx.author == m.author and m.content in roles:
+            if self.ctx.author.top_role >= discord.utils.get(self.ctx.message.guild.roles, name=m.content):
+                return True
+            else:
+                return False
+        else:
+            return False
+
     async def set_role(self, item=None, shop=None):
-        await self.ctx.send("What role do you wish for this item to assign?")
-        role = await self.ctx.bot.wait_for('message', timeout=25, check=Checks(self.ctx).role)
+        await self.ctx.send("What role do you wish for this item to assign?\n"
+                            "*Note, you cannot add a role higher than your own.*")
+        role = await self.ctx.bot.wait_for('message', timeout=25, check=self.hierarchy_check)
         if item:
             async with self.instance.Shops() as shops:
                 shops[shop]['Items'][item]['Role'] = role.content
@@ -1177,8 +1188,7 @@ class Parser:
         else:
             return True
 
-    @staticmethod
-    def type_checks(idx, row, messages):
+    def type_checks(self, idx, row, messages):
         if row['Type'].lower() not in ('basic', 'random', 'auto', 'role'):
             log.warning("Row {} was not added because of an invalid type.".format(idx))
             return False
@@ -1186,6 +1196,16 @@ class Parser:
             log.warning("Row {} was not added because the type is a role, but no role was set"
                         ".".format(idx))
             return False
+        elif (row['Type'].lower() == 'role' and
+              discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) is None):
+            log.warning("Row {} was not added because the {} role does not exist on "
+                        "the server.".format(idx, row["Role"]))
+            return False
+        elif row['Type'].lower() == 'role':
+            if discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) > self.ctx.author.top_role:
+                log.warning("Row {} was not added because the {} role is higher than the shopkeeper's "
+                            "highest role.".format(idx, row["Role"]))
+                return False
         elif row['Type'].lower() == 'auto' and int(row['Qty']) == 0:
             log.warning("Row {} was not added because auto items cannot have an infinite quantity."
                         "".format(idx))
@@ -1210,7 +1230,7 @@ class Parser:
 
     async def search_csv(self, file_path):
         try:
-            with open(file_path, 'rt') as f:
+            with file_path.open('rt') as f:
                 reader = csv.DictReader(f, delimiter=',')
                 await self.parse_bulk(reader)
         except FileNotFoundError:
