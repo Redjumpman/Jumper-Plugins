@@ -1,0 +1,8 @@
+{
+    "author" : "Redjumpman (Redjumpman#1337)",
+    "install_msg" : "Thank you for installing dice table.",
+    "name" : "Dice Table",
+    "short" : "Outputs multiple dice rolls into a table.",
+    "description" : "Outputs several dice rolls into a table. Can do several different types of rolls such as 1d6, 3d20, 4d4, etc.",
+    "tags" : ["Dice", "DnD"]
+}
