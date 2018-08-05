@@ -5,6 +5,6 @@
     "short" : "Casino style mini games.",
     "requirements" : ["tabulate"],
     "description" : "Play up to 7 unique games and earn currency.",
-    "permissions" : ["Manage Messages", "Embed Links"]
+    "permissions" : ["Manage Messages", "Embed Links"],
     "tags" : ["Games", "Economy", "Fun", "Casino"]
 }
