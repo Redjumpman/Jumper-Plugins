@@ -3,7 +3,6 @@
 # Standard Library
 import ast
 import csv
-import os
 import re
 from collections import namedtuple
 
@@ -19,7 +18,7 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.06"
+__version__ = "3.0.07"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
@@ -69,7 +68,14 @@ class Pokedex:
                 Forms:      [p]pokedex hoopa-unbound
                 Variants:   [p]pokedex floette-orange
         """
-        poke = self.build_data('Pokemon.csv', pokemon.title())
+        if pokemon.isdigit():
+            if len(pokemon) == 3:
+                poke = self.build_data(f'#{pokemon}', key='ID')
+            else:
+                return await ctx.send("When searching by pokedex number, it must "
+                                      "be a three digit number. Example: 001")
+        else:
+            poke = self.build_data(pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -105,7 +111,7 @@ class Pokedex:
         """
 
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data('Pokemon.csv', pokemon.title())
+        poke = self.build_data(pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -158,7 +164,7 @@ class Pokedex:
         if pokemon.title() in tm_exceptions:
             return await ctx.send("This Pokémon cannot learn TMs.")
 
-        poke = self.build_data('Pokemon.csv', pokemon.title())
+        poke = self.build_data(pokemon.title())
 
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
@@ -190,7 +196,7 @@ class Pokedex:
         Example !pokedex location voltorb
         """
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data('Pokemon.csv', pokemon.title())
+        poke = self.build_data(pokemon.title())
         if poke is None:
             return await ctx.send('A Pokémon with that name could not be found.')
         link_name = self.link_builder(poke.Pokemon)
@@ -262,13 +268,13 @@ class Pokedex:
             print("The csv file could not be found in pokedex data folder.")
             return None
 
-    def build_data(self, file_name, name):
-        fp = bundled_data_path(self) / file_name
+    def build_data(self, identifier, key='Pokemon'):
+        fp = bundled_data_path(self) / 'Pokemon.csv'
         try:
             with fp.open('rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
                 for row in reader:
-                    if row['Pokemon'] == name:
+                    if row[key] == identifier:
                         Pokemon = namedtuple('Pokemon', reader.fieldnames)
                         return Pokemon(**row)
         except FileNotFoundError:
