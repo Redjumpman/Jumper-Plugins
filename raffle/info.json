@@ -1,9 +1,10 @@
 {
-    "author" : "Redjumpman (Redjumpman#1337)",
+    "author" : ["Redjumpman (Redjumpman#1337)"],
     "install_msg" : "Thank you for installing raffle. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Raffle-RedV3",
     "name" : "Raffle",
     "short" : "Reaction based raffles",
     "description" : "Create reaction based raffles with timers that persist through restarts and shutdowns.",
     "permissions" : ["Manage Messages", "Embed Links", "Add Reactions"],
-    "tags" : ["Raffle", "Giveaway", "Lottery"]
+    "tags" : ["Raffle", "Giveaway", "Lottery"],
+    "min_python_version": [3, 6, 0]
 }
