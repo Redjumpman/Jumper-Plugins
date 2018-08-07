@@ -400,6 +400,11 @@ class Casino(Data):
 
         Pick heads or tails and place your bet.
         """
+        choice = choice.lower()
+        
+        if choice not in ('heads','tails'):
+            return await ctx.send("You can bet on heads or tails.")
+        
         await Core().play_coin(ctx, bet, choice)
 
     @commands.command()
