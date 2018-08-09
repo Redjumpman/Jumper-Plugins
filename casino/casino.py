@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.04"
+__version__ = "2.1.05"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -400,10 +400,9 @@ class Casino(Data):
 
         Pick heads or tails and place your bet.
         """
-        choice = choice.lower()
         
-        if choice not in ('heads','tails'):
-            return await ctx.send("You can bet on heads or tails.")
+        if choice.lower() not in ('heads','tails'):
+            return await ctx.send("You must bet heads or tails.")
         
         await Core().play_coin(ctx, bet, choice)
 
