@@ -17,7 +17,7 @@ from .checks import Checks
 
 # Red
 from redbot.core.i18n import Translator
-from redbot.core import Config, bank, commands
+from redbot.core import Config, bank, commands, checks
 
 # Discord
 import discord
@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.1.05"
+__version__ = "2.2.0"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -46,39 +46,13 @@ def game_engine(name=None, choice=None, choices=None):
             if await engine.check_conditions():
                 result = await coro(*args, **kwargs)
                 await engine.game_teardown(result)
+
         return wrapped
+
     return wrapper
 
 
-def global_permissions():
-    """
-     Returns true if casino is global, otherwise checks if the
-     command was used by guild owner or guild administrator
-    """
-    async def pred(ctx: commands.Context):
-        author = ctx.author
-        if await ctx.bot.is_owner(author):
-            return True
-        if not await Data().casino_is_global():
-            permissions = ctx.channel.permissions_for(author)
-            return author == ctx.guild.owner or permissions.administrator
-
-    return commands.check(pred)
-
-
-def guild_required_or_global():
-    async def pred(ctx: commands.Context):
-        if await Data().casino_is_global():
-            return True
-        elif not await Data().casino_is_global() and ctx.guild is not None:
-            return True
-        else:
-            return False
-    return commands.check(pred)
-
-
 class Data:
-
     user_defaults = {
         "Membership": {
             "Name": "Basic",
@@ -362,7 +336,6 @@ class Data:
 
 
 class Casino(Data):
-
     __slots__ = ('bot', 'cycle_task')
 
     def __init__(self, bot):
@@ -370,7 +343,7 @@ class Casino(Data):
         self.cycle_task = self.bot.loop.create_task(self.membership_updater())
         super().__init__()
 
-# --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
     @commands.command(aliases=['bj', '21'])
     @commands.guild_only()
     async def blackjack(self, ctx: commands.Context, bet: int):
@@ -400,9 +373,9 @@ class Casino(Data):
 
         Pick heads or tails and place your bet.
         """
-        if choice.lower() not in ('heads','tails'):
+        if choice.lower() not in ('heads', 'tails'):
             return await ctx.send("You must bet heads or tails.")
-        
+
         await Core().play_coin(ctx, bet, choice)
 
     @commands.command()
@@ -453,9 +426,11 @@ class Casino(Data):
         """
 
         await Craps().play(ctx, bet)
-# --------------------------------------------------------------------------------------------------
+
+    # --------------------------------------------------------------------------------------------------
 
     @commands.group(autohelp=True)
+    @commands.guild_only()
     async def casino(self, ctx: commands.Context):
         """Interacts with the Casino system.
 
@@ -464,7 +439,6 @@ class Casino(Data):
         pass
 
     @casino.command()
-    @commands.guild_only()
     async def memberships(self, ctx: commands.Context):
         """Displays a list of server/global memberships."""
         instance = await super().get_instance(ctx, settings=True)
@@ -477,9 +451,9 @@ class Casino(Data):
         msg = await ctx.send(_("Which of the following memberships would you like to know more "
                                "about?\n{}.").format(utils.fmt_join(names)))
 
-        checks = Checks(ctx, custom=[x.lower() for x in names])
+        preds = Checks(ctx, custom=[x.lower() for x in names])
         try:
-            membership = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
+            membership = await ctx.bot.wait_for('message', timeout=25.0, check=preds.content)
         except asyncio.TimeoutError:
             await msg.delete()
             return await ctx.send(_("No Response."))
@@ -514,8 +488,7 @@ class Casino(Data):
         await ctx.send(embed=embed)
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def releasecredits(self, ctx: commands.Context, user: discord.Member):
         """Approves pending currency for a user."""
         author = ctx.author
@@ -547,17 +520,16 @@ class Casino(Data):
             await ctx.send(_("Action canceled."))
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def resetuser(self, ctx: commands.Context, user: discord.Member):
         """Reset a user's cooldowns, stats, or everything."""
         options = (_("cooldowns"), _("stats"), _("all"))
 
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
-        checks = Checks(ctx, options)
+        preds = Checks(ctx, options)
         try:
-            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=preds.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -569,22 +541,21 @@ class Casino(Data):
             await super().reset_player_all(ctx, user)
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def resetinstance(self, ctx: commands.Context):
         """Reset global/server cooldowns, settings, memberships, or everything."""
         author = ctx.author
 
         if not await ctx.bot.is_owner(author):
             return await ctx.send(_("You don't have permissions to delete a server."))
-        options = (_("cooldowns"), _("settings"), _("games"), _("memberships"),  _("all"))
+        options = (_("cooldowns"), _("settings"), _("games"), _("memberships"), _("all"))
 
-        checks = Checks(ctx, options)
+        preds = Checks(ctx, options)
 
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.content)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=preds.content)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -600,7 +571,7 @@ class Casino(Data):
             await super().reset_server_all(ctx)
 
     @casino.command()
-    @commands.is_owner()
+    @checks.is_owner()
     async def wipe(self, ctx: commands.Context):
         """Completely wipes casino data."""
         await ctx.send(_("You are about to delete all casino and user data from the bot. Are you "
@@ -617,8 +588,7 @@ class Casino(Data):
             return await ctx.send(_("Wipe canceled."))
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def assignmem(self, ctx: commands.Context, user: discord.Member, *, membership: str):
         """Manually assigns a membership to a user.
 
@@ -643,8 +613,7 @@ class Casino(Data):
         await ctx.send(msg)
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def revokemem(self, ctx: commands.Context, user: discord.Member):
         """Revoke an assigned membership.
 
@@ -663,7 +632,7 @@ class Casino(Data):
                                 "").format(author.name, user.name))
 
     @casino.command()
-    @global_permissions()
+    @checks.admin_or_permissions(administrator=True)
     async def admin(self, ctx: commands.Context):
         """A list of Admin level and above commands for Casino."""
         cmds = ('casinoset access', 'casino assignmem', 'casinoset cooldown',
@@ -683,7 +652,6 @@ class Casino(Data):
         await ctx.send(embed=embed)
 
     @casino.command()
-    @commands.guild_only()
     async def info(self, ctx: commands.Context):
         """Shows information about Casino.
 
@@ -713,7 +681,6 @@ class Casino(Data):
         await ctx.send(msg)
 
     @casino.command()
-    @commands.guild_only()
     async def stats(self, ctx: commands.Context):
         """Shows your play statistics for Casino"""
         author = ctx.author
@@ -753,17 +720,16 @@ class Casino(Data):
         await ctx.send(embed=embed)
 
     @casino.command()
-    @global_permissions()
-    @guild_required_or_global()
+    @checks.admin_or_permissions(administrator=True)
     async def memprocess(self, ctx: commands.Context):
         """A process to create, edit, and delete memberships."""
         timeout = ctx.send(_("Process timed out. Exiting membership process."))
 
         await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
 
-        checks = Checks(ctx, (_('edit'), _('create'), _('delete')))
+        preds = Checks(ctx, (_('edit'), _('create'), _('delete')))
         try:
-            choice = await ctx.bot.wait_for('Message', timeout=25.0, check=checks.content)
+            choice = await ctx.bot.wait_for('Message', timeout=25.0, check=preds.content)
         except asyncio.TimeoutError:
             return await timeout
 
@@ -783,17 +749,17 @@ class Casino(Data):
         """Shows the current Casino version."""
         await ctx.send("Casino is running version {}.".format(__version__))
 
-# --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
 
     @commands.group(autohelp=True)
-    @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
+    @checks.admin_or_permissions(administrator=True)
     async def casinoset(self, ctx: commands.Context):
         """Changes Casino settings"""
         pass
 
     @casinoset.command(name='mode')
-    @commands.is_owner()
+    @checks.is_owner()
     async def mode(self, ctx: commands.Context):
         """Toggles Casino between global and local modes.
 
@@ -809,9 +775,9 @@ class Casino(Data):
         alt = 'local' if mode == 'global' else 'global'
         await ctx.send(_("Casino is currently set to {} mode. Would you like to change to {} "
                          "mode instead?").format(mode, alt))
-        checks = Checks(ctx)
+        preds = Checks(ctx)
         try:
-            choice = await ctx.bot.wait_for('message', timeout=25.0, check=checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=preds.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -820,11 +786,15 @@ class Casino(Data):
         await ctx.send(_("Changing casino to {0} will **DELETE ALL** current casino data. Are "
                          "you sure you wish to make casino {0}?").format(alt))
         try:
-            final = await ctx.bot.wait_for('message', timeout=25.0, check=checks.confirm)
+            final = await ctx.bot.wait_for('message', timeout=25.0, check=preds.confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
         if final.content.lower() == _('yes'):
+            if not await bank.is_global() and alt == "global":
+                return await ctx.send("You cannot make casino global while economy is "
+                                      "in local mode. To change your economy to global "
+                                      "use `{}bankset toggleglobal`".format(ctx.prefix))
             await super().change_mode(alt)
             log.info(_("{} ({}) changed the casino mode to "
                        "{}.").format(author.name, author.id, alt))
@@ -945,7 +915,7 @@ class Casino(Data):
 
         if game.title() not in games:
             return await ctx.send(_("Invalid game name. Must be on of the following:\n"
-                                  "{}.").format(utils.fmt_join(list(games))))
+                                    "{}.").format(utils.fmt_join(list(games))))
 
         await instance.Games.set_raw(game.title(), 'Cooldown', value=seconds)
         cool = utils.cooldown_formatter(seconds)
@@ -1015,7 +985,7 @@ class Casino(Data):
                 "for {1} to {2}.").format(author, game, access)
         log.info(msg)
         await ctx.send(msg)
-    
+
     @casinoset.command()
     async def gametoggle(self, ctx, game: str):
         """Opens/Closes a specific game for use."""
@@ -1032,17 +1002,20 @@ class Casino(Data):
         log.info(msg)
         await ctx.send(msg)
 
-# --------------------------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------------------------
 
     async def membership_updater(self):
         await self.bot.wait_until_ready()
-        while True:
-            await asyncio.sleep(300)  # Wait 5 minutes to cycle again
-            is_global = await super().casino_is_global()
-            if is_global:
-                await self.global_updater()
-            else:
-                await self.local_updater()
+        try:
+            while True:
+                await asyncio.sleep(10)  # Wait 5 minutes to cycle again
+                is_global = await super().casino_is_global()
+                if is_global:
+                    await self.global_updater()
+                else:
+                    await self.local_updater()
+        except Exception as e:
+            print(e)
 
     async def global_updater(self):
         while True:
@@ -1098,7 +1071,12 @@ class Casino(Data):
 
     async def process_user(self, memberships, user, _global=False):
         qualified = []
-        bal = await bank.get_balance(user)
+        try:
+            bal = await bank.get_balance(user)
+        except AttributeError:
+            raise RuntimeError("Casino is in global mode, while economy is in local mode. "
+                               "Economy must be global if Casino is global. Either change casino "
+                               "back to local or make your economy global.")
         for name, requirements in memberships.items():
             if _global:
                 if requirements['Credits'] and bal < requirements['Credits']:
@@ -1122,10 +1100,12 @@ class Casino(Data):
 
         membership = max(qualified, key=itemgetter(1))[0] if qualified else 'Basic'
         if _global:
+            print("well we made it.")
             async with self.db.user(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
         else:
+            print("we out here.")
             async with self.db.member(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
@@ -1238,7 +1218,7 @@ class Engine(Data):
     async def stats_update(self, method):
         instance = await self.get_instance(self.ctx, user=self.player)
         current = await instance.get_raw(method, self.game)
-        await instance.set_raw(method, self.game, value=current+1)
+        await instance.set_raw(method, self.game, value=current + 1)
 
     async def check_cooldown(self, game_data, user_instance):
         user_time = await user_instance.get_raw("Cooldowns", self.game)
@@ -1420,8 +1400,8 @@ class Membership(Data):
 
         def mem_check(m):
             valid_name = m.content
-            return m.author == self.ctx.author and \
-                valid_name in memberships or valid_name == self.cancel
+            return (m.author == self.ctx.author and
+                    valid_name in memberships or valid_name == self.cancel)
 
         await self.ctx.send(_("Which membership would you like to delete?\n"
                               "{}.").format(utils.fmt_join(memberships)))
@@ -1485,9 +1465,9 @@ class Membership(Data):
         await self.ctx.send(_("Which of the following attributes would you like to edit?\n"
                               "{}.").format(utils.fmt_join(attrs)))
 
-        check = Checks(self.ctx, (_('requirements'), _('access'), _('color'), _('name'),
-                       _('reduction'), self.cancel))
-        attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=check.content)
+        preds = Checks(self.ctx, (_('requirements'), _('access'), _('color'), _('name'),
+                                  _('reduction'), self.cancel))
+        attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=preds.content)
 
         valid_name = membership.content.replace(' ', '_')
         if attribute.content.lower() == self.cancel:
@@ -1519,8 +1499,8 @@ class Membership(Data):
     async def set_color(self, membership):
         await self.ctx.send(_("What color would you like to set?\n"
                               "{}").format(utils.fmt_join(list(self.colors))))
-        checks = Checks(self.ctx, self.colors)
-        color = await self.ctx.bot.wait_for("message", timeout=25.0, check=checks.content)
+        preds = Checks(self.ctx, self.colors)
+        color = await self.ctx.bot.wait_for("message", timeout=25.0, check=preds.content)
 
         if color.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1823,6 +1803,7 @@ class Blackjack(Data):
     Blackjack requires inheritance from data to verify the user
     can double down.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -1919,7 +1900,7 @@ class Blackjack(Data):
 
             if count >= 21:
                 break
-            embed = self.bj_embed(ctx, ph, dh, count, initial=False)
+            embed = self.bj_embed(ctx, ph, dh, count)
             await ctx.send(ctx.author.mention, embed=embed)
             try:
                 resp = await ctx.bot.wait_for("message", check=condition2.content, timeout=35.0)
@@ -2028,9 +2009,9 @@ class War:
                          "you can go to war.\nIf you go to war your bet will be doubled, "
                          "but the multiplier is only applied to your original bet, the rest will "
                          "be pushed.").format(deck.fmt_card(player_card)))
-        checks = Checks(ctx, (_("war"), _("surrender"), _("ffs")))
+        preds = Checks(ctx, (_("war"), _("surrender"), _("ffs")))
         try:
-            choice = await ctx.bot.wait_for('message', check=checks.content, timeout=35.0)
+            choice = await ctx.bot.wait_for('message', check=preds.content, timeout=35.0)
         except asyncio.TimeoutError:
             return "Surrender", player_card, dealer_card, bet
 
