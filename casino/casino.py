@@ -400,7 +400,6 @@ class Casino(Data):
 
         Pick heads or tails and place your bet.
         """
-        
         if choice.lower() not in ('heads','tails'):
             return await ctx.send("You must bet heads or tails.")
         
