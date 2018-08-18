@@ -81,7 +81,7 @@ class Raffle:
             channel = ctx.channel
         end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
         fmt_end = time.strftime("%a %d %b %Y %H:%M:%S", time.gmtime(end))
-        embed = discord.Embed(description=description, title=title, color=0x50bdfe)
+        embed = discord.Embed(description=description, title=title, color=(await ctx.embed_colour()))
         embed.set_footer(text=f'Started by {ctx.author.name} | Winners: {winners} | Ends at {fmt_end} UTC')
         msg = await channel.send(embed=embed)
         await msg.add_reaction('\U0001F39F')
