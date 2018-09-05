@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.0"
+__version__ = "2.2.02"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -503,7 +503,7 @@ class Casino(Data):
                          "Would you like to release this amount?").format(user.name, amount))
 
         try:
-            choice = ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
+            choice = ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -578,7 +578,7 @@ class Casino(Data):
                          "sure this is what you wish to do?"))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response. Action canceled."))
 
@@ -1024,7 +1024,7 @@ class Casino(Data):
                 break
             memberships = await self.db.Memberships.all()
             if not memberships:
-                continue
+                break
             for user in users:
                 user_obj = self.bot.get_user(user)
                 if user_obj is None:
@@ -1100,12 +1100,10 @@ class Casino(Data):
 
         membership = max(qualified, key=itemgetter(1))[0] if qualified else 'Basic'
         if _global:
-            print("well we made it.")
             async with self.db.user(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
         else:
-            print("we out here.")
             async with self.db.member(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
