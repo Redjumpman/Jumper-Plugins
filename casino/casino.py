@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.3.0"
+__version__ = "2.3.01"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -2079,7 +2079,7 @@ class Double:
         while bet > 0:
             count += 1
 
-            flip = random.randint(0,2)
+            flip = random.randint(0,1)
 
             if flip == 0:
                 bet = 0
