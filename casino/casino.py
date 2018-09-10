@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.02"
+__version__ = "2.2.03"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -1288,11 +1288,17 @@ class Engine(Data):
         await self.player.send(msg)
 
     async def deposit_winnings(self, amount, player_instance, coro):
-
         if amount > self.bet:
             if self.game == 'Allin':
                 await bank.deposit_credits(self.player, amount)
                 return
+            elif self.game == 'Hilo':
+                multiplier = await coro.Games.get_raw(self.game, "Multiplier")
+                # Use self.bet, instead of amount, because we are only tracking the change.
+                initial = round(self.bet * (multiplier + 2))
+                total, amt, msg = await self.calculate_bonus(initial, player_instance, coro)
+                await bank.deposit_credits(self.player, total)
+                return total, msg
             total, amt, msg = await self.calculate_bonus(round(amount), player_instance, coro)
             await bank.deposit_credits(self.player, total)
             return total, msg
@@ -1963,7 +1969,7 @@ class Hilo:
         msg = _("The outcome was {} ({[0]})!").format(result, outcome)
         embed = utils.build_embed(msg)
 
-        if outcome == result == 7:
+        if result == 7 and outcome[1] == "7":
             bet *= 5
 
         return choice.lower() in outcome, bet, embed
