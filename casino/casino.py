@@ -644,7 +644,7 @@ class Casino(Data):
         cmd_list = '\n'.join(["**{}** - {}".format(x, y) for x, y in
                               [(com, ctx.bot.get_command(com).short_doc) for com in cmds]])
 
-        wiki = '[Casino Wiki](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino)'
+        wiki = '[Casino Wiki](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3)'
         embed = discord.Embed(colour=0xFF0000, description=wiki)
         embed.set_author(name='Casino Admin Panel', icon_url=ctx.bot.user.avatar_url)
         embed.add_field(name='__Commands__', value=cmd_list)
