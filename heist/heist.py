@@ -41,7 +41,7 @@ class Heist:
         self.bot = bot
         self.file_path = "data/JumperCogs/heist/heist.json"
         self.system = dataIO.load_json(self.file_path)
-        self.version = "2.4.02"
+        self.version = "2.4.03"
         self.patch = 2.42
         self.cycle_task = bot.loop.create_task(self.vault_updater())
 
@@ -79,6 +79,17 @@ class Heist:
         settings = self.check_server_settings(author.server)
         self.user_clear(settings, user)
         await self.bot.say("```{} administratively cleared {}```".format(author.name, user.name))
+
+    @heist.command(name="forceupdate", pass_context=True)
+    @checks.admin_or_permissions(manage_server=True)
+    async def _force_update_heist(self, ctx):
+        """ONLY run this if you are getting weird key errors.
+        
+        This will attempt to apply previous updates that for some reason
+        you did not receive properly. This only works on a per guild basis."""
+        path = self.system["Servers"][ctx.message.server.id]
+        self.patch_2220(path)
+        await self.bot.say("Update complete.")
 
     @heist.command(name="version", pass_context=True)
     @checks.admin_or_permissions(manage_server=True)
