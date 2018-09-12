@@ -434,7 +434,7 @@ class Casino(Data):
     async def casino(self, ctx: commands.Context):
         """Interacts with the Casino system.
 
-        Use help on Casino (uppper case) for more commands.
+        Use help on Casino (upper case) for more commands.
         """
         pass
 
