@@ -219,7 +219,7 @@ class Shop:
             return await ctx.send("You don't have that many {}".format(item))
 
         await ctx.send("{} has requested a trade with {}.\n"
-                       "They are offering {}x {}.\n Do wish to trade?\n"
+                       "They are offering {}x {}.\n Do wish to trade? (yes/no)\n"
                        "*This trade can be canceled at anytime by typing `{}`.*"
                        "".format(ctx.author.mention, user.mention, quantity, item, cancel))
 
