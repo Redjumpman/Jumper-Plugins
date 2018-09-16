@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.03"
+__version__ = "2.2.04"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -508,7 +508,7 @@ class Casino(Data):
             return await ctx.send(_("No response. Action canceled."))
 
         if choice.content.lower() == 'yes':
-            await instance.Pending.clear()
+            await instance.Pending_Credits.clear()
             await bank.deposit_credits(user, amount)
             log.info(_("{0.name} ({0.id}) released {1} credits to {2.name} "
                        "({2.id}).").format(author, amount, user))
@@ -1273,7 +1273,7 @@ class Engine(Data):
         return bal_msg
 
     async def limit_handler(self, embed, amount, player_instance, coro):
-        await player_instance.Pending.set(amount)
+        await player_instance.Pending_Credits.set(int(amount))
 
         await self.ctx.send(self.player.mention, embed=embed)
         limit = await coro.Settings.Payout_Limit()
