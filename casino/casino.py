@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.04"
+__version__ = "2.2.05"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -503,7 +503,7 @@ class Casino(Data):
                          "Would you like to release this amount?").format(user.name, amount))
 
         try:
-            choice = ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
