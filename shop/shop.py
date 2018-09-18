@@ -23,34 +23,20 @@ from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.08"
+__version__ = "3.0.09"
 __author__ = "Redjumpman"
 
 
 def global_permissions():
-    """
-     Returns true if shop is global, otherwise checks if the
-     command was used by guild owner or guild administrator
-    """
     async def pred(ctx: commands.Context):
-        author = ctx.author
-        if await ctx.bot.is_owner(author):
+        is_owner = await ctx.bot.is_owner(ctx.author)
+        if is_owner:
             return True
         if not await Shop().shop_is_global():
-            permissions = ctx.channel.permissions_for(author)
-            return author == ctx.guild.owner or permissions.administrator
-
-    return commands.check(pred)
-
-
-def guild_required_or_global():
-    async def pred(ctx: commands.Context):
-        if await Shop().shop_is_global():
-            return True
-        elif not await Shop().shop_is_global() and ctx.guild is not None:
-            return True
-        else:
-            return False
+            permissions = ctx.channel.permissions_for(ctx.author)
+            admin_role = await ctx.bot.db.guild(ctx.guild).admin_role()
+            return ((admin_role in ctx.author.roles) or (ctx.author == ctx.guild.owner)
+                    or permissions.administrator)
     return commands.check(pred)
 
 
@@ -219,7 +205,7 @@ class Shop:
             return await ctx.send("You don't have that many {}".format(item))
 
         await ctx.send("{} has requested a trade with {}.\n"
-                       "They are offering {}x {}.\n Do wish to trade? (yes/no)\n"
+                       "They are offering {}x {}.\n Do wish to trade?\n"
                        "*This trade can be canceled at anytime by typing `{}`.*"
                        "".format(ctx.author.mention, user.mention, quantity, item, cancel))
 
@@ -317,7 +303,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def pending(self, ctx):
         """Displays the pending menu."""
         instance = await self.get_instance(ctx, settings=True)
@@ -338,7 +324,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def give(self, ctx, user: discord.Member, quantity: int, *shopitem):
         """Gives a user an item.
 
@@ -381,7 +367,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def clearinv(self, ctx, user: discord.Member):
         """Completely clears a user's inventory."""
         await ctx.send("Are you sure you want to completely wipe {}'s inventory?".format(user.name))
@@ -394,7 +380,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def manager(self, ctx, action: str):
         """Creates edits, or deletes a shop."""
         if action.lower() not in ('create', 'edit', 'delete'):
@@ -412,7 +398,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def item(self, ctx, action: str):
         """Creates, Deletes, and Edits items."""
         if action.lower() not in ('create', 'edit', 'delete'):
@@ -426,7 +412,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def restock(self, ctx, amount: int, *, shop_name: str):
         """Restocks all items in a shop by a specified amount.
 
@@ -460,7 +446,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def bulkadd(self, ctx, style: str, *, entry: str):
         """Add multiple items and shops.
 
@@ -548,7 +534,7 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def alertrole(self, ctx, role: discord.Role):
         """Sets the role that will receive alerts.
 
@@ -564,7 +550,7 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def alerts(self, ctx):
         """Toggles alerts when users redeem items."""
         instance = await self.get_instance(ctx, settings=True)
@@ -574,7 +560,7 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def toggle(self, ctx):
         """Closes/opens all shops."""
         instance = await self.get_instance(ctx, settings=True)
@@ -1040,7 +1026,8 @@ class ItemManager:
     def hierarchy_check(self, m):
         roles = [r.name for r in self.ctx.guild.roles if r.name != "Bot"]
         if self.ctx.author == m.author and m.content in roles:
-            if self.ctx.author.top_role >= discord.utils.get(self.ctx.message.guild.roles, name=m.content):
+            if self.ctx.author.top_role >= discord.utils.get(self.ctx.message.guild.roles,
+                                                             name=m.content):
                 return True
             else:
                 return False
