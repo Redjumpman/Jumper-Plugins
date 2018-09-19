@@ -61,22 +61,39 @@ class Inventory:
         return [self.data[i:i + 10] if len(self.data) > 10 else self.data
                 for i in range(0, len(self.data), 10)]
 
-    @staticmethod
-    def update(groups, page=0):
+    def update(self, groups, page=0):
         headers = ('#', 'Item', 'Qty', 'Type', 'Info')
         fmt = [(idx, x[0], x[1]['Qty'], x[1]['Type'], x[1]['Info']) for idx, x in
                enumerate(groups[page], 1)]
+        fmt = self.truncate(fmt)
         return "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
 
     def build_embed(self, options, page, groups):
         title = "{}'s Inventory".format(self.ctx.author.name)
         footer = "You are viewing page {} of {}.".format(page if page > 0 else 1, len(groups))
         instructions = "Type the number for your selection.\nType `next` and `back` to advance."
-        embed = discord.Embed(color=0x5EC6FF, title=title, description=options)
-        embed.add_field(name='\u200b', value=instructions, inline=False)
-        embed.set_footer(text=footer)
+        embed = discord.Embed(color=0x5EC6FF)
+        embed.add_field(name=title, value=options, inline=False)
+        embed.set_footer(text='\n'.join((instructions, footer)))
 
         return embed
+
+    @staticmethod
+    def truncate(rows):
+        updated = []
+        for idx, row in enumerate(rows):
+            row = list(row)
+            description = row[-1]
+            line = ''.join(str(x) for x in row)
+            if len(line) > 33:
+                new = description[:12] + '...'
+                row[-1] = new
+            elif len(description) > 18:
+                new = description[:12] + '...'
+                row[-1] = new
+            tuple(row)
+            updated.append(row)
+        return updated
 
 
 class ExitMenu(Exception):
