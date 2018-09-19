@@ -48,7 +48,8 @@ class Shop:
             'Alerts': False,
             'Alert_Role': 'Admin',
             'Closed': False,
-            'Gifting': True
+            'Gifting': True,
+            'Sorting': 'price'
         },
         'Pending': {}
     }
@@ -157,7 +158,8 @@ class Shop:
                                       "to it.")
 
         else:
-            menu = ShopMenu(ctx, shops)
+            style = await instance.Settings.Sorting()
+            menu = ShopMenu(ctx, shops, sorting=style)
             try:
                 shop, item = await menu.display()
             except RuntimeError:
@@ -594,6 +596,21 @@ class Shop:
         status = await instance.Settings.Alerts()
         await instance.Settings.Alerts.set(not status)
         await ctx.send("Alert role will {} messages.".format("no longer" if status else "receive"))
+
+    @setshop.command()
+    @global_permissions()
+    @commands.guild_only()
+    async def sorting(self, ctx, style: str):
+        """Set how shop items are sorted.
+
+        Options: price, quantity, or name (alphabetical)
+        By default shops are ordered by price."""
+        instance = await self.get_instance(ctx, settings=True)
+        if style not in ('price', 'quantity', 'name'):
+            return await ctx.send("You must pick a valid sorting option: "
+                                  "`price`, `quantity`, or `name`.")
+        await instance.Settings.Sorting.set(style.lower())
+        await ctx.send(f"Shops will now be sorted by {style}.")
 
     @setshop.command()
     @global_permissions()
