@@ -4,13 +4,14 @@ from tabulate import tabulate
 
 
 class ShopMenu:
-    def __init__(self, ctx, origin, mode=0):
+    def __init__(self, ctx, origin, mode=0, sorting='price'):
         self.ctx = ctx
         self.origin = origin
         self.shop = None
         self.user = None
         self.enabled = True
         self.mode = mode
+        self.sorting = sorting
 
     async def display(self):
         data = self.origin
@@ -122,7 +123,8 @@ class ShopMenu:
         elif self.mode == 0:
             headers = ('#', 'Name', 'Qty', 'Cost', 'Info')
             fmt = [(idx, x[0], x[1]['Qty'], x[1]['Cost'], x[1]['Info']) for idx, x in
-                   enumerate(groups[page], 1)]
+                   enumerate(self.sorter(groups[page]), 1)]
+            fmt = self.truncate(fmt)
             output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
         elif self.mode == 1 and self.user is None:
             headers = ('#', 'User', 'Pending Items')
@@ -133,10 +135,36 @@ class ShopMenu:
             headers = ('#', 'Item', 'Order ID', 'Timestamp')
             fmt = [(idx, x[1]['Item'], x[0], x[1]['Timestamp']) for idx, x in
                    enumerate(groups[page], 1)]
+
             output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
         else:
             output = None
         return self.build_embed(output, footer)
+
+    def sorter(self, groups):
+        if self.sorting == 'name':
+            return sorted(groups, key=lambda x: x[0])
+        elif self.sorting == 'price':
+            return sorted(groups, key=lambda x: x[1]['Cost'], reverse=True)
+        else:
+            return sorted(groups, key=lambda x: x[1]['Quantity'], reverse=True)
+
+    @staticmethod
+    def truncate(rows):
+        updated = []
+        for idx, row in enumerate(rows):
+            row = list(row)
+            description = row[-1]
+            line = ''.join(str(x) for x in row)
+            if len(line) > 33:
+                new = description[:12] + '...'
+                row[-1] = new
+            elif len(description) > 18:
+                new = description[:12] + '...'
+                row[-1] = new
+            tuple(row)
+            updated.append(row)
+        return updated
 
     @staticmethod
     def group_data(data):
@@ -155,9 +183,9 @@ class ShopMenu:
         else:
             title = '{} Pending'.format(self.user.name if self.user else 'Items')
 
-        embed = discord.Embed(color=0x5EC6FF, title=title, description=options)
-        embed.add_field(name='\u200b', value=instructions, inline=False)
-        embed.set_footer(text=footer)
+        embed = discord.Embed(color=0x5EC6FF)
+        embed.add_field(name=title, value=options, inline=False)
+        embed.set_footer(text='\n'.join([instructions, footer]))
 
         return embed
 
