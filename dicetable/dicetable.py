@@ -4,17 +4,17 @@
 import random
 import re
 
-# Red
-from redbot.core import commands
-
 # Discord
 import discord
+
+# Red
+from redbot.core import commands
 
 # Third Party Libraries
 from tabulate import tabulate
 
 
-__version__ = "2.0.02"
+__version__ = "2.0.03"
 __author__ = "Redjumpman"
 
 
@@ -63,7 +63,7 @@ class DiceTable:
         headers = ["Roll", "Result", "Modifier", "Total"]
         t = '**Dice:** {}\n```{}```'.format(dice, tabulate(final, headers=headers))
         embed = discord.Embed(title='Dice Table Output', color=0x3366FF)
-        embed.add_field(name='\u200b', value=t)
+        embed.add_field(name='\u200b', value=t, inline=False)
         embed.add_field(name='\u200b', value='\u200b')
         await ctx.message.delete()
         await ctx.send(embed=embed)
