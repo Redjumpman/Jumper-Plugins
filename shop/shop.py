@@ -1264,12 +1264,6 @@ class Parser:
             log.warning("Row {} was not added because the {} role does not exist on "
                         "the server.".format(idx, row["Role"]))
             return False
-        elif row['Type'].lower() == 'role':
-            if (discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) >
-                    self.ctx.author.top_role):
-                log.warning("Row {} was not added because the {} role is higher than the "
-                            "shopkeeper's highest role.".format(idx, row["Role"]))
-                return False
         elif row['Type'].lower() == 'auto' and int(row['Qty']) == 0:
             log.warning("Row {} was not added because auto items cannot have an infinite quantity."
                         "".format(idx))
@@ -1282,8 +1276,14 @@ class Parser:
             log.warning("Row {} was not added because one of the messages exceeds 2000 characters."
                         "".format(idx))
             return False
-        else:
-            return True
+        elif row['Type'].lower() == 'role':
+            if (discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) >
+                    self.ctx.author.top_role):
+                log.warning("Row {} was not added because the {} role is higher than the "
+                            "shopkeeper's highest role.".format(idx, row["Role"]))
+                return False
+            else:
+                return True
 
     async def parse_text_entry(self, text):
         keys = ('Shop', 'Item', 'Type', 'Qty', 'Cost', 'Info', 'Role', 'Messages')
