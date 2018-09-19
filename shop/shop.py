@@ -23,7 +23,7 @@ from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.09"
+__version__ = "3.0.10"
 __author__ = "Redjumpman"
 
 
@@ -35,7 +35,8 @@ def global_permissions():
         if not await Shop().shop_is_global():
             permissions = ctx.channel.permissions_for(ctx.author)
             admin_role = await ctx.bot.db.guild(ctx.guild).admin_role()
-            return ((admin_role in ctx.author.roles) or (ctx.author == ctx.guild.owner)
+            author_roles = [role.id for role in ctx.author.roles]
+            return ((admin_role in author_roles) or (ctx.author == ctx.guild.owner)
                     or permissions.administrator)
     return commands.check(pred)
 
@@ -326,7 +327,7 @@ class Shop:
     @global_permissions()
     @commands.guild_only()
     async def give(self, ctx, user: discord.Member, quantity: int, *shopitem):
-        """Gives a user an item.
+        """Administratively gives a user an item.
 
         Shopitem argument must be a \"Shop Name\" \"Item Name\" format.
 
