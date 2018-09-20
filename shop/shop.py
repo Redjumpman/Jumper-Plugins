@@ -1,3 +1,5 @@
+# Shop was made by Redjumpman for Red Bot.
+
 # Standard Library
 import asyncio
 import csv
@@ -342,15 +344,17 @@ class Shop:
         """
         if quantity < 1:
             return await ctx.send(":facepalm: How would that work genius?")
+        if user == ctx.author:
+            return await ctx.send("Really? Maybe you should find some friends.")
         settings = await self.get_instance(ctx, settings=True)
         if not await settings.Settings.Gifting():
             return await ctx.send("Gifting is turned off.")
         author_instance = await self.get_instance(ctx, user=ctx.author)
         author_inv = await author_instance.Inventory.all()
         if item not in author_inv:
-            return await ctx.send(f"You don't own any {item}.")
+            return await ctx.send(f"You don't own any `{item}`.")
         if author_inv[item]["Qty"] < quantity:
-            return await ctx.send(f"You don't have that many {item} to give.")
+            return await ctx.send(f"You don't have that many `{item}` to give.")
 
         sm1 = ShopManager(ctx, instance=None, user_data=author_instance)
         await sm1.remove(item, number=quantity)
