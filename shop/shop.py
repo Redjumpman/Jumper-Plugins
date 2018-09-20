@@ -26,7 +26,7 @@ from redbot.core.data_manager import bundled_data_path
 log = logging.getLogger("red.shop")
 
 
-__version__ = "3.1.0"
+__version__ = "3.1.01"
 __author__ = "Redjumpman"
 
 
@@ -1289,6 +1289,10 @@ class Parser:
                 return False
             else:
                 return True
+        else:
+            return True
+
+         
 
     async def parse_text_entry(self, text):
         keys = ('Shop', 'Item', 'Type', 'Qty', 'Cost', 'Info', 'Role', 'Messages')
