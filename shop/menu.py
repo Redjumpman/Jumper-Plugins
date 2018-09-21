@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from tabulate import tabulate
+from redbot.core.utils.chat_formatting import box
 
 
 class ShopMenu:
@@ -121,22 +122,28 @@ class ShopMenu:
         if self.shop is None and self.mode == 0:
             output = ["{} - {}".format(idx, ele) for idx, ele in enumerate(groups[page], 1)]
         elif self.mode == 0:
-            headers = ('#', 'Name', 'Qty', 'Cost', 'Info')
-            fmt = [(idx, x[0], x[1]['Qty'], x[1]['Cost'], x[1]['Info']) for idx, x in
-                   enumerate(self.sorter(groups[page]), 1)]
-            fmt = self.truncate(fmt)
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+            header = (f"{'#':<3} {'Name':<29} {'Qty':<7} {'Cost':<8}\n"
+                      f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}")
+            fmt = [header]
+            for idx, x in enumerate(self.sorter(groups[page]), 1):
+                line_one = (f"{f'{idx}.': <{3}} {x[0]: <{28}s} {x[1]['Qty']: < {8}}"
+                            f"{x[1]['Cost']: < {7}}")
+                fmt.append(line_one)
+                fmt.append(f'< {x[1]["Info"][:50]} >' if len(x[1]["Info"]) < 50 else
+                           f'< {x[1]["Info"][:47]}... >')
+                fmt.append('',)
+            output = box('\n'.join(fmt), 'md')
         elif self.mode == 1 and self.user is None:
             headers = ('#', 'User', 'Pending Items')
-            fmt = [(idx, discord.utils.get(self.ctx.bot.users, id=int(x[0])).name, len(x[1])) for
-                   idx, x in enumerate(groups[page], 1)]
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+            fmt = [(idx, discord.utils.get(self.ctx.bot.users, id=int(x[0])).name, len(x[1]))
+                   for idx, x in enumerate(groups[page], 1)]
+            output = box(tabulate(fmt, headers=headers, numalign="left"), lang='md')
         elif self.mode == 1:
             headers = ('#', 'Item', 'Order ID', 'Timestamp')
             fmt = [(idx, x[1]['Item'], x[0], x[1]['Timestamp']) for idx, x in
                    enumerate(groups[page], 1)]
 
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+            output = box(tabulate(fmt, headers=headers, numalign="left"), lang='md')
         else:
             output = None
         return self.build_embed(output, footer)
@@ -150,26 +157,9 @@ class ShopMenu:
             return sorted(groups, key=lambda x: x[1]['Quantity'], reverse=True)
 
     @staticmethod
-    def truncate(rows):
-        updated = []
-        for idx, row in enumerate(rows):
-            row = list(row)
-            description = row[-1]
-            line = ''.join(str(x) for x in row)
-            if len(line) > 33:
-                new = description[:12] + '...'
-                row[-1] = new
-            elif len(description) > 18:
-                new = description[:12] + '...'
-                row[-1] = new
-            tuple(row)
-            updated.append(row)
-        return updated
-
-    @staticmethod
     def group_data(data):
-        return [data[i:i + 10] if len(data) > 10 else data if not isinstance(data, dict) else
-                [data] for i in range(0, len(data), 10)]
+        return [data[i:i + 5] if len(data) > 5 else data if not isinstance(data, dict) else
+                [data] for i in range(0, len(data), 5)]
 
     def build_embed(self, options, footer):
         instructions = ("Type the number for your selection.\nType `next` and `back` to advance "
