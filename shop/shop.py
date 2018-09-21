@@ -25,8 +25,7 @@ from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-
-__version__ = "3.1.01"
+__version__ = "3.1.02"
 __author__ = "Redjumpman"
 
 
@@ -1085,9 +1084,9 @@ class ItemManager:
         return auto_msgs
 
     async def set_name(self, item=None, shop=None):
-        await self.ctx.send("Enter a name for this item. It can't be longer than 15 characters.")
+        await self.ctx.send("Enter a name for this item. It can't be longer than 20 characters.")
         name = await self.ctx.bot.wait_for('message', timeout=25,
-                                           check=Checks(self.ctx, length=15).length_under)
+                                           check=Checks(self.ctx, length=20).length_under)
         if item:
             async with self.instance.Shops() as shops:
                 shops[shop]['Items'][name.content] = shops[shop]['Items'].pop(item)
@@ -1241,7 +1240,7 @@ class Parser:
         if len(row['Shop']) > 25:
             log.warning("Row {} was not added because shop name was too long.".format(idx))
             return False
-        elif len(row['Item']) > 15:
+        elif len(row['Item']) > 20:
             log.warning("Row {} was not added because item name was too long.".format(idx))
             return False
         elif not row['Cost'].isdigit() or int(row['Cost']) < 0:
@@ -1291,8 +1290,6 @@ class Parser:
                 return True
         else:
             return True
-
-         
 
     async def parse_text_entry(self, text):
         keys = ('Shop', 'Item', 'Type', 'Qty', 'Cost', 'Info', 'Role', 'Messages')
