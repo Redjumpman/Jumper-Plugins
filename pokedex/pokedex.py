@@ -18,15 +18,15 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.07"
+__version__ = "3.0.08"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
 
 exceptions = ('ho-oh', 'jangmo-o', 'hakamo-o', 'kommo-o', 'porygon-z', 'nidoran-f', 'nidoran-m',
               'wormadam-plant', 'wormadam-sandy', 'wormadam-trash', 'shaymin-Land', 'shaymin-Sky',
-              'hoopa-confined', 'hoopa-unbound', 'lycanroc-midday', 'lycanroc-midnight,' 'lycanroc-dusk',
-              'kyurem-white', 'kyurem-black')
+              'hoopa-confined', 'hoopa-unbound', 'lycanroc-midday', 'lycanroc-midnight',
+              'lycanroc-dusk', 'kyurem-white', 'kyurem-black')
 
 tm_exceptions = ("Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", "Cosmog",
                  "Ditto", "Kakuna", "Kricketot", "Magikarp", "Unown", "Weedle", "Wobbuffet",
@@ -121,15 +121,21 @@ class Pokedex:
         except KeyError:
             generation = '7'
             move_set = ast.literal_eval(poke.Moves)[generation]
-        table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Accuracy'], numalign='right'))
-        color = self.color_lookup(poke.Types.split('/')[0])
-        embed = discord.Embed(colour=color)
-        embed.set_author(name=poke.Pokemon, icon_url=poke.Image)
-        embed.add_field(name='\u200b', value=table, inline=False)
-        embed.add_field(name="Versions", value='\n'.join(self.game_version(generation)))
-        embed.set_footer(text="This moveset is based on generation {}.".format(generation))
+        table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Accuracy'],
+                             numalign='right'))
 
-        await ctx.send(embed=embed)
+        if len(table) <= 900:
+            color = self.color_lookup(poke.Types.split('/')[0])
+            embed = discord.Embed(colour=color)
+            embed.set_author(name=poke.Pokemon, icon_url=poke.Image)
+            embed.add_field(name='\u200b', value=table, inline=False)
+            embed.add_field(name="Versions", value='\n'.join(self.game_version(generation)))
+            embed.set_footer(text="This moveset is based on generation {}.".format(generation))
+
+            await ctx.send(embed=embed)
+        else:
+            embeds = self.embed_builder(poke, move_set, generation, moves=True)
+            await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     @pokemon.command()
     async def item(self, ctx, *, item_name: str):
@@ -175,20 +181,29 @@ class Pokedex:
             generation = '7'
             tm_set = ast.literal_eval(poke.Tms)[generation]
 
+        embeds = self.embed_builder(poke, tm_set, generation)
+        await menu(ctx, embeds, DEFAULT_CONTROLS)
+
+    def embed_builder(self, poke, data, gen, moves=False):
         color = self.color_lookup(poke.Types.split('/')[0])
-        headers = ('TM', 'Name', 'Type', 'Power', 'Accuracy')
+        table_type = 'Moves' if moves else 'TMs'
+        col = 'Lvl' if moves else 'TMs'
+        headers = (col, 'Name', 'Type', 'Power', 'Accuracy')
         embeds = []
-        for i in range(0, len(tm_set), 12):
-            table = box(tabulate(tm_set[i:i + 12], headers=headers, numalign='right'))
+        for i in range(0, len(data), 12):
+            table = box(tabulate(data[i:i + 12], headers=headers, numalign='right'))
             e = discord.Embed(colour=color)
             e.set_author(name=poke.Pokemon, icon_url=poke.Image)
             e.add_field(name='\u200b', value=table, inline=False)
-            e.add_field(name='\u200b', value='\u200b')  # This is needed to format the table correctly.
+            if moves:
+                e.add_field(name="Versions", value='\n'.join(self.game_version(gen)))
+            else:
+                e.add_field(name='\u200b', value='\u200b')
             embeds.append(e)
-        embeds = [x.set_footer(text='TMs based on generation {}.\n'
-                                    'You are viewing page {} of {}'.format(switcher[generation], idx, len(embeds)))
+        embeds = [x.set_footer(text=f"{table_type} based on generation {switcher[gen]}.\n"
+                                    f"You are viewing page {idx} of {len(embeds)}")
                   for idx, x in enumerate(embeds, 1)]
-        await menu(ctx, embeds, DEFAULT_CONTROLS)
+        return embeds
 
     @pokemon.command()
     async def location(self, ctx, *, pokemon: str):
@@ -225,8 +240,10 @@ class Pokedex:
         versions = {
             '1': ['Pokémon Red', 'Pokémon Blue', 'Pokémon Yellow'],
             '2': ['Pokémon Gold', 'Pokémon Silver', 'Pokémon Crystal'],
-            '3': ['Pokémon Ruby', 'Pokémon Sapphire', 'Pokémon FireRed', 'Pokémon LeafGreen', 'Pokémon Emerald'],
-            '4': ['Pokémon Diamond', 'Pokémon Pearl', 'Pokémon Platinum', 'Pokémon HeartGold', 'Pokémon SoulSilver'],
+            '3': ['Pokémon Ruby', 'Pokémon Sapphire', 'Pokémon FireRed', 'Pokémon LeafGreen',
+                  'Pokémon Emerald'],
+            '4': ['Pokémon Diamond', 'Pokémon Pearl', 'Pokémon Platinum', 'Pokémon HeartGold',
+                  'Pokémon SoulSilver'],
             '5': ['Pokémon Black', 'Pokémon White', 'Pokémon Black 2', 'Pokémon White 2'],
             '6': ['Pokémon X', 'Pokémon Y', 'Pokémon Omega Ruby', 'Pokémon Alpha Sapphire'],
             '7': ['Pokémon Sun', 'Pokémon Moon', 'Pokémon Ultra Sun', 'Pokémon Ultra Moon']
