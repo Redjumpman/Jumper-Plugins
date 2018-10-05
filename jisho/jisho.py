@@ -12,8 +12,10 @@ from redbot.core import commands
 # Discord
 import discord
 
+BaseCog = getattr(commands, "Cog", object)
 
-class Jisho:
+
+class Jisho(BaseCog):
 
     def __init__(self):
         self.connector = aiohttp.TCPConnector(force_close=True)
