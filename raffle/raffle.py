@@ -18,8 +18,10 @@ log = logging.getLogger("red.raffle")
 __author__ = 'Redjumpman'
 __version__ = '4.0.02'
 
+BaseCog = getattr(commands, "Cog", object)
 
-class Raffle:
+
+class Raffle(BaseCog):
     """Run simple Raffles for your server."""
 
     raffle_defaults = {
