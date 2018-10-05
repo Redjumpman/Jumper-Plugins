@@ -17,8 +17,10 @@ from tabulate import tabulate
 __version__ = "2.0.03"
 __author__ = "Redjumpman"
 
+BaseCog = getattr(commands, "Cog", object)
 
-class DiceTable:
+
+class DiceTable(BaseCog):
     """Rolls a table of dice"""
 
     @commands.group(autohelp=True)
