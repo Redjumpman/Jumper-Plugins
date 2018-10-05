@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.05"
+__version__ = "2.2.06"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -37,6 +37,7 @@ deck = Deck()
 _DataNamedTuple = namedtuple("Casino", "foo")
 _DataObj = _DataNamedTuple(foo=None)
 
+BaseCog = getattr(commands, "Cog", object)
 
 def game_engine(name=None, choice=None, choices=None):
     def wrapper(coro):
@@ -335,7 +336,7 @@ class Data:
             await self.db.Settings.Global.set(False)
 
 
-class Casino(Data):
+class Casino(Data, BaseCog):
     __slots__ = ('bot', 'cycle_task')
 
     def __init__(self, bot):
@@ -1789,11 +1790,15 @@ class Craps:
             await ctx.send("{}\n{}".format(m, roll_msg))
             await asyncio.sleep(2)
             d1, d2 = self.roll_dice()
-            await ctx.send(_("You rolled a {} and {}").format(d1, d2))
+            
             if (d1 + d2) == comeout or (d1 + d2) in (7, 11) or count >= 3:
-                if count >= 3:
+                if (d1 + d2) == comeout or (d1 + d2) in (7, 11):
+                    pass
+                elif count >= 3:
                     msg += "\nYou automatically lost, because you exceeded the 3 re-roll limit."
                 return (d1 + d2) == comeout, bet, utils.build_embed(msg.format(d1, d2))
+            else:
+                await ctx.send(_("You rolled a {} and {}").format(d1, d2))
             await asyncio.sleep(1)
 
     @staticmethod
