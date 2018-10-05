@@ -28,6 +28,8 @@ log = logging.getLogger("red.shop")
 __version__ = "3.1.03"
 __author__ = "Redjumpman"
 
+BaseCog = getattr(commands, "Cog", object)
+
 
 def global_permissions():
     async def pred(ctx: commands.Context):
@@ -43,7 +45,7 @@ def global_permissions():
     return commands.check(pred)
 
 
-class Shop:
+class Shop(BaseCog):
     shop_defaults = {
         'Shops': {},
         'Settings': {
