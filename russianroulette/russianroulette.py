@@ -9,6 +9,7 @@ from .kill import outputs
 # Red
 from redbot.core import Config, bank, commands
 
+BaseCog = getattr(commands, "Cog", object)
 
 __version__ = "3.0.03"
 __author__ = "Redjumpman"
@@ -29,7 +30,7 @@ def is_administrator():
     return commands.check(pred)
 
 
-class RussianRoulette:
+class RussianRoulette(BaseCog):
     defaults = {
         "Cost": 50,
         "Chamber_Size": 6,
