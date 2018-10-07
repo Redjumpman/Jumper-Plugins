@@ -126,7 +126,7 @@ class ShopMenu:
                       f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}")
             fmt = [header]
             for idx, x in enumerate(self.sorter(groups[page]), 1):
-                line_one = (f"{f'{idx}.': <{3}} {x[0]: <{28}s} {x[1]['Qty']: < {8}}"
+                line_one = (f"{f'{idx}.': <{3}} {x[0]: <{29}s} {x[1]['Qty']:<{8}}"
                             f"{x[1]['Cost']: < {7}}")
                 fmt.append(line_one)
                 fmt.append(f'< {x[1]["Info"][:50]} >' if len(x[1]["Info"]) < 50 else
