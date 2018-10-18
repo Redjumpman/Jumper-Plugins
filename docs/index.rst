@@ -5,9 +5,9 @@ Jumper Plugin Documentation
     :maxdepth: 1
     :caption: Cog Guides:
 
-    Casino
-    Jisho
-    Pokedex
-    RussianRoulette
-    Shop
+    casino
+    jisho
+    pokedex
+    russianroulette
+    shop
     
