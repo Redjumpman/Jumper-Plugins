@@ -1,6 +1,6 @@
 import asyncio
 import discord
-from tabulate import tabulate
+from redbot.core.utils.chat_formatting import box
 from .menu import MenuCheck
 
 
@@ -58,23 +58,29 @@ class Inventory:
                 await msg.edit(embed=msg)
 
     def splitter(self):
-        return [self.data[i:i + 10] if len(self.data) > 10 else self.data
-                for i in range(0, len(self.data), 10)]
+        return [self.data[i:i + 5] if len(self.data) > 5 else self.data
+                for i in range(0, len(self.data), 5)]
 
-    @staticmethod
-    def update(groups, page=0):
-        headers = ('#', 'Item', 'Qty', 'Type', 'Info')
-        fmt = [(idx, x[0], x[1]['Qty'], x[1]['Type'], x[1]['Info']) for idx, x in
-               enumerate(groups[page], 1)]
-        return "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+    def update(self, groups, page=0):
+        header = (f"{'#':<3} {'Items':<29} {'Qty':<7} {'Type':<8}\n"
+                  f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}")
+        fmt = [header]
+        for idx, x in enumerate(groups[page], 1):
+            line_one = (f"{f'{idx}.': <{3}} {x[0]: <{28}s} {x[1]['Qty']: < {9}}"
+                        f"{x[1]['Type']: <{7}s}")
+            fmt.append(line_one)
+            fmt.append(f'< {x[1]["Info"][:50]} >' if len(x[1]["Info"]) < 50 else
+                       f'< {x[1]["Info"][:47]}... >')
+            fmt.append('', )
+        return box('\n'.join(fmt), lang='md')
 
     def build_embed(self, options, page, groups):
         title = "{}'s Inventory".format(self.ctx.author.name)
         footer = "You are viewing page {} of {}.".format(page if page > 0 else 1, len(groups))
         instructions = "Type the number for your selection.\nType `next` and `back` to advance."
-        embed = discord.Embed(color=0x5EC6FF, title=title, description=options)
-        embed.add_field(name='\u200b', value=instructions, inline=False)
-        embed.set_footer(text=footer)
+        embed = discord.Embed(color=0x5EC6FF)
+        embed.add_field(name=title, value=options, inline=False)
+        embed.set_footer(text='\n'.join((instructions, footer)))
 
         return embed
 

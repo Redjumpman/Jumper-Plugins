@@ -1,16 +1,18 @@
 import asyncio
 import discord
 from tabulate import tabulate
+from redbot.core.utils.chat_formatting import box
 
 
 class ShopMenu:
-    def __init__(self, ctx, origin, mode=0):
+    def __init__(self, ctx, origin, mode=0, sorting='price'):
         self.ctx = ctx
         self.origin = origin
         self.shop = None
         self.user = None
         self.enabled = True
         self.mode = mode
+        self.sorting = sorting
 
     async def display(self):
         data = self.origin
@@ -120,28 +122,44 @@ class ShopMenu:
         if self.shop is None and self.mode == 0:
             output = ["{} - {}".format(idx, ele) for idx, ele in enumerate(groups[page], 1)]
         elif self.mode == 0:
-            headers = ('#', 'Name', 'Qty', 'Cost', 'Info')
-            fmt = [(idx, x[0], x[1]['Qty'], x[1]['Cost'], x[1]['Info']) for idx, x in
-                   enumerate(groups[page], 1)]
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+            header = (f"{'#':<3} {'Name':<29} {'Qty':<7} {'Cost':<8}\n"
+                      f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}")
+            fmt = [header]
+            for idx, x in enumerate(self.sorter(groups[page]), 1):
+                line_one = (f"{f'{idx}.': <{3}} {x[0]: <{29}s} {x[1]['Qty']:<{8}}"
+                            f"{x[1]['Cost']: < {7}}")
+                fmt.append(line_one)
+                fmt.append(f'< {x[1]["Info"][:50]} >' if len(x[1]["Info"]) < 50 else
+                           f'< {x[1]["Info"][:47]}... >')
+                fmt.append('',)
+            output = box('\n'.join(fmt), 'md')
         elif self.mode == 1 and self.user is None:
             headers = ('#', 'User', 'Pending Items')
-            fmt = [(idx, discord.utils.get(self.ctx.bot.users, id=int(x[0])).name, len(x[1])) for
-                   idx, x in enumerate(groups[page], 1)]
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+            fmt = [(idx, discord.utils.get(self.ctx.bot.users, id=int(x[0])).name, len(x[1]))
+                   for idx, x in enumerate(groups[page], 1)]
+            output = box(tabulate(fmt, headers=headers, numalign="left"), lang='md')
         elif self.mode == 1:
             headers = ('#', 'Item', 'Order ID', 'Timestamp')
             fmt = [(idx, x[1]['Item'], x[0], x[1]['Timestamp']) for idx, x in
                    enumerate(groups[page], 1)]
-            output = "```{}```".format(tabulate(fmt, headers=headers, numalign="left"))
+
+            output = box(tabulate(fmt, headers=headers, numalign="left"), lang='md')
         else:
             output = None
         return self.build_embed(output, footer)
 
+    def sorter(self, groups):
+        if self.sorting == 'name':
+            return sorted(groups, key=lambda x: x[0])
+        elif self.sorting == 'price':
+            return sorted(groups, key=lambda x: x[1]['Cost'], reverse=True)
+        else:
+            return sorted(groups, key=lambda x: x[1]['Quantity'], reverse=True)
+
     @staticmethod
     def group_data(data):
-        return [data[i:i + 10] if len(data) > 10 else data if not isinstance(data, dict) else
-                [data] for i in range(0, len(data), 10)]
+        return [data[i:i + 5] if len(data) > 5 else data if not isinstance(data, dict) else
+                [data] for i in range(0, len(data), 5)]
 
     def build_embed(self, options, footer):
         instructions = ("Type the number for your selection.\nType `next` and `back` to advance "
@@ -155,9 +173,9 @@ class ShopMenu:
         else:
             title = '{} Pending'.format(self.user.name if self.user else 'Items')
 
-        embed = discord.Embed(color=0x5EC6FF, title=title, description=options)
-        embed.add_field(name='\u200b', value=instructions, inline=False)
-        embed.set_footer(text=footer)
+        embed = discord.Embed(color=0x5EC6FF)
+        embed.add_field(name=title, value=options, inline=False)
+        embed.set_footer(text='\n'.join([instructions, footer]))
 
         return embed
 

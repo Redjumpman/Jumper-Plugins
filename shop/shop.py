@@ -1,3 +1,5 @@
+# Shop was made by Redjumpman for Red Bot.
+
 # Standard Library
 import asyncio
 import csv
@@ -23,44 +25,35 @@ from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.0.08"
+__version__ = "3.1.04"
 __author__ = "Redjumpman"
+
+BaseCog = getattr(commands, "Cog", object)
 
 
 def global_permissions():
-    """
-     Returns true if shop is global, otherwise checks if the
-     command was used by guild owner or guild administrator
-    """
     async def pred(ctx: commands.Context):
-        author = ctx.author
-        if await ctx.bot.is_owner(author):
+        is_owner = await ctx.bot.is_owner(ctx.author)
+        if is_owner:
             return True
         if not await Shop().shop_is_global():
-            permissions = ctx.channel.permissions_for(author)
-            return author == ctx.guild.owner or permissions.administrator
-
+            permissions = ctx.channel.permissions_for(ctx.author)
+            admin_role = await ctx.bot.db.guild(ctx.guild).admin_role()
+            author_roles = [role.id for role in ctx.author.roles]
+            return ((admin_role in author_roles) or (ctx.author == ctx.guild.owner)
+                    or permissions.administrator)
     return commands.check(pred)
 
 
-def guild_required_or_global():
-    async def pred(ctx: commands.Context):
-        if await Shop().shop_is_global():
-            return True
-        elif not await Shop().shop_is_global() and ctx.guild is not None:
-            return True
-        else:
-            return False
-    return commands.check(pred)
-
-
-class Shop:
+class Shop(BaseCog):
     shop_defaults = {
         'Shops': {},
         'Settings': {
             'Alerts': False,
             'Alert_Role': 'Admin',
             'Closed': False,
+            'Gifting': True,
+            'Sorting': 'price'
         },
         'Pending': {}
     }
@@ -69,7 +62,7 @@ class Shop:
         'Trading': True,
     }
     user_defaults = member_defaults
-    global_defaults = shop_defaults
+    global_defaults = deepcopy(shop_defaults)
     global_defaults['Global'] = False
 
     def __init__(self):
@@ -169,7 +162,8 @@ class Shop:
                                       "to it.")
 
         else:
-            menu = ShopMenu(ctx, shops)
+            style = await instance.Settings.Sorting()
+            menu = ShopMenu(ctx, shops, sorting=style)
             try:
                 shop, item = await menu.display()
             except RuntimeError:
@@ -181,6 +175,8 @@ class Shop:
             await sm.order(shop, item)
         except asyncio.TimeoutError:
             await ctx.send("Request timed out.")
+        except ExitProcess:
+            await ctx.send("Transaction canceled.")
 
     @shop.command()
     async def redeem(self, ctx, *, item: str):
@@ -317,7 +313,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def pending(self, ctx):
         """Displays the pending menu."""
         instance = await self.get_instance(ctx, settings=True)
@@ -337,10 +333,45 @@ class Shop:
             await ctx.send("Request timed out.")
 
     @shop.command()
+    @commands.guild_only()
+    async def gift(self, ctx, user: discord.Member, quantity: int, *, item):
+        """Gift another user a set number of one of your items.
+
+        The item must be in your inventory and have enough to cover the quantity.
+
+        Examples
+        --------
+        [p]shop gift Redjumpman 3 Healing Potion
+        [p]shop give @Navi 1 Demon Sword
+        """
+        if quantity < 1:
+            return await ctx.send(":facepalm: How would that work genius?")
+        if user == ctx.author:
+            return await ctx.send("Really? Maybe you should find some friends.")
+        settings = await self.get_instance(ctx, settings=True)
+        if not await settings.Settings.Gifting():
+            return await ctx.send("Gifting is turned off.")
+        author_instance = await self.get_instance(ctx, user=ctx.author)
+        author_inv = await author_instance.Inventory.all()
+        if item not in author_inv:
+            return await ctx.send(f"You don't own any `{item}`.")
+        if author_inv[item]["Qty"] < quantity:
+            return await ctx.send(f"You don't have that many `{item}` to give.")
+
+        sm1 = ShopManager(ctx, instance=None, user_data=author_instance)
+        await sm1.remove(item, number=quantity)
+
+        user_instance = await self.get_instance(ctx, user=user)
+        sm2 = ShopManager(ctx, instance=None, user_data=user_instance)
+        await sm2.add(item, author_inv[item], quantity)
+
+        await ctx.send(f"{ctx.author.mention} gifted {user.mention} {quantity}x {item}.")
+
+    @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def give(self, ctx, user: discord.Member, quantity: int, *shopitem):
-        """Gives a user an item.
+        """Administratively gives a user an item.
 
         Shopitem argument must be a \"Shop Name\" \"Item Name\" format.
 
@@ -381,7 +412,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def clearinv(self, ctx, user: discord.Member):
         """Completely clears a user's inventory."""
         await ctx.send("Are you sure you want to completely wipe {}'s inventory?".format(user.name))
@@ -394,7 +425,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def manager(self, ctx, action: str):
         """Creates edits, or deletes a shop."""
         if action.lower() not in ('create', 'edit', 'delete'):
@@ -412,7 +443,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def item(self, ctx, action: str):
         """Creates, Deletes, and Edits items."""
         if action.lower() not in ('create', 'edit', 'delete'):
@@ -426,7 +457,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def restock(self, ctx, amount: int, *, shop_name: str):
         """Restocks all items in a shop by a specified amount.
 
@@ -460,7 +491,7 @@ class Shop:
 
     @shop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def bulkadd(self, ctx, style: str, *, entry: str):
         """Add multiple items and shops.
 
@@ -548,7 +579,7 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def alertrole(self, ctx, role: discord.Role):
         """Sets the role that will receive alerts.
 
@@ -564,7 +595,7 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
     async def alerts(self, ctx):
         """Toggles alerts when users redeem items."""
         instance = await self.get_instance(ctx, settings=True)
@@ -574,7 +605,32 @@ class Shop:
 
     @setshop.command()
     @global_permissions()
-    @guild_required_or_global()
+    @commands.guild_only()
+    async def sorting(self, ctx, style: str):
+        """Set how shop items are sorted.
+
+        Options: price, quantity, or name (alphabetical)
+        By default shops are ordered by price."""
+        instance = await self.get_instance(ctx, settings=True)
+        if style not in ('price', 'quantity', 'name'):
+            return await ctx.send("You must pick a valid sorting option: "
+                                  "`price`, `quantity`, or `name`.")
+        await instance.Settings.Sorting.set(style.lower())
+        await ctx.send(f"Shops will now be sorted by {style}.")
+
+    @setshop.command()
+    @global_permissions()
+    @commands.guild_only()
+    async def gifting(self, ctx):
+        """Toggles if users can gift items."""
+        instance = await self.get_instance(ctx, settings=True)
+        status = await instance.Settings.Gifting()
+        await instance.Settings.Gifting.set(not status)
+        await ctx.send(f"Gifting is now {'OFF'} if status else {'ON'}.")
+
+    @setshop.command()
+    @global_permissions()
+    @commands.guild_only()
     async def toggle(self, ctx):
         """Closes/opens all shops."""
         instance = await self.get_instance(ctx, settings=True)
@@ -754,14 +810,17 @@ class Shop:
                        "list.".format(name.content))
 
     async def pending_prompt(self, ctx, instance, data, item):
+        e = discord.Embed(color=await ctx.embed_colour())
+        e.add_field(name=item, value=data[item]['Info'], inline=False)
         if data[item]['Type'].lower() == 'Role':
-            await ctx.send("Do you wish to redeem {}? This will grant you the role assigned to "
+            await ctx.send("{} Do you wish to redeem {}? This will grant you the role assigned to "
                            "this item and it will be removed from your inventory "
-                           "permanently.".format(item))
+                           "permanently.".format(ctx.author.mention, item), embed=e)
         else:
-            await ctx.send("Do you wish to redeem {}? This will add the item to the pending list "
-                           "for an admin to review and grant. The item will be removed from your "
-                           "inventory while this is processing.".format(item))
+            await ctx.send("{} Do you wish to redeem {}? This will add the item to the pending "
+                           "list for an admin to review and grant. The item will be removed from "
+                           "your inventory while this is "
+                           "processing.".format(ctx.author.mention, item), embed=e)
         try:
             choice = await ctx.bot.wait_for('message', timeout=25, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
@@ -828,21 +887,28 @@ class ShopManager:
 
         cur = await bank.get_currency_name(self.ctx.guild)
         stock, cost, _type = item_data['Qty'], item_data['Cost'], item_data['Type']
-
-        await self.ctx.send("How many {} would you like to purchase?\n*If this "
-                            "is a random item, you can only buy 1 at a time.*".format(item))
+        e = discord.Embed(color=await self.ctx.embed_colour())
+        e.add_field(name=item, value=item_data['Info'], inline=False)
+        text = (f"How many {item} would you like to purchase?\n*If this "
+                f"is a random item, you can only buy 1 at a time.*")
+        await self.ctx.send(content=text, embed=e)
 
         def predicate(m):
-            if m.author == self.ctx.author and m.content.isdigit():
-                if _type == 'random':
-                    return int(m.content) == 1
-                try:
-                    return 0 < int(m.content) <= stock
-                except TypeError:
-                    return 0 < int(m.content)
+            if m.author == self.ctx.author and self.ctx.channel == m.channel:
+                if m.content.isdigit():
+                    if _type == 'random':
+                        return int(m.content) == 1
+                    try:
+                        return 0 < int(m.content) <= stock
+                    except TypeError:
+                        return 0 < int(m.content)
+                elif m.content.lower() in ('exit', 'cancel', 'x'):
+                    return True
             else:
                 return False
         num = await self.ctx.bot.wait_for('message', timeout=25.0, check=predicate)
+        if num.content.lower() in ('exit', 'cancel', 'x'):
+            raise ExitProcess()
         amount = int(num.content)
         try:
             await num.delete()
@@ -980,7 +1046,7 @@ class ItemManager:
                     return True
 
             await self.ctx.send("What would you like to edit for this item?\n"
-                                "Name, Type, Role, Quantity, Cost, Messages")
+                                "Name, Type, Role, Quantity, Cost, Info, or Messages")
             choice = await self.ctx.bot.wait_for('message', timeout=25.0, check=predicate)
 
             if choice.content.lower() == 'name':
@@ -993,6 +1059,8 @@ class ItemManager:
                 await self.set_quantity(item_data['Type'], item, shop)
             elif choice.content.lower() == 'cost':
                 await self.set_cost(item=item, shop=shop)
+            elif choice.content.lower() == 'info':
+                await self.set_info(item=item, shop=shop)
             else:
                 await self.set_messages(item_data['Type'], item=item, shop=shop)
 
@@ -1018,9 +1086,9 @@ class ItemManager:
         return auto_msgs
 
     async def set_name(self, item=None, shop=None):
-        await self.ctx.send("Enter a name for this item. It can't be longer than 15 characters.")
+        await self.ctx.send("Enter a name for this item. It can't be longer than 20 characters.")
         name = await self.ctx.bot.wait_for('message', timeout=25,
-                                           check=Checks(self.ctx, length=15).length_under)
+                                           check=Checks(self.ctx, length=30).length_under)
         if item:
             async with self.instance.Shops() as shops:
                 shops[shop]['Items'][name.content] = shops[shop]['Items'].pop(item)
@@ -1040,7 +1108,8 @@ class ItemManager:
     def hierarchy_check(self, m):
         roles = [r.name for r in self.ctx.guild.roles if r.name != "Bot"]
         if self.ctx.author == m.author and m.content in roles:
-            if self.ctx.author.top_role >= discord.utils.get(self.ctx.message.guild.roles, name=m.content):
+            if self.ctx.author.top_role >= discord.utils.get(self.ctx.message.guild.roles,
+                                                             name=m.content):
                 return True
             else:
                 return False
@@ -1111,9 +1180,9 @@ class ItemManager:
 
     async def set_info(self, item=None, shop=None):
         await self.ctx.send("Specify the info text for this item.\n"
-                            "*Note* cannot be longer than 24 characters.")
+                            "*Note* cannot be longer than 500 characters.")
         info = await self.ctx.bot.wait_for('message', timeout=40,
-                                           check=Checks(self.ctx, length=24).length_under)
+                                           check=Checks(self.ctx, length=500).length_under)
         if item:
             async with self.instance.Shops() as shops:
                 shops[shop]['Items'][item]['Info'] = info.content
@@ -1173,7 +1242,7 @@ class Parser:
         if len(row['Shop']) > 25:
             log.warning("Row {} was not added because shop name was too long.".format(idx))
             return False
-        elif len(row['Item']) > 15:
+        elif len(row['Item']) > 30:
             log.warning("Row {} was not added because item name was too long.".format(idx))
             return False
         elif not row['Cost'].isdigit() or int(row['Cost']) < 0:
@@ -1182,7 +1251,7 @@ class Parser:
         elif not row['Qty'].isdigit() or int(row['Qty']) < 0:
             log.warning("Row {} was not added because the quantity was lower than 0.".format(idx))
             return False
-        elif len(row['Info']) > 24:
+        elif len(row['Info']) > 500:
             log.warning("Row {} was not added because the info was too long.".format(idx))
             return False
         else:
@@ -1201,11 +1270,6 @@ class Parser:
             log.warning("Row {} was not added because the {} role does not exist on "
                         "the server.".format(idx, row["Role"]))
             return False
-        elif row['Type'].lower() == 'role':
-            if discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) > self.ctx.author.top_role:
-                log.warning("Row {} was not added because the {} role is higher than the shopkeeper's "
-                            "highest role.".format(idx, row["Role"]))
-                return False
         elif row['Type'].lower() == 'auto' and int(row['Qty']) == 0:
             log.warning("Row {} was not added because auto items cannot have an infinite quantity."
                         "".format(idx))
@@ -1218,6 +1282,14 @@ class Parser:
             log.warning("Row {} was not added because one of the messages exceeds 2000 characters."
                         "".format(idx))
             return False
+        elif row['Type'].lower() == 'role':
+            if (discord.utils.get(self.ctx.message.guild.roles, name=row['Role']) >
+                    self.ctx.author.top_role):
+                log.warning("Row {} was not added because the {} role is higher than the "
+                            "shopkeeper's highest role.".format(idx, row["Role"]))
+                return False
+            else:
+                return True
         else:
             return True
 

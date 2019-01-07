@@ -25,7 +25,8 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.3.01"
+
+__version__ = "2.2.07"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -37,6 +38,7 @@ deck = Deck()
 _DataNamedTuple = namedtuple("Casino", "foo")
 _DataObj = _DataNamedTuple(foo=None)
 
+BaseCog = getattr(commands, "Cog", object)
 
 def game_engine(name=None, choice=None, choices=None):
     def wrapper(coro):
@@ -346,7 +348,7 @@ class Data:
             await self.db.Settings.Global.set(False)
 
 
-class Casino(Data):
+class Casino(Data, BaseCog):
     __slots__ = ('bot', 'cycle_task')
 
     def __init__(self, bot):
@@ -445,6 +447,7 @@ class Casino(Data):
     @commands.guild_only()
     async def casino(self, ctx: commands.Context):
         """Interacts with the Casino system.
+
         Use help on Casino (uppper case) for more commands.
         """
         pass
@@ -514,12 +517,12 @@ class Casino(Data):
                          "Would you like to release this amount?").format(user.name, amount))
 
         try:
-            choice = ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
         if choice.content.lower() == 'yes':
-            await instance.Pending.clear()
+            await instance.Pending_Credits.clear()
             await bank.deposit_credits(user, amount)
             log.info(_("{0.name} ({0.id}) released {1} credits to {2.name} "
                        "({2.id}).").format(author, amount, user))
@@ -589,7 +592,7 @@ class Casino(Data):
                          "sure this is what you wish to do?"))
 
         try:
-            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks.confirm)
+            choice = await ctx.bot.wait_for('message', timeout=25.0, check=Checks(ctx).confirm)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response. Action canceled."))
 
@@ -652,7 +655,7 @@ class Casino(Data):
         cmd_list = '\n'.join(["**{}** - {}".format(x, y) for x, y in
                               [(com, ctx.bot.get_command(com).short_doc) for com in cmds]])
 
-        wiki = '[Casino Wiki](https://github.com/Redjumpman/Jumper-Cogs/wiki/Casino)'
+        wiki = '[Casino Wiki](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3)'
         embed = discord.Embed(colour=0xFF0000, description=wiki)
         embed.set_author(name='Casino Admin Panel', icon_url=ctx.bot.user.avatar_url)
         embed.add_field(name='__Commands__', value=cmd_list)
@@ -1023,7 +1026,7 @@ class Casino(Data):
                 break
             memberships = await self.db.Memberships.all()
             if not memberships:
-                continue
+                break
             for user in users:
                 user_obj = self.bot.get_user(user)
                 if user_obj is None:
@@ -1099,12 +1102,10 @@ class Casino(Data):
 
         membership = max(qualified, key=itemgetter(1))[0] if qualified else 'Basic'
         if _global:
-            print("well we made it.")
             async with self.db.user(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
         else:
-            print("we out here.")
             async with self.db.member(user).Membership() as data:
                 data['Name'] = membership
                 data['Assigned'] = False
@@ -1278,7 +1279,7 @@ class Engine(Data):
         return bal_msg
 
     async def limit_handler(self, embed, amount, player_instance, coro):
-        await player_instance.Pending.set(amount)
+        await player_instance.Pending_Credits.set(int(amount))
 
         await self.ctx.send(self.player.mention, embed=embed)
         limit = await coro.Settings.Payout_Limit()
@@ -1293,11 +1294,17 @@ class Engine(Data):
         await self.player.send(msg)
 
     async def deposit_winnings(self, amount, player_instance, coro):
-
         if amount > self.bet:
             if self.game == 'Allin' or self.game == 'Double':
                 await bank.deposit_credits(self.player, amount)
                 return
+            elif self.game == 'Hilo':
+                multiplier = await coro.Games.get_raw(self.game, "Multiplier")
+                # Use self.bet, instead of amount, because we are only tracking the change.
+                initial = round(self.bet * (multiplier + 2))
+                total, amt, msg = await self.calculate_bonus(initial, player_instance, coro)
+                await bank.deposit_credits(self.player, total)
+                return total, msg
             total, amt, msg = await self.calculate_bonus(round(amount), player_instance, coro)
             await bank.deposit_credits(self.player, total)
             return total, msg
@@ -1787,11 +1794,15 @@ class Craps:
             await ctx.send("{}\n{}".format(m, roll_msg))
             await asyncio.sleep(2)
             d1, d2 = self.roll_dice()
-            await ctx.send(_("You rolled a {} and {}").format(d1, d2))
+            
             if (d1 + d2) == comeout or (d1 + d2) in (7, 11) or count >= 3:
-                if count >= 3:
+                if (d1 + d2) == comeout or (d1 + d2) in (7, 11):
+                    pass
+                elif count >= 3:
                     msg += "\nYou automatically lost, because you exceeded the 3 re-roll limit."
                 return (d1 + d2) == comeout, bet, utils.build_embed(msg.format(d1, d2))
+            else:
+                await ctx.send(_("You rolled a {} and {}").format(d1, d2))
             await asyncio.sleep(1)
 
     @staticmethod
@@ -1966,7 +1977,7 @@ class Hilo:
         msg = _("The outcome was {} ({[0]})!").format(result, outcome)
         embed = utils.build_embed(msg)
 
-        if outcome == result == 7:
+        if result == 7 and outcome[1] == "7":
             bet *= 5
 
         return choice.lower() in outcome, bet, embed

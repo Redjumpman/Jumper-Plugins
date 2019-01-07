@@ -7,7 +7,7 @@ class Deck:
     """Creates a Deck of playing cards."""
     suites = (":clubs:", ":diamonds:", ":hearts:", ":spades:")
     face_cards = ('King', 'Queen', 'Jack', 'Ace')
-    bj_vals = {'Jack': 10, 'Queen': 10, 'King': 10, 'Ace': 0}
+    bj_vals = {'Jack': 10, 'Queen': 10, 'King': 10, 'Ace': 1}
     war_values = {'Jack': 11, 'Queen': 12, 'King': 13, 'Ace': 14}
 
     def __init__(self):
@@ -45,14 +45,8 @@ class Deck:
             return count if count > 0 else 11
 
         count = sum([self.bj_vals[y] if isinstance(y, str) else y for x, y in hand])
-        for x in hand:
-            if x[1] == 'Ace' and count + 11 > 21:
-                count += 1
-            elif x[1] == 'Ace':
-                count += 11
-            else:
-                pass
-
+        if any('Ace' in pair for pair in hand) and count < 11:
+            count += 10
         return count
 
     @staticmethod
@@ -66,6 +60,9 @@ class Deck:
     @staticmethod
     def hand_check(hand: list, card):
         return any(x[1] == card for x in hand)
+
+    def split(self, position: int):
+        self._deck.rotate(-position)
 
     @staticmethod
     def _true_hand(hand: list):
