@@ -42,10 +42,10 @@ class Deck:
         if hole:
             card = hand[0][1]
             count = self.bj_vals[card] if isinstance(card, str) else card
-            return count if count > 0 else 11
+            return count if count > 1 else 11
 
         count = sum([self.bj_vals[y] if isinstance(y, str) else y for x, y in hand])
-        if any('Ace' in pair for pair in hand) and count < 11:
+        if any('Ace' in pair for pair in hand) and count <= 11:
             count += 10
         return count
 
