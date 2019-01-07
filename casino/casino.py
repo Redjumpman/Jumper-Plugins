@@ -26,7 +26,7 @@ import discord
 from tabulate import tabulate
 
 
-__version__ = "2.2.07"
+__version__ = "2.2.08"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
