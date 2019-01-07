@@ -25,7 +25,8 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.06"
+
+__version__ = "2.2.07"
 __author__ = "Redjumpman"
 
 log = logging.getLogger("red.casino")
@@ -67,7 +68,8 @@ class Data:
             "Cups": 0,
             "Dice": 0,
             "Hilo": 0,
-            "War": 0},
+            "War": 0,
+            "Double": 0},
         "Won": {
             "Allin": 0,
             "Blackjack": 0,
@@ -76,7 +78,8 @@ class Data:
             "Cups": 0,
             "Dice": 0,
             "Hilo": 0,
-            "War": 0},
+            "War": 0,
+            "Double": 0},
         "Cooldowns": {
             "Allin": 0,
             "Blackjack": 0,
@@ -85,7 +88,8 @@ class Data:
             "Cups": 0,
             "Dice": 0,
             "Hilo": 0,
-            "War": 0}
+            "War": 0,
+            "Double": 0}
     }
     member_defaults = user_defaults
 
@@ -129,7 +133,7 @@ class Data:
                 "Max": 500,
                 "Min": 50,
                 "Multiplier": 2.0,
-                "Open": True,
+                "Open": True
             },
             "Cups": {
                 "Access": 0,
@@ -137,7 +141,7 @@ class Data:
                 "Max": 100,
                 "Min": 25,
                 "Multiplier": 1.8,
-                "Open": True,
+                "Open": True
             },
             "Dice": {
                 "Access": 0,
@@ -161,7 +165,15 @@ class Data:
                 "Min": 25,
                 "Max": 75,
                 "Multiplier": 1.5,
-                "Open": True,
+                "Open": True
+            },
+            "Double": {
+                "Access": 0,
+                "Cooldown": 5,
+                "Min": 10,
+                "Max": 250,
+                "Multiplier": None,
+                "Open": True
             }
         }
     }
@@ -349,7 +361,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def blackjack(self, ctx: commands.Context, bet: int):
         """Play a game of blackjack.
-
         Blackjack supports doubling down, but not split.
         """
         await Blackjack().play(ctx, bet)
@@ -358,7 +369,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def allin(self, ctx: commands.Context, multiplier: int):
         """Bets all your currency for a chance to win big!
-
         The higher your multiplier the lower your odds of winning.
         """
         if multiplier < 2:
@@ -371,7 +381,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def coin(self, ctx: commands.Context, bet: int, choice: str):
         """Coin flip game with a 50/50 chance to win.
-
         Pick heads or tails and place your bet.
         """
         if choice.lower() not in ('heads', 'tails'):
@@ -383,7 +392,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def dice(self, ctx: commands.Context, bet: int):
         """Roll a set of dice and win on 2, 7, 11, 12.
-
         Just place a bet. No need to pick a number.
         """
         await Core().play_dice(ctx, bet)
@@ -392,7 +400,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def cups(self, ctx: commands.Context, bet: int, cup: str):
         """Guess which cup of three is hiding the coin.
-
         Must pick 1, 2, or 3.
         """
         await Core().play_cups(ctx, bet, cup)
@@ -401,7 +408,6 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def hilo(self, ctx: commands.Context, bet: int, choice: str):
         """Pick high, low, or 7 in a dice rolling game.
-
         Acceptable choices are high, hi, low, lo, 7, or seven.
         """
         await Hilo().play(ctx, bet, choice)
@@ -416,17 +422,24 @@ class Casino(Data, BaseCog):
     @commands.guild_only()
     async def craps(self, ctx: commands.Context, bet: int):
         """Plays a modified version of craps
-
         The player wins 7x their bet on a come-out roll of 7.
         A comeout roll of 11 is an automatic win (standard mutlipliers apply).
         The player will lose on a comeout roll of 2, 3, or 12.
         Otherwise a point will be established. The player will keep
         rolling until they hit a 7 (and lose) or their point number.
-
         Every bet is considered a 'Pass Line' bet.
         """
 
         await Craps().play(ctx, bet)
+
+    @commands.command(aliases=['don', 'x2'])
+    @commands.guild_only()
+    async def double(self, ctx: commands.Context, bet: int):
+        """Play a game of Double Or Nothing.
+        Continue to try to double your bet until
+        you cash out or lose it all.
+        """
+        await Double().play(ctx, bet)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -435,7 +448,7 @@ class Casino(Data, BaseCog):
     async def casino(self, ctx: commands.Context):
         """Interacts with the Casino system.
 
-        Use help on Casino (upper case) for more commands.
+        Use help on Casino (uppper case) for more commands.
         """
         pass
 
@@ -592,11 +605,9 @@ class Casino(Data, BaseCog):
     @checks.admin_or_permissions(administrator=True)
     async def assignmem(self, ctx: commands.Context, user: discord.Member, *, membership: str):
         """Manually assigns a membership to a user.
-
         Users who are assigned a membership no longer need to meet the
         requirements set. However, if the membership is revoked, then the
         user will need to meet the requirements as usual.
-
         """
         author = ctx.author
         instance = await super().get_instance(ctx, settings=True)
@@ -617,7 +628,6 @@ class Casino(Data, BaseCog):
     @checks.admin_or_permissions(administrator=True)
     async def revokemem(self, ctx: commands.Context, user: discord.Member):
         """Revoke an assigned membership.
-
         Members will still keep this membership until the next auto cycle (5mins).
         At that time, they will be re-evaluated and downgraded/upgraded appropriately.
         """
@@ -655,7 +665,6 @@ class Casino(Data, BaseCog):
     @casino.command()
     async def info(self, ctx: commands.Context):
         """Shows information about Casino.
-
         Displays a list of games with their set parameters:
         Access Levels, Maximum and Minimum bets, if it's open to play,
         cooldowns, and multipliers. It also displays settings for the
@@ -763,10 +772,8 @@ class Casino(Data, BaseCog):
     @checks.is_owner()
     async def mode(self, ctx: commands.Context):
         """Toggles Casino between global and local modes.
-
         When casino is set to local mode, each server will have its own
         unique data, and admin level commands can be used on that server.
-
         When casino is set to global mode, data is linked between all servers
         the bot is connected to. In addition, admin level commands can only be
         used by the owner or co-owners.
@@ -806,7 +813,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def payoutlimit(self, ctx: commands.Context, limit: int):
         """Sets a payout limit.
-
         Users who exceed this amount will have their winnings witheld until they are
         reviewed and approved by the appropriate authority. Limits are only triggered if
         payout limits are ON. To turn on payout limits, use payouttoggle.
@@ -825,7 +831,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def payouttoggle(self, ctx: commands.Context):
         """Turns on a payout limit.
-
         The payout limit will withhold winnings from players until they are approved by the
         appropriate authority. To set the limit, use payoutlimit.
         """
@@ -841,7 +846,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def toggle(self, ctx: commands.Context):
         """Opens and closes the Casino for use.
-
         This command only restricts the use of playing games.
         """
         author = ctx.author
@@ -858,7 +862,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def name(self, ctx: commands.Context, *, name: str):
         """Sets the name of the Casino.
-
         The casino name may only be 30 characters in length.
         """
         author = ctx.author
@@ -879,8 +882,8 @@ class Casino(Data, BaseCog):
         instance = await super().get_instance(ctx, settings=True)
         games = await instance.Games.all()
 
-        if game.title() == 'allin':
-            return await ctx.send(_("Allin's multiplier is determined by the user."))
+        if game.title() == 'Allin' or game.title() == 'Double':
+            return await ctx.send(_("This games's multiplier is determined by the user."))
 
         if not await self.basic_check(ctx, game, games, multiplier):
             return
@@ -897,7 +900,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def cooldown(self, ctx: commands.Context, game: str, cooldown: str):
         """Sets the cooldown for a game.
-
         You can use the format DD:HH:MM:SS to set a time, or just simply
         type the number of seconds.
         """
@@ -971,7 +973,6 @@ class Casino(Data, BaseCog):
     @casinoset.command()
     async def access(self, ctx, game: str, access: int):
         """Sets the access level required to play a game.
-
         Access levels are used in conjunction with memberships. To read more on using
         access levels and memberships please refer to the casino wiki."""
         author = ctx.author
@@ -1136,13 +1137,10 @@ class Casino(Data, BaseCog):
 
 class Engine(Data):
     """A class that handles setup and teardown for games.
-
         This is a helper class to make games easier to create and to
         provide a level of consistency. This class is only to be used
         in conjunction with the game_engine decorator.
-
         These attributes are created via the game_engine decorator.
-
         Attributes
         -----------
         game: str
@@ -1164,7 +1162,6 @@ class Engine(Data):
             from config.
         bet: int
             The amount the player has wagered.
-
     """
     __slots__ = ('game', 'choice', 'choices', 'ctx', 'bet', 'player', 'guild')
 
@@ -1258,6 +1255,14 @@ class Engine(Data):
             txt = "{}".format(bal_msg)
             embed.add_field(name='-' * 90, value=txt)
             return await self.ctx.send(self.player.mention, embed=embed)
+        elif self.game == 'Double':
+            await self.deposit_winnings(amount, player_instance, coro)
+            currency = await bank.get_currency_name(self.guild)
+            bal_msg = await self.get_bal_msg()
+            txt = _("Congratulations, you just won {} {}!\n"
+                    "{}").format(amount, currency, bal_msg)
+            embed.add_field(name='-' * 90, value=txt)
+            return await self.ctx.send(self.player.mention, embed=embed)
         else:
             total, bonus = await self.deposit_winnings(amount, player_instance, coro)
             currency = await bank.get_currency_name(self.guild)
@@ -1290,7 +1295,7 @@ class Engine(Data):
 
     async def deposit_winnings(self, amount, player_instance, coro):
         if amount > self.bet:
-            if self.game == 'Allin':
+            if self.game == 'Allin' or self.game == 'Double':
                 await bank.deposit_credits(self.player, amount)
                 return
             elif self.game == 'Hilo':
@@ -1693,7 +1698,6 @@ class Membership(Data):
 class Core:
     """
     A simple class to hold the basic original Casino mini games.
-
     Games
     -----------
     Allin
@@ -1808,7 +1812,6 @@ class Craps:
 
 class Blackjack(Data):
     """A simple class to hold the game logic for Blackjack.
-
     Blackjack requires inheritance from data to verify the user
     can double down.
     """
@@ -2073,6 +2076,79 @@ class War:
         pc, dc = self.get_count(player_card, dealer_card)
         return player_card, dealer_card, pc, dc
 
+class Double:
+    """A simple class for the Double Or Nothing game."""
+
+    @game_engine("Double")
+    async def play (self, ctx, bet):
+        count, amount = await self.double_game(ctx, bet)
+        return await self.double_results(ctx, count, amount)
+
+    async def double_game(self, ctx, bet):
+        count = 0
+        
+        while bet > 0:
+            count += 1
+
+            flip = random.randint(0,1)
+
+            if flip == 0:
+                bet = 0
+                break
+        
+            else:
+                bet *= 2
+
+            condition = Checks(ctx, (_("double"), _("cash out")))
+
+            embed = self.double_embed(ctx, count, bet)
+            await ctx.send(ctx.author.mention, embed=embed)
+            try:
+                resp = await ctx.bot.wait_for("message", check=condition.content, timeout=35.0)
+            except asyncio.TimeoutError:
+                break
+
+            if resp.content.lower() == _("cash out"):
+                break
+            else:
+                continue
+
+
+        return count, bet
+
+    async def double_results(self, ctx, count, amount):
+        if amount > 0:
+            outcome = _("Cashed Out!")
+            result = True
+        else:
+            outcome = _("You Lost It All!")
+            result = False
+        embed = self.double_embed(ctx, count, amount, outcome=outcome)
+        return result, amount, embed
+
+    @staticmethod
+    def double_embed(ctx, count, amount, outcome=None):
+        double = _("{}\n**DOUBLE!:** x{}")
+        zero = _("{}\n**NOTHING!**")
+        choice = _("**Options:** double or cash out")
+        options = "**Outcome:** " + outcome if outcome else choice
+
+        if amount == 0:
+            score = zero.format(amount)
+        else:
+            score = double.format(amount, count)
+
+        embed = discord.Embed(colour=0xFF0000)
+        embed.add_field(name=_("{}'s Score").format(ctx.author.name),
+                        value=score)
+        embed.add_field(name='\u200b', value=options, inline=False)
+        if not outcome:
+            embed.add_field(name='\u200b', value='Remeber, you can cash out at anytime.', inline=False)
+        embed.set_footer(text='Try again and test your luck!')
+        return embed
+
+
 
 class ExitProcess(Exception):
     pass
+
