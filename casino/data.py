@@ -186,7 +186,7 @@ class Database:
         """
         settings = await self.get_data(ctx)
         player_data = await self.get_data(ctx, player=player)
-        return (await settings.all(), await player_data.all())
+        return await settings.all(), await player_data.all()
 
     async def _wipe_casino(self, ctx):
         """
