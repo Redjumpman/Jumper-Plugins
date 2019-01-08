@@ -33,9 +33,9 @@ class Deck:
 
     def war_count(self, card):
         try:
-            self.war_values[card[0]]
+            return self.war_values[card[1]]
         except KeyError:
-            return card[0]
+            return card[1]
 
     def bj_count(self, hand: list, hole=False):
         hand = self._hand_type(hand)
