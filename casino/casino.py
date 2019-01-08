@@ -842,7 +842,7 @@ class Membership(Database):
               _("teal"): "teal", _("magenta"): "magenta", _("pink"): "pink",
               _("white"): "white"}
 
-    requirements = (_("Days On Server"), _("Credits"), _("Role"))
+    requirements = (_("days on server"), _("credits"), _("role"))
 
     def __init__(self, ctx, timeout, mode):
         self.ctx = ctx
@@ -914,11 +914,14 @@ class Membership(Database):
         await self.set_bonus(data)
         await self.req_loop(data)
 
+        print('doop')
         async with self.coro() as mem:
             mem[valid_name] = data
-
+        print('boop')
         embed = self.build_embed(name, data)
+        print('goop')
         await self.ctx.send(embed=embed)
+        print('zoop')
         raise ExitProcess()
 
     async def editor(self):
@@ -975,9 +978,9 @@ class Membership(Database):
         await self.ctx.send(_("What color would you like to set?\n"
                               "{}").format(utils.fmt_join(list(self.colors))))
 
+        pred = MessagePredicate.lower_contained_in(list(self.colors), self.ctx)
         color = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                            check=MessagePredicate.lower_contained_in(self.colors,
-                                                                                      self.ctx))
+                                            check=pred)
 
         if color.content.lower() == self.cancel:
             raise ExitProcess()
