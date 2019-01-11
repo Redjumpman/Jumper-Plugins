@@ -88,8 +88,3 @@ def time_formatter(seconds):
     else:
         msg = "None"
     return msg
-
-
-def build_embed(msg):
-    embed = discord.Embed(colour=0xFF0000, description=msg)
-    return embed
