@@ -7,30 +7,14 @@ import random
 from .kill import outputs
 
 # Red
-from redbot.core import Config, bank, commands
+from redbot.core import Config, bank, checks, commands
 
-BaseCog = getattr(commands, "Cog", object)
 
-__version__ = "3.0.03"
+__version__ = "3.0.04"
 __author__ = "Redjumpman"
 
 
-def is_administrator():
-    """
-
-    Returns true if author has administrator perm or owner/co-owner.
-    """
-    async def pred(ctx: commands.Context):
-        author = ctx.author
-        if await ctx.bot.is_owner(author):
-            return True
-        else:
-            return author == ctx.guild.owner or author.guild_permissions.administrator
-
-    return commands.check(pred)
-
-
-class RussianRoulette(BaseCog):
+class RussianRoulette(commands.Cog):
     defaults = {
         "Cost": 50,
         "Chamber_Size": 6,
@@ -64,14 +48,14 @@ class RussianRoulette(BaseCog):
     async def russianversion(self, ctx):
         await ctx.send("You are using russian roulette version {}".format(__version__))
 
-    @commands.guild_only()
     @commands.group(autohelp=True)
+    @commands.guild_only()
+    @checks.admin_or_permissions(administrator=True)
     async def setrussian(self, ctx):
         """Russian Roulette Settings group."""
         pass
 
     @setrussian.command()
-    @is_administrator()
     async def chamber(self, ctx, size: int):
         """Sets the chamber size of the gun used. MAX: 12."""
         if not 1 < size <= 12:
@@ -80,7 +64,6 @@ class RussianRoulette(BaseCog):
         await ctx.send("Chamber size set to {}.".format(size))
 
     @setrussian.command()
-    @is_administrator()
     async def cost(self, ctx, amount: int):
         """Sets the required cost to play."""
         if amount < 0:
@@ -90,7 +73,6 @@ class RussianRoulette(BaseCog):
         await ctx.send("Required cost to play set to {} {}.".format(amount, currency))
 
     @setrussian.command()
-    @is_administrator()
     async def wait(self, ctx, seconds: int):
         """Set the wait time (seconds) before starting the game."""
         if seconds <= 0:
@@ -127,12 +109,12 @@ class RussianRoulette(BaseCog):
     async def add_player(self, ctx, cost):
         self.pot += cost
         self.players.append(ctx.author)
-        chamber = await self.db.guild(ctx.guild).Chamber_Size()
 
         if len(self.players) == 1:
             wait = await self.db.guild(ctx.guild).Wait_Time()
             await ctx.send("{0.author.mention} is gathering players for a game of russian "
-                           "roulette!\nType `{0.prefix}russian` to enter. The round will start in {1} seconds.".format(ctx, wait))
+                           "roulette!\nType `{0.prefix}russian` to enter. "
+                           "The round will start in {1} seconds.".format(ctx, wait))
             await asyncio.sleep(wait)
             await self.start_game(ctx)
         else:
