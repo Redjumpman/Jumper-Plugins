@@ -245,7 +245,7 @@ class Casino(Database, commands.Cog):
     async def resetuser(self, ctx: commands.Context, user: discord.Member):
         """Reset a user's cooldowns, stats, or everything."""
 
-        if await super().casino_is_global() and not ctx.bot.is_owner(ctx.author):
+        if await super().casino_is_global() and not await ctx.bot.is_owner(ctx.author):
             return await ctx.send(_("While the casino is in global mode, only the bot owner "
                                     "may use this command."))
 
@@ -269,7 +269,7 @@ class Casino(Database, commands.Cog):
     @checks.admin_or_permissions(administrator=True)
     async def resetinstance(self, ctx: commands.Context):
         """Reset global/server cooldowns, settings, memberships, or everything."""
-        if await super().casino_is_global() and not ctx.bot.is_owner(ctx.author):
+        if await super().casino_is_global() and not await ctx.bot.is_owner(ctx.author):
             return await ctx.send(_("While the casino is in global mode, only the bot owner "
                                     "may use this command."))
 
@@ -914,14 +914,10 @@ class Membership(Database):
         await self.set_bonus(data)
         await self.req_loop(data)
 
-        print('doop')
         async with self.coro() as mem:
             mem[valid_name] = data
-        print('boop')
         embed = self.build_embed(name, data)
-        print('goop')
         await self.ctx.send(embed=embed)
-        print('zoop')
         raise ExitProcess()
 
     async def editor(self):
