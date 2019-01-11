@@ -125,7 +125,7 @@ class ShopMenu:
             header = (f"{'#':<3} {'Name':<29} {'Qty':<7} {'Cost':<8}\n"
                       f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}")
             fmt = [header]
-            for idx, x in enumerate(self.sorter(groups[page]), 1):
+            for idx, x in enumerate(groups[page], 1):
                 line_one = (f"{f'{idx}.': <{3}} {x[0]: <{29}s} {x[1]['Qty']:<{8}}"
                             f"{x[1]['Cost']: < {7}}")
                 fmt.append(line_one)
@@ -156,10 +156,17 @@ class ShopMenu:
         else:
             return sorted(groups, key=lambda x: x[1]['Quantity'], reverse=True)
 
-    @staticmethod
-    def group_data(data):
-        return [data[i:i + 5] if len(data) > 5 else data if not isinstance(data, dict) else
-                [data] for i in range(0, len(data), 5)]
+    def group_data(self, data):
+        grouped = []
+        for idx in range(0, len(data), 5):
+            if len(data) > 5:
+                grouped.append(self.sorter(data[idx:idx + 5]))
+            else:
+                if not isinstance(data, dict):
+                    grouped.append(data)
+                else:
+                    grouped.append([self.sorter(data)])
+        return grouped
 
     def build_embed(self, options, footer):
         instructions = ("Type the number for your selection.\nType `next` and `back` to advance "
@@ -232,3 +239,4 @@ class MenuCheck:
 
 class MenuExit(Exception):
     pass
+
