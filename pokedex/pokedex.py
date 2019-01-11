@@ -18,15 +18,18 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.08"
+__version__ = "3.0.09"
 __author__ = "Redjumpman"
 
-switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII"}
+switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI",
+            "7": "VII"}
 
-exceptions = ('ho-oh', 'jangmo-o', 'hakamo-o', 'kommo-o', 'porygon-z', 'nidoran-f', 'nidoran-m',
-              'wormadam-plant', 'wormadam-sandy', 'wormadam-trash', 'shaymin-Land', 'shaymin-Sky',
-              'hoopa-confined', 'hoopa-unbound', 'lycanroc-midday', 'lycanroc-midnight',
-              'lycanroc-dusk', 'kyurem-white', 'kyurem-black')
+exceptions = ('ho-oh', 'jangmo-o', 'hakamo-o', 'kommo-o', 'porygon-z',
+              'nidoran-f', 'nidoran-m', 'wormadam-plant', 'wormadam-sandy',
+              'wormadam-trash', 'shaymin-Land', 'shaymin-Sky',
+              'hoopa-confined', 'hoopa-unbound', 'lycanroc-midday',
+              'lycanroc-midnight', 'lycanroc-dusk', 'kyurem-white',
+              'kyurem-black')
 
 tm_exceptions = ("Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", "Cosmog",
                  "Ditto", "Kakuna", "Kricketot", "Magikarp", "Unown", "Weedle", "Wobbuffet",
@@ -123,8 +126,8 @@ class Pokedex(BaseCog):
         except KeyError:
             generation = '7'
             move_set = ast.literal_eval(poke.Moves)[generation]
-        table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Accuracy'],
-                             numalign='right'))
+        table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Acc'],
+                             numalign='right'), lang='ml')
 
         if len(table) <= 900:
             color = self.color_lookup(poke.Types.split('/')[0])
@@ -190,10 +193,11 @@ class Pokedex(BaseCog):
         color = self.color_lookup(poke.Types.split('/')[0])
         table_type = 'Moves' if moves else 'TMs'
         col = 'Lvl' if moves else 'TMs'
-        headers = (col, 'Name', 'Type', 'Power', 'Accuracy')
+        headers = (col, 'Name', 'Type', 'Power', 'Acc')
         embeds = []
         for i in range(0, len(data), 12):
-            table = box(tabulate(data[i:i + 12], headers=headers, numalign='right'))
+            table = box(tabulate(data[i:i + 12], headers=headers,
+                                 numalign='right'), lang='ml')
             e = discord.Embed(colour=color)
             e.set_author(name=poke.Pokemon, icon_url=poke.Image)
             e.add_field(name='\u200b', value=table, inline=False)
