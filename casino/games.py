@@ -62,7 +62,7 @@ class Core:
             bet *= multiplier
         else:
             msg = _("Nothing happens. You stare at the machine contemplating your decision.")
-        return outcome == 0, bet, msg, None
+        return outcome == 0, bet, msg
 
     @game_engine("Coin", (_("heads"), _("tails")))
     async def play_coin(self, ctx, bet, choice):
