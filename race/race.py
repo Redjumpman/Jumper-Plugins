@@ -8,7 +8,7 @@ from redbot.core import Config, bank, commands, checks
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.06"
+__version__ = "2.0.07"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -330,7 +330,7 @@ class Race(commands.Cog):
         self.started = False
 
     async def distribute_prizes(self, settings):
-        if settings["Prize"] == 0 or (settings["Payout_Min"] >= len(self.players)):
+        if settings["Prize"] == 0 or (settings["Payout_Min"] > len(self.players)):
             return
 
         if settings["Pooling"] and len(self.players) > 3:
@@ -410,7 +410,7 @@ class Race(commands.Cog):
     def _payout_msg(self, settings, currency):
         if settings["Prize"] == 0:
             return "No prize money was distributed."
-        elif settings["Payout_Min"] >= len(self.players):
+        elif settings["Payout_Min"] > len(self.players):
             return "Not enough racers to give prizes."
         elif not settings["Pooling"] or len(self.players) < 4:
             if self.winners[0][0].bot:
