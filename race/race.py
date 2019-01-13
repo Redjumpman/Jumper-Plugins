@@ -8,7 +8,7 @@ from redbot.core import Config, bank, commands, checks
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.0"
+__version__ = "2.0.01"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -254,8 +254,8 @@ class Race(commands.Cog):
             await self.db.guild(ctx.guild).Prize.set(prize)
             await ctx.send(f"Prize set for {prize} {currency}.")
 
-    @setrace.command()
-    async def tooglepool(self, ctx):
+    @setrace.command(name='togglepool')
+    async def _tooglepool(self, ctx):
         """Toggles on/off prize pooling.
 
         Makes it so that prizes are pooled between 1st, 2nd, and 3rd.
@@ -264,7 +264,7 @@ class Race(commands.Cog):
         There must be at least four human players, otherwise, only first
         place wins.
         """
-        pool = await self.db.guild(ctx.guild).Pool()
+        pool = await self.db.guild(ctx.guild).Pooling()
         await self.db.guild(ctx.guild).Pooling.set(not pool)
         await ctx.send(f"Prize pooling is now {'OFF' if pool else 'ON'}.")
 
