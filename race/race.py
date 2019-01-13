@@ -4,11 +4,12 @@ import asyncio
 import discord
 import random
 from redbot.core import Config, bank, commands, checks
+from typing import Union
 
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.04"
+__version__ = "2.0.05"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -18,7 +19,8 @@ guild_defaults = {"Wait": 60,
                   "Bet_Multiplier": 2,
                   "Bet_Min": 10,
                   "Bet_Max": 50,
-                  "Bet_Allowed": True}
+                  "Bet_Allowed": True,
+                  "Games_Played": 0}
 
 # First, Second, and Third place wins
 member_defaults = {"Wins": {"1": 0, "2": 0, "3": 0}, "Losses": 0}
@@ -59,7 +61,8 @@ class Race(commands.Cog):
         self.active = True
         self.players.append(ctx.author)
         wait = await self.db.guild(ctx.guild).Wait()
-
+        current = await self.db.guild(ctx.guild).Games_Played()
+        await self.db.guild(ctx.guild).Games_Played.set(current + 1)
         await ctx.send(f"🚩 A race has begun! Type {ctx.prefix}race enter "
                        f"to join the race! 🚩\nThe race will begin in "
                        f"{wait} seconds!\n\n**{ctx.author.mention}** entered the race!")
@@ -70,15 +73,33 @@ class Race(commands.Cog):
 
         settings = await self.db.guild(ctx.guild).all()
         currency = await bank.get_currency_name(ctx.guild)
-        msg, embed = self._build_end_screen(settings, currency)
+        color = await ctx.embed_colour()
+        msg, embed = self._build_end_screen(settings, currency, color)
         await ctx.send(content=msg, embed=embed)
         await self._race_teardown(settings)
 
     @race.command()
-    async def bet(self, ctx, bet: int, user: discord.Member):
+    async def stats(self, ctx):
+        color = await ctx.embed_colour()
+        user_data = await self.db.member(ctx.author).all()
+        player_total = sum(user_data['Wins'].values()) + user_data["Losses"]
+        server_total = await self.db.guild(ctx.guild).Games_Played()
+        percent = round((player_total / server_total) * 100, 1)
+        embed = discord.Embed(color=color, description='Race Stats')
+        embed.set_author(name=f'{ctx.author}', icon_url=ctx.author.avatar_url)
+        embed.add_field(name="Wins", value=(f"1st: {user_data['Wins']['1']}\n2nd: "
+                                            f"{user_data['Wins']['2']}\n"
+                                            f"3rd: {user_data['Wins']['3']}"))
+        embed.add_field(name="Losses", value=f'{user_data["Losses"]}')
+        embed.set_footer(text=(f'You have played in {player_total} ({percent}%) races out '
+                               f'of {server_total} total races on the server.'))
+        await ctx.send(embed=embed)
+
+    @race.command()
+    async def bet(self, ctx, bet: int, user: Union[discord.Member, discord.User]):
         """Bet on a user in the race."""
         if await self.bet_conditions(ctx, bet, user):
-            self.bets[user.id] = {"Bets": [(ctx.author, bet)]}
+            self.bets[user] = {"Bets": [(ctx.author, bet)]}
             currency = await bank.get_currency_name(ctx.guild)
             await bank.withdraw_credits(ctx.author, bet)
             await ctx.send(f"{ctx.author.mention} placed a {bet} {currency} bet on {str(user)}.")
@@ -118,8 +139,8 @@ class Race(commands.Cog):
         You are given a confirmation dialog when using this command.
         If you decide to wipe your data, all stats and settings will be deleted.
         """
-        await ctx.send(f"You are about to clear all race data including stats and settings."
-                       "If you are sure you wish to proceed, type `{ctx.prefix}yes`.")
+        await ctx.send(f"You are about to clear all race data including stats and settings. "
+                       f"If you are sure you wish to proceed, type `{ctx.prefix}yes`.")
         choices = (f"{ctx.prefix}yes", f"{ctx.prefix}no")
         check = lambda m: (m.author == ctx.author and m.channel == ctx.channel
                            and m.content in choices)
@@ -327,7 +348,7 @@ class Race(commands.Cog):
         for user, wagers in self.bets.items():
             for jockey, bet in wagers["Bets"]:
                 if jockey == first:
-                    await bank.deposit_credits(user, (bet * multiplier))
+                    await bank.deposit_credits(user.id, (bet * multiplier))
 
     async def bet_conditions(self, ctx, bet, user):
         if not self.active:
@@ -339,7 +360,7 @@ class Race(commands.Cog):
         elif user not in self.players:
             await ctx.send("You can't bet on someone who isn't in the race.")
             return False
-        elif ctx.author.id in self.bets:
+        elif ctx.author in self.bets:
             await ctx.send("You have already entered a bet for the race.")
             return False
 
@@ -359,18 +380,19 @@ class Race(commands.Cog):
             await ctx.send(f"Bet must not be lower than {minimum} or higher than {maximum}.")
             return False
 
-    def _build_end_screen(self, settings, currency):
+    def _build_end_screen(self, settings, currency, color):
         if len(self.winners) == 3:
             first, second, third = self.winners
         else:
             first, second, = self.winners
             third = None
         payout_msg = self._payout_msg(settings, currency)
+        footer = self._get_bet_winners(first[0])
         race_config = (f"Prize: {settings['Prize']} {currency}\n"
                        f"Prize Pooling: {'ON' if settings['Pooling'] else 'OFF'}\n"
                        f"Players needed for payout: {settings['Payout_Min']}\n"
                        f"Betting Allowed: {'YES' if settings['Bet_Allowed'] else 'NO'}")
-        embed = discord.Embed(colour=0x00CC33, title="Race Results")
+        embed = discord.Embed(colour=color, title="Race Results")
         embed.add_field(name=f'{first[0].name} 🥇', value=first[1].emoji)
         embed.add_field(name=f'{second[0].name} 🥈', value=second[1].emoji)
         if third:
@@ -378,6 +400,7 @@ class Race(commands.Cog):
         embed.add_field(name='-' * 90, value="\u200b")
         embed.add_field(name="Payouts", value=payout_msg)
         embed.add_field(name="Settings", value=race_config)
+        embed.set_footer(text=f"Bet winners: {footer}")
         mentions = '' if first[0].bot else f'{first[0].mention}'
         mentions += '' if second[0].bot else f', {second[0].mention}'
         mentions += '' if third is None or third[0].bot else f', {third[0].mention}'
@@ -401,6 +424,14 @@ class Race(commands.Cog):
                     continue
                 msg += f'{player.name} recieved {settings["Prize"] * percentage} {currency}'
             return msg
+
+    def _get_bet_winners(self, winner):
+        bet_winners = []
+        for better in self.bets:
+            for jockey, _ in self.bets[better]["Bets"]:
+                if jockey == winner:
+                    bet_winners.append(better.name)
+        return ', '.join(bet_winners) if bet_winners else ''
 
     async def _game_setup(self, ctx):
         mode = await self.db.guild(ctx.guild).Mode()
