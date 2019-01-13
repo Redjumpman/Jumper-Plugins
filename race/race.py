@@ -4,12 +4,11 @@ import asyncio
 import discord
 import random
 from redbot.core import Config, bank, commands, checks
-from typing import Union
 
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.05"
+__version__ = "2.0.06"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -96,7 +95,7 @@ class Race(commands.Cog):
         await ctx.send(embed=embed)
 
     @race.command()
-    async def bet(self, ctx, bet: int, user: Union[discord.Member, discord.User]):
+    async def bet(self, ctx, bet: int, user: discord.Member):
         """Bet on a user in the race."""
         if await self.bet_conditions(ctx, bet, user):
             self.bets[user] = {"Bets": [(ctx.author, bet)]}
@@ -124,6 +123,7 @@ class Race(commands.Cog):
             await ctx.send(f"{ctx.author.mention} has joined the race.")
 
     @race.command(hidden=True)
+    @checks.admin_or_permissions(administrator=True)
     async def clear(self, ctx):
         """ONLY USE THIS COMMAND FOR DEBUG PURPOSES
 
@@ -133,6 +133,7 @@ class Race(commands.Cog):
         await ctx.send("Race cleared")
 
     @race.command()
+    @checks.admin_or_permissions(administrator=True)
     async def wipe(self, ctx):
         """This command will wipe ALL race data.
 
@@ -227,7 +228,7 @@ class Race(commands.Cog):
         await ctx.send(f"Betting is now {'OFF' if current else 'ON'}.")
 
     @setrace.command()
-    async def mode(self, ctx, mode):
+    async def mode(self, ctx, mode: str):
         """Changes the race mode
 
         Race can either be in normal mode or zoo mode.
