@@ -8,7 +8,7 @@ from redbot.core import Config, bank, commands, checks
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.02"
+__version__ = "2.0.04"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -77,12 +77,11 @@ class Race(commands.Cog):
     @race.command()
     async def bet(self, ctx, bet: int, user: discord.Member):
         """Bet on a user in the race."""
-        if not await self.bet_conditions(ctx, bet, user):
-            return
-        self.bets[user.id] = {"Bets": [(ctx.author, bet)]}
-        currency = await bank.get_currency_name(ctx.guild)
-        await bank.withdraw_credits(ctx.author, bet)
-        await ctx.send(f"{ctx.author.mention} placed a {bet} {currency} bet on {str(user)}.")
+        if await self.bet_conditions(ctx, bet, user):
+            self.bets[user.id] = {"Bets": [(ctx.author, bet)]}
+            currency = await bank.get_currency_name(ctx.guild)
+            await bank.withdraw_credits(ctx.author, bet)
+            await ctx.send(f"{ctx.author.mention} placed a {bet} {currency} bet on {str(user)}.")
 
     @race.command()
     async def enter(self, ctx):
@@ -202,7 +201,7 @@ class Race(commands.Cog):
     @_bet.command()
     async def toggle(self, ctx):
         """Toggles betting on and off."""
-        current = await self.db.guild(ctx.guild).Bet_Min()
+        current = await self.db.guild(ctx.guild).Bet_Allowed()
         await self.db.guild(ctx.guild).Bet_Allowed.set(not current)
         await ctx.send(f"Betting is now {'OFF' if current else 'ON'}.")
 
