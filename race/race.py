@@ -8,7 +8,7 @@ from redbot.core import Config, bank, commands, checks
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.01"
+__version__ = "2.0.02"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -314,7 +314,7 @@ class Race(commands.Cog):
 
         if settings["Pooling"] and len(self.players) > 3:
             for winner, _ in self.winners:
-                if winner.bot:
+                if winner[0].bot:
                     continue
                 await bank.deposit_credits(winner, settings["Prize"])
         else:
