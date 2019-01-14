@@ -15,7 +15,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.09"
+__version__ = "2.0.10"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -48,7 +48,7 @@ class Race(commands.Cog):
     @commands.group()
     @commands.guild_only()
     async def race(self, ctx):
-        """Race related commands"""
+        """Race related commands."""
         pass
 
     @race.command()
@@ -85,9 +85,12 @@ class Race(commands.Cog):
         await self._race_teardown(settings)
 
     @race.command()
-    async def stats(self, ctx):
+    async def stats(self, ctx, user: discord.Member=None):
+        """Display your race stats."""
+        if not user:
+            user = ctx.author
         color = await ctx.embed_colour()
-        user_data = await self.db.member(ctx.author).all()
+        user_data = await self.db.member(user).all()
         player_total = sum(user_data['Wins'].values()) + user_data["Losses"]
         server_total = await self.db.guild(ctx.guild).Games_Played()
         try:
@@ -95,7 +98,7 @@ class Race(commands.Cog):
         except ZeroDivisionError:
             percent = 0
         embed = discord.Embed(color=color, description='Race Stats')
-        embed.set_author(name=f'{ctx.author}', icon_url=ctx.author.avatar_url)
+        embed.set_author(name=f'{user}', icon_url=user.avatar_url)
         embed.add_field(name="Wins", value=(f"1st: {user_data['Wins']['1']}\n2nd: "
                                             f"{user_data['Wins']['2']}\n"
                                             f"3rd: {user_data['Wins']['3']}"))
@@ -345,10 +348,11 @@ class Race(commands.Cog):
             return
 
         if settings["Pooling"] and len(self.players) > 3:
-            for winner, _ in self.winners:
-                if winner[0].bot:
+            first, second, third = self.winners
+            for player, percentage in zip((first[0], second[0], third[0]), (0.6, 0.3, 0.1)):
+                if player.bot:
                     continue
-                await bank.deposit_credits(winner, settings["Prize"])
+                await bank.deposit_credits(player, int(settings["Prize"] * percentage))
         else:
             if self.winners[0][0].bot:
                 return
@@ -428,7 +432,7 @@ class Race(commands.Cog):
         elif not settings["Pooling"] or len(self.players) < 4:
             if self.winners[0][0].bot:
                 return f"{self.winners[0][0]} is the winner!"
-            return f"{self.winners[0][0]} recieved {settings['Prize']} {currency}."
+            return f"{self.winners[0][0]} received {settings['Prize']} {currency}."
         if settings["Pooling"]:
             msg = ''
             first, second, third = self.winners
@@ -436,7 +440,7 @@ class Race(commands.Cog):
                 print(player)
                 if player.bot:
                     continue
-                msg += f'{player.name} recieved {settings["Prize"] * percentage} {currency}'
+                msg += f'{player.name} received {int(settings["Prize"] * percentage)} {currency}'
             return msg
 
     def _get_bet_winners(self, winner):
