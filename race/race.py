@@ -8,7 +8,7 @@ from redbot.core import Config, bank, commands, checks
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.07"
+__version__ = "2.0.08"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -83,7 +83,10 @@ class Race(commands.Cog):
         user_data = await self.db.member(ctx.author).all()
         player_total = sum(user_data['Wins'].values()) + user_data["Losses"]
         server_total = await self.db.guild(ctx.guild).Games_Played()
-        percent = round((player_total / server_total) * 100, 1)
+        try:
+            percent = round((player_total / server_total) * 100, 1)
+        except ZeroDivisionError:
+            percent = 0
         embed = discord.Embed(color=color, description='Race Stats')
         embed.set_author(name=f'{ctx.author}', icon_url=ctx.author.avatar_url)
         embed.add_field(name="Wins", value=(f"1st: {user_data['Wins']['1']}\n2nd: "
@@ -339,6 +342,8 @@ class Race(commands.Cog):
                     continue
                 await bank.deposit_credits(winner, settings["Prize"])
         else:
+            if self.winners[0][0].bot:
+                return
             await bank.deposit_credits(self.winners[0][0], settings["Prize"])
 
     async def bet_payouts(self, settings):
