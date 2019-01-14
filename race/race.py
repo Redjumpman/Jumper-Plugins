@@ -1,14 +1,21 @@
 # Developed by Redjumpman for Redbot.
 # Inspired by the snail race mini game.
+
+# Standard Library
 import asyncio
-import discord
 import random
+
+# Red
 from redbot.core import Config, bank, commands, checks
 
+# Discord
+import discord
+
+# Race
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.08"
+__version__ = "2.0.09"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -310,9 +317,10 @@ class Race(commands.Cog):
             await ctx.send(f"Races will only payout if there are {players} human players.")
 
     async def stats_update(self):
+        names = [player for player, emoji in self.winners]
         for player in self.players:
-            if player in self.winners:
-                position = self.winners.index(player) + 1
+            if player in names:
+                position = names.index(player) + 1
                 current = await self.db.member(player).Wins.get_raw(str(position))
                 await self.db.member(player).Wins.set_raw(str(position), value=current+1)
             else:
