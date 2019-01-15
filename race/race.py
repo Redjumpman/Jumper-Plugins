@@ -15,7 +15,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.10"
+__version__ = "2.0.11"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -85,7 +85,7 @@ class Race(commands.Cog):
         await self._race_teardown(settings)
 
     @race.command()
-    async def stats(self, ctx, user: discord.Member=None):
+    async def stats(self, ctx, user: discord.Member = None):
         """Display your race stats."""
         if not user:
             user = ctx.author
@@ -211,7 +211,7 @@ class Race(commands.Cog):
 
     @_bet.command(name='max')
     async def _max(self, ctx, amount: int):
-        """Sets the betting minimum."""
+        """Sets the betting maximum."""
         if amount < 0:
             return await ctx.send("Come on now. Let's be reasonable.")
         minimum = await self.db.guild(ctx.guild).Bet_Min()
@@ -223,7 +223,7 @@ class Race(commands.Cog):
 
     @_bet.command()
     async def multiplier(self, ctx, multiplier: float):
-        """Sets the betting minimum."""
+        """Sets the betting multiplier."""
         if multiplier < 0:
             return await ctx.send("So... you want them to lose money...when they win."
                                   "I'm not doing that.")
