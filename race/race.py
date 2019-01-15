@@ -15,7 +15,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.11"
+__version__ = "2.0.12"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -131,6 +131,8 @@ class Race(commands.Cog):
             return await ctx.send("A race must be started before you can enter.")
         elif ctx.author in self.players:
             return await ctx.send("You have already entered the race.")
+        elif len(self.players) >= 14:
+            return await ctx.send("The maximum number of players has been reached.")
         else:
             self.players.append(ctx.author)
             await ctx.send(f"{ctx.author.mention} has joined the race.")
@@ -392,6 +394,8 @@ class Race(commands.Cog):
         if not allowed:
             await ctx.send("Betting has been turned off.")
             return False
+        elif not await bank.can_spend(ctx.author, bet):
+            await ctx.send("You do not have enough money to cover the bet.")
         elif minimum <= bet <= maximum:
             return True
         else:
