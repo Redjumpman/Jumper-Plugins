@@ -4,8 +4,9 @@
 import asyncio
 import calendar
 import re
-from operator import itemgetter
 from typing import Union
+from operator import itemgetter
+
 
 # Casino
 from . import utils
@@ -24,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.10"
+__version__ = "2.2.11"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -172,7 +173,7 @@ class Casino(Database, commands.Cog):
         await ctx.send(_("Which of the following memberships would you like to know more "
                          "about?\n`{}`.").format(utils.fmt_join(memberships)))
 
-        pred = MessagePredicate.contained_in(memberships, ctx)
+        pred = MessagePredicate.contained_in(memberships, ctx=ctx)
 
         try:
             membership = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
@@ -224,7 +225,7 @@ class Casino(Database, commands.Cog):
         await ctx.send(_("{} has {} credits pending. "
                          "Would you like to release this amount?").format(player.name, amount))
 
-        pred = MessagePredicate.yes_or_no(ctx)
+        pred = MessagePredicate.yes_or_no(ctx=ctx)
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
         except asyncio.TimeoutError:
@@ -252,7 +253,7 @@ class Casino(Database, commands.Cog):
         options = (_("cooldowns"), _("stats"), _("all"))
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
-        pred = MessagePredicate.lower_contained_in(options, ctx)
+        pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
         except asyncio.TimeoutError:
@@ -275,7 +276,7 @@ class Casino(Database, commands.Cog):
 
         options = (_("settings"), _("games"), _("cooldowns"), _("memberships"), _("all"))
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
-        pred = MessagePredicate.lower_contained_in(options, ctx)
+        pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
         await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
 
         try:
@@ -301,7 +302,7 @@ class Casino(Database, commands.Cog):
         await ctx.send(_("You are about to delete all casino and user data from the bot. Are you "
                          "sure this is what you wish to do?"))
 
-        pred = MessagePredicate.yes_or_no(ctx)
+        pred = MessagePredicate.yes_or_no(ctx=ctx)
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
         except asyncio.TimeoutError:
@@ -455,7 +456,7 @@ class Casino(Database, commands.Cog):
 
         await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
 
-        pred = MessagePredicate.lower_contained_in(('edit', 'create', 'delete'), ctx)
+        pred = MessagePredicate.lower_contained_in(('edit', 'create', 'delete'), ctx=ctx)
         try:
             choice = await ctx.bot.wait_for('Message', timeout=25.0, check=pred)
         except asyncio.TimeoutError:
@@ -494,7 +495,7 @@ class Casino(Database, commands.Cog):
         alt = 'local' if mode == 'global' else 'global'
         await ctx.send(_("Casino is currently set to {} mode. Would you like to change to {} "
                          "mode instead?").format(mode, alt))
-        pred = MessagePredicate.yes_or_no(ctx)
+        pred = MessagePredicate.yes_or_no(ctx=ctx)
 
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
@@ -889,7 +890,7 @@ class Membership(Database):
                               "This cannot be reverted.").format(membership.content))
 
         choice = await self.ctx.bot.wait_for('message', timeout=25.0,
-                                             check=MessagePredicate.yes_or_no(self.ctx))
+                                             check=MessagePredicate.yes_or_no(ctx=self.ctx))
         if choice.content.lower() == self.cancel:
             raise ExitProcess()
         elif choice.content.lower() == "yes":
@@ -940,7 +941,7 @@ class Membership(Database):
 
         pred = MessagePredicate.lower_contained_in((_('requirements'), _('access'), _('color'),
                                                     _('name'), _('reduction'), self.cancel),
-                                                   self.ctx)
+                                                   ctx=self.ctx)
         attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
         valid_name = membership.content
@@ -964,7 +965,7 @@ class Membership(Database):
         await self.ctx.send(_("Would you like to edit another membership?"))
 
         choice = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                             check=MessagePredicate.yes_or_no(self.ctx))
+                                             check=MessagePredicate.yes_or_no(ctx=self.ctx))
         if choice.content.lower() == _("yes"):
             await self.editor()
         else:
@@ -974,7 +975,7 @@ class Membership(Database):
         await self.ctx.send(_("What color would you like to set?\n"
                               "{}").format(utils.fmt_join(list(self.colors))))
 
-        pred = MessagePredicate.lower_contained_in(list(self.colors), self.ctx)
+        pred = MessagePredicate.lower_contained_in(list(self.colors), ctx=self.ctx)
         color = await self.ctx.bot.wait_for("message", timeout=25.0,
                                             check=pred)
 
@@ -1024,7 +1025,7 @@ class Membership(Database):
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
         access = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                             check=MessagePredicate.positive(self.ctx))
+                                             check=MessagePredicate.positive(ctx=self.ctx))
 
         if access.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1041,7 +1042,7 @@ class Membership(Database):
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership?"))
         reduction = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                                check=MessagePredicate.positive(self.ctx))
+                                                check=MessagePredicate.positive(ctx=self.ctx))
 
         if reduction.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1057,7 +1058,7 @@ class Membership(Database):
         await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n"
                               "*Defaults to one*"))
         bonus = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                            check=MessagePredicate.valid_float(self.ctx))
+                                            check=MessagePredicate.valid_float(ctx=self.ctx))
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
@@ -1077,7 +1078,8 @@ class Membership(Database):
                                   "{}.").format(utils.fmt_join(self.requirements)))
 
             pred = MessagePredicate.lower_contained_in((_('credits'), _('role'), _('dos'),
-                                                        _('days on server'), self.cancel), self.ctx)
+                                                        _('days on server'), self.cancel),
+                                                       ctx=self.ctx)
 
             req = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
             if req.content.lower() == self.cancel:
@@ -1092,7 +1094,7 @@ class Membership(Database):
             await self.ctx.send(_("Would you like to continue adding or modifying requirements?"))
 
             choice = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                                 check=MessagePredicate.yes_or_no(self.ctx))
+                                                 check=MessagePredicate.yes_or_no(ctx=self.ctx))
             if choice.content.lower() == _("no"):
                 break
             elif choice.content.lower() == self.cancel:
@@ -1104,7 +1106,7 @@ class Membership(Database):
         await self.ctx.send(_("How many credits does this membership require?"))
 
         amount = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                             check=MessagePredicate.positive(self.ctx))
+                                             check=MessagePredicate.positive(ctx=self.ctx))
 
         if amount.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1122,7 +1124,7 @@ class Membership(Database):
         await self.ctx.send(_("What role does this membership require?\n"
                               "*Note this is skipped in global mode. If you set this as the only "
                               "requirement in global, it will be accessible to everyone!*"))
-        pred = MessagePredicate.valid_role(self.ctx)
+        pred = MessagePredicate.valid_role(ctx=self.ctx)
         role = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
         if self.mode == "create":
@@ -1139,7 +1141,7 @@ class Membership(Database):
                               "*Note in global mode this will calculate based on when the user "
                               "account was created.*"))
         days = await self.ctx.bot.wait_for("message", timeout=25.0,
-                                           check=MessagePredicate.positive(self.ctx))
+                                           check=MessagePredicate.positive(ctx=self.ctx))
 
         if self.mode == "create":
             membership['DOS'] = int(days.content)
