@@ -173,9 +173,9 @@ class Blackjack:
         # End game if player has 21
         if ph_count == 21:
             return ph, dh, amount
-
-        condition1 = MessagePredicate.lower_contained_in((_("hit"), _("stay"), _("double")))
-        condition2 = MessagePredicate.lower_contained_in((_("hit"), _("stay")))
+        options = (_("hit"), _("stay"), _("double"))
+        condition1 = MessagePredicate.lower_contained_in(options, ctx=ctx)
+        condition2 = MessagePredicate.lower_contained_in((_("hit"), _("stay")), ctx=ctx)
 
         embed = self.bj_embed(ctx, ph, dh, ph_count, initial=True)
         await ctx.send(ctx.author.mention, embed=embed)
@@ -328,7 +328,7 @@ class War:
                          "you can go to war.\nIf you go to war your bet will be doubled, "
                          "but the multiplier is only applied to your original bet, the rest will "
                          "be pushed.").format(deck.fmt_card(player_card)))
-        pred = MessagePredicate.lower_contained_in((_("war"), _("surrender"), _("ffs")))
+        pred = MessagePredicate.lower_contained_in((_("war"), _("surrender"), _("ffs")), ctx=ctx)
         try:
             choice = await ctx.bot.wait_for('message', check=pred, timeout=35.0)
         except asyncio.TimeoutError:
@@ -405,7 +405,7 @@ class Double:
             else:
                 bet *= 2
 
-            pred = MessagePredicate.lower_contained_in((_("double"), _("cash out")))
+            pred = MessagePredicate.lower_contained_in((_("double"), _("cash out")), ctx=ctx)
 
             embed = self.double_embed(ctx, count, bet)
             await ctx.send(ctx.author.mention, embed=embed)
