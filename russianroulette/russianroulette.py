@@ -10,7 +10,7 @@ from .kill import outputs
 from redbot.core import Config, bank, checks, commands
 
 
-__version__ = "3.0.04"
+__version__ = "3.1.0"
 __author__ = "Redjumpman"
 
 
@@ -18,15 +18,13 @@ class RussianRoulette(commands.Cog):
     defaults = {
         "Cost": 50,
         "Chamber_Size": 6,
-        "Wait_Time": 60
+        "Wait_Time": 60,
+        "Session": {"Pot": 0, "Players": [], "Active": False}
         }
 
     def __init__(self):
         self.db = Config.get_conf(self, 5074395004, force_registration=True)
         self.db.register_guild(**self.defaults)
-        self.pot = 0
-        self.players = []
-        self.active = False
 
     @commands.guild_only()
     @commands.command()
@@ -40,9 +38,9 @@ class RussianRoulette(commands.Cog):
         size of the chamber. For example, a chamber size of 6 means the
         maximum number of players will be 6.
         """
-        cost = await self.db.guild(ctx.guild).Cost()
-        if await self.game_checks(ctx, cost):
-            await self.add_player(ctx, cost)
+        settings = await self.db.guild(ctx.guild).all()
+        if await self.game_checks(ctx, settings):
+            await self.add_player(ctx, settings["Cost"])
 
     @commands.command()
     async def russianversion(self, ctx):
@@ -80,37 +78,40 @@ class RussianRoulette(commands.Cog):
         await self.db.guild(ctx.guild).Wait_Time.set(seconds)
         await ctx.send("The time before a roulette game starts is now {} seconds.".format(seconds))
 
-    async def game_checks(self, ctx, cost):
-        if self.active:
+    async def game_checks(self, ctx, settings):
+        if settings["Session"]["Active"]:
             await ctx.author.send("You cannot join or start a game of russian roulette "
                                   "while one is active.")
             return False
 
-        if ctx.author in self.players:
+        if ctx.author.id in settings["Session"]["Players"]:
             await ctx.send("You are already in the roulette circle.")
             return False
 
-        chamber = await self.db.guild(ctx.guild).Chamber_Size()
-        if len(self.players) == chamber:
+        if len(settings["Session"]["Players"]) == settings["Chamber_Size"]:
             await ctx.send("The roulette circle is full. Wait for this game to "
                            "finish to join.")
             return False
 
         try:
-            await bank.withdraw_credits(ctx.author, cost)
+            await bank.withdraw_credits(ctx.author, settings["Cost"])
         except ValueError:
             currency = await bank.get_currency_name(ctx.guild)
             await ctx.send("Insufficient funds! This game requires "
-                           "{} {}.".format(cost, currency))
+                           "{} {}.".format(settings["Cost"], currency))
             return False
         else:
             return True
 
     async def add_player(self, ctx, cost):
-        self.pot += cost
-        self.players.append(ctx.author)
+        current_pot = await self.db.guild(ctx.guild).Session.Pot()
+        await self.db.guild(ctx.guild).Session.Pot.set(current_pot + cost)
 
-        if len(self.players) == 1:
+        async with self.db.guild(ctx.guild).Session.Players() as players:
+            players.append(ctx.author.id)
+            num_players = len(players)
+
+        if num_players == 1:
             wait = await self.db.guild(ctx.guild).Wait_Time()
             await ctx.send("{0.author.mention} is gathering players for a game of russian "
                            "roulette!\nType `{0.prefix}russian` to enter. "
@@ -121,36 +122,38 @@ class RussianRoulette(commands.Cog):
             await ctx.send("{} was added to the roulette circle.".format(ctx.author.mention))
 
     async def start_game(self, ctx):
-        self.active = True
-        if len(self.players) < 2:
-            await bank.deposit_credits(ctx.author, self.pot)
-            self.reset_game()
+        await self.db.guild(ctx.guild).Session.Active.set(True)
+        data = await self.db.guild(ctx.guild).Session.all()
+        players = [ctx.bot.get_user(player) for player in data["Players"]]
+        if len(players) < 2:
+            await bank.deposit_credits(ctx.author, data["Pot"])
+            await self.reset_game(ctx)
             return await ctx.send("You can't play by youself. That's just suicide.\nGame reset "
                                   "and cost refunded.")
         chamber = await self.db.guild(ctx.guild).Chamber_Size()
 
         counter = 1
-        while len(self.players) > 1:
+        while len(players) > 1:
             await ctx.send("**Round {}**\n*{} spins the cylinder of the gun "
                            "and with a flick of the wrist it locks into "
                            "place.*".format(counter, ctx.bot.user.name))
             await asyncio.sleep(3)
-            await self.start_round(ctx, chamber)
+            await self.start_round(ctx, chamber, players)
             counter += 1
-        await self.game_teardown(ctx)
+        await self.game_teardown(ctx, players)
 
-    async def start_round(self, ctx, chamber):
+    async def start_round(self, ctx, chamber, players):
         position = random.randint(1, chamber)
         while True:
-            for turn, player in enumerate(itertools.cycle(self.players), 1):
+            for turn, player in enumerate(itertools.cycle(players), 1):
                 await ctx.send("{} presses the revolver to their head and slowly squeezes the "
                                "trigger...".format(player.name))
                 await asyncio.sleep(5)
                 if turn == position:
-                    self.players.remove(player)
+                    players.remove(player)
                     msg = "**BANG!** {0} is now dead.\n"
                     msg += random.choice(outputs)
-                    await ctx.send(msg.format(player.mention, random.choice(self.players).name,
+                    await ctx.send(msg.format(player.mention, random.choice(players).name,
                                               ctx.guild.owner))
                     await asyncio.sleep(3)
                     break
@@ -159,15 +162,14 @@ class RussianRoulette(commands.Cog):
                     await asyncio.sleep(3)
             break
 
-    async def game_teardown(self, ctx):
-        winner = self.players.pop()
+    async def game_teardown(self, ctx, players):
+        winner = players[0]
         currency = await bank.get_currency_name(ctx.guild)
-        await bank.deposit_credits(winner, self.pot)
+        total = await self.db.guild(ctx.guild).Session.Pot()
+        await bank.deposit_credits(winner, total)
         await ctx.send("Congratulations {}! You are the last person standing and have "
-                       "won a total of {} {}.".format(winner.mention, self.pot, currency))
-        self.reset_game()
+                       "won a total of {} {}.".format(winner.mention, total, currency))
+        await self.reset_game(ctx)
 
-    def reset_game(self):
-        self.players = []
-        self.pot = 0
-        self.active = False
+    async def reset_game(self, ctx):
+        await self.db.guild(ctx.guild).Session.clear()
