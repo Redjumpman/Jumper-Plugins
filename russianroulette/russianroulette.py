@@ -11,7 +11,7 @@ from .kill import outputs
 from redbot.core import Config, bank, checks, commands
 
 
-__version__ = "3.1.01"
+__version__ = "3.1.02"
 __author__ = "Redjumpman"
 
 
