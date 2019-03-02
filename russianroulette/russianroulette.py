@@ -2,6 +2,7 @@
 import asyncio
 import itertools
 import random
+import discord
 
 # Russian Roulette
 from .kill import outputs
@@ -10,7 +11,7 @@ from .kill import outputs
 from redbot.core import Config, bank, checks, commands
 
 
-__version__ = "3.1.0"
+__version__ = "3.1.01"
 __author__ = "Redjumpman"
 
 
@@ -105,7 +106,7 @@ class RussianRoulette(commands.Cog):
 
     async def add_player(self, ctx, cost):
         current_pot = await self.db.guild(ctx.guild).Session.Pot()
-        await self.db.guild(ctx.guild).Session.Pot.set(current_pot + cost)
+        await self.db.guild(ctx.guild).Session.Pot.set(value=(current_pot + cost))
 
         async with self.db.guild(ctx.guild).Session.Players() as players:
             players.append(ctx.author.id)
@@ -124,8 +125,9 @@ class RussianRoulette(commands.Cog):
     async def start_game(self, ctx):
         await self.db.guild(ctx.guild).Session.Active.set(True)
         data = await self.db.guild(ctx.guild).Session.all()
-        players = [ctx.bot.get_user(player) for player in data["Players"]]
-        if len(players) < 2:
+        players = [ctx.bot.get_member(player) for player in data["Players"]]
+        filtered_players = [player for player in players if isinstance(player, discord.Member)]
+        if len(filtered_players) < 2:
             await bank.deposit_credits(ctx.author, data["Pot"])
             await self.reset_game(ctx)
             return await ctx.send("You can't play by youself. That's just suicide.\nGame reset "
@@ -133,14 +135,14 @@ class RussianRoulette(commands.Cog):
         chamber = await self.db.guild(ctx.guild).Chamber_Size()
 
         counter = 1
-        while len(players) > 1:
+        while len(filtered_players) > 1:
             await ctx.send("**Round {}**\n*{} spins the cylinder of the gun "
                            "and with a flick of the wrist it locks into "
                            "place.*".format(counter, ctx.bot.user.name))
             await asyncio.sleep(3)
-            await self.start_round(ctx, chamber, players)
+            await self.start_round(ctx, chamber, filtered_players)
             counter += 1
-        await self.game_teardown(ctx, players)
+        await self.game_teardown(ctx, filtered_players)
 
     async def start_round(self, ctx, chamber, players):
         position = random.randint(1, chamber)
