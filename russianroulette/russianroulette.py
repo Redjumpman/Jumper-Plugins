@@ -11,7 +11,7 @@ from .kill import outputs
 from redbot.core import Config, bank, checks, commands
 
 
-__version__ = "3.1.03"
+__version__ = "3.1.04"
 __author__ = "Redjumpman"
 
 
@@ -44,7 +44,7 @@ class RussianRoulette(commands.Cog):
             await self.add_player(ctx, settings["Cost"])
 
     @commands.guild_only()
-    @commands.is_owner()
+    @checks.admin_or_permissions(administrator=True)
     @commands.command(hidden=True)
     async def rusreset(self, ctx):
         """ONLY USE THIS FOR DEBUGGING PURPOSES"""
