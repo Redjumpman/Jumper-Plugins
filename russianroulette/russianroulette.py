@@ -11,7 +11,7 @@ from .kill import outputs
 from redbot.core import Config, bank, checks, commands
 
 
-__version__ = "3.1.02"
+__version__ = "3.1.03"
 __author__ = "Redjumpman"
 
 
@@ -42,6 +42,14 @@ class RussianRoulette(commands.Cog):
         settings = await self.db.guild(ctx.guild).all()
         if await self.game_checks(ctx, settings):
             await self.add_player(ctx, settings["Cost"])
+
+    @commands.guild_only()
+    @commands.is_owner()
+    @commands.command(hidden=True)
+    async def rusreset(self, ctx):
+        """ONLY USE THIS FOR DEBUGGING PURPOSES"""
+        await self.db.guild(ctx.guild).Session.clear()
+        await ctx.send("The Russian Roulette sesssion on this server has been cleared.")
 
     @commands.command()
     async def russianversion(self, ctx):
@@ -125,7 +133,7 @@ class RussianRoulette(commands.Cog):
     async def start_game(self, ctx):
         await self.db.guild(ctx.guild).Session.Active.set(True)
         data = await self.db.guild(ctx.guild).Session.all()
-        players = [ctx.guild.get_member(player) for player in data["Players"]]
+        players = [ctx.bot.get_member(player) for player in data["Players"]]
         filtered_players = [player for player in players if isinstance(player, discord.Member)]
         if len(filtered_players) < 2:
             await bank.deposit_credits(ctx.author, data["Pot"])
