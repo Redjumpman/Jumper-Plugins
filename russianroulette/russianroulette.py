@@ -125,7 +125,7 @@ class RussianRoulette(commands.Cog):
     async def start_game(self, ctx):
         await self.db.guild(ctx.guild).Session.Active.set(True)
         data = await self.db.guild(ctx.guild).Session.all()
-        players = [ctx.bot.get_member(player) for player in data["Players"]]
+        players = [ctx.guild.get_member(player) for player in data["Players"]]
         filtered_players = [player for player in players if isinstance(player, discord.Member)]
         if len(filtered_players) < 2:
             await bank.deposit_credits(ctx.author, data["Pot"])
