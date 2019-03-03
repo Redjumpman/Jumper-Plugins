@@ -18,7 +18,8 @@ from redbot.core.utils.chat_formatting import box
 # Third-Party Requirements
 from tabulate import tabulate
 
-__version__ = "3.0.09"
+
+__version__ = "3.0.10"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI",
@@ -39,14 +40,12 @@ tm_exceptions = ("Beldum", "Burmy", "Cascoon", "Caterpie", "Combee", "Cosmoem", 
 url = "https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
 url2 = "https://bulbapedia.bulbagarden.net/wiki/"
 
-BaseCog = getattr(commands, "Cog", object)
 
-
-class Pokedex(BaseCog):
+class Pokedex(commands.Cog):
     """Search for Pokemon."""
 
     def __init__(self):
-        pass
+        self.path = bundled_data_path(self)
 
     @commands.group(autohelp=True)
     async def pokemon(self, ctx):
@@ -279,7 +278,7 @@ class Pokedex(BaseCog):
                 return '', ''
 
     def item_search(self, name):
-        fp = bundled_data_path(self) / 'Items.csv'
+        fp = self.path / 'Items.csv'
         try:
             with fp.open('rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
@@ -292,7 +291,7 @@ class Pokedex(BaseCog):
             return None
 
     def build_data(self, identifier, key='Pokemon'):
-        fp = bundled_data_path(self) / 'Pokemon.csv'
+        fp = self.path / 'Pokemon.csv'
         try:
             with fp.open('rt', encoding='iso-8859-15') as f:
                 reader = csv.DictReader(f, delimiter=',')
