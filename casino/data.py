@@ -295,7 +295,10 @@ class Database:
         """
         if await self.casino_is_global():
             for player in await self.db.all_users():
-                user = ctx.bot.get_user(player)
+                try:
+                    user = await ctx.bot.fetch_user(player)
+                except AttributeError:
+                    user = await ctx.bot.get_user_info(player)
                 await self.db.user(user).Cooldowns.clear()
             msg = ("{0.name} ({0.id}) reset all "
                    "global cooldowns.").format(ctx.author)

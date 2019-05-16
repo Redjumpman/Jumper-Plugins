@@ -21,6 +21,9 @@ class Jisho(BaseCog):
         self.connector = aiohttp.TCPConnector(force_close=True)
         self.session = aiohttp.ClientSession(connector=self.connector)
 
+    def cog_unload(self):
+        self.__unload()
+
     def __unload(self):
         self.session.close()
 
