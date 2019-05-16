@@ -63,7 +63,7 @@ class Race(commands.Cog):
         The user who started the race is automatically entered into the race.
         """
         if self.active:
-            return
+            return await ctx.send("A race is already in progress!  Type `[p]race enter` to enter!")
         self.active = True
         self.players.append(ctx.author)
         wait = await self.db.guild(ctx.guild).Wait()
@@ -126,7 +126,7 @@ class Race(commands.Cog):
 
         """
         if self.started:
-            return
+            return await ctx.send("A race has already started.  Please wait for the first one to finish before entering or starting a race.")
         elif not self.active:
             return await ctx.send("A race must be started before you can enter.")
         elif ctx.author in self.players:
@@ -424,7 +424,7 @@ class Race(commands.Cog):
         embed.add_field(name="Settings", value=race_config)
         embed.set_footer(text=f"Bet winners: {footer}")
         mentions = '' if first[0].bot else f'{first[0].mention}'
-        mentions += '' if second[0].bot else f', {second[0].mention}'
+        mentions += '' if second[0].bot else f', {second[0].mention}' if not first[0].bot else f'{second[0].mention}'
         mentions += '' if third is None or third[0].bot else f', {third[0].mention}'
         return mentions, embed
 

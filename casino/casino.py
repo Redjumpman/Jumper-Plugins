@@ -25,7 +25,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.2.11"
+__version__ = "2.3.0"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -726,8 +726,14 @@ class Casino(Database, commands.Cog):
             if not memberships:
                 break
             for user in users:
-                user_obj = self.bot.get_user(user)
-                if user_obj is None:
+                try:
+                    user_obj = await self.bot.fetch_user(user)
+                except AttributeError:
+                    try:
+                        user_obj = await self.bot.get_user_info(user)
+                    except discord.errors.NotFound:
+                        continue
+                except discord.errors.NotFound:
                     continue
                 if await self.db.user(user_obj).Membership.Assigned():
                     user_mem = await self.db.user(user_obj).Membership.Name()
@@ -737,7 +743,6 @@ class Casino(Database, commands.Cog):
                     else:
                         continue
                 await self.process_user(memberships, user_obj, _global=True)
-
             break
 
     async def local_updater(self):
@@ -828,6 +833,9 @@ class Casino(Database, commands.Cog):
             seconds = int((cooldown + reduction - now))
             results.append(utils.cooldown_formatter(seconds, custom_msg="<<Ready to Play!"))
         return results
+
+    def cog_unload(self):
+        self.__unload()
 
     def __unload(self):
         self.cycle_task.cancel()

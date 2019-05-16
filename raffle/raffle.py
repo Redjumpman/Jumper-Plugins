@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.raffle")
 
 __author__ = 'Redjumpman'
-__version__ = '4.1.0'
+__version__ = '4.2.0'
 
 BaseCog = getattr(commands, "Cog", object)
 
@@ -181,6 +181,11 @@ class Raffle(BaseCog):
         """Reroll the winner for a raffle. Requires the channel and message id."""
         try:
             msg = await channel.get_message(messageid)
+        except AttributeError:
+            try:
+                msg = await channel.fetch_message(messagid)
+            except discord.HTTPException:
+                return await ctx.send("Invalid message id.")
         except discord.HTTPException:
             return await ctx.send("Invalid message id.")
         try:
@@ -207,6 +212,9 @@ class Raffle(BaseCog):
         await self.db.guild(ctx.guild).Channel.clear()
         await ctx.send("Raffles will now be started where they were created.")
 
+    def cog_unload(self):
+        self.__unload()
+
     def __unload(self):
         self.load_check.cancel()
 
@@ -230,7 +238,7 @@ class Raffle(BaseCog):
         return resp.content
 
     async def _get_roles(self, ctx):
-        q = await ctx.send("What role or roles are allowed to enter? Use commas to seperate "
+        q = await ctx.send("What role or roles are allowed to enter? Use commas to separate "
                            "multiple entries. For example: `Admin, Patrons, super mod, helper`")
 
         def predicate(m):
@@ -337,6 +345,11 @@ class Raffle(BaseCog):
 
         try:
             msg = await channel.get_message(raffles[str(message_id)]['ID'])
+        except AttributeError:
+            try:
+                msg = await channel.fetch_message(raffles[str(message_id)]['ID'])
+            except discord.NotFound:
+                pass
         except discord.NotFound:
             pass
         else:
