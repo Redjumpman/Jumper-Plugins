@@ -183,7 +183,7 @@ class Raffle(BaseCog):
             msg = await channel.get_message(messageid)
         except AttributeError:
             try:
-                msg = await channel.fetch_message(messagid)
+                msg = await channel.fetch_message(messageid)
             except discord.HTTPException:
                 return await ctx.send("Invalid message id.")
         except discord.HTTPException:
@@ -343,16 +343,17 @@ class Raffle(BaseCog):
         raffles = await self.db.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
 
+        errored = False
         try:
             msg = await channel.get_message(raffles[str(message_id)]['ID'])
         except AttributeError:
             try:
                 msg = await channel.fetch_message(raffles[str(message_id)]['ID'])
             except discord.NotFound:
-                pass
-        except discord.NotFound:
-            pass
-        else:
+                errored = True
+        except discord.errors.NotFound:
+            errored = True
+        if not errored:
             await self.pick_winner(guild, channel, msg)
 
         async with self.db.guild(guild).Raffles() as r:
