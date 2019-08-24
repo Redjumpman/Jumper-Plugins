@@ -140,7 +140,10 @@ class Shop(BaseCog):
         [p]shop buy Junkyard tire
         [p]shop buy \"Holy Temple\" \"Healing Potion\"
         """
-        instance = await self.get_instance(ctx, settings=True)
+        try:
+            instance = await self.get_instance(ctx, user=ctx.author)
+        except AttributeError:
+            return await ctx.send("You can't use this command in pm when not in global mode.")
         if not await instance.Shops():
             return await ctx.send("No shops have been created yet.")
         if await instance.Settings.Closed():
@@ -181,7 +184,10 @@ class Shop(BaseCog):
     @shop.command()
     async def redeem(self, ctx, *, item: str):
         """Redeems an item in your inventory."""
-        instance = await self.get_instance(ctx, user=ctx.author)
+        try:
+            instance = await self.get_instance(ctx, user=ctx.author)
+        except AttributeError:
+            return await ctx.send("You can't use this command in pm when not in global mode.")
         data = await instance.Inventory.all()
         if data is None:
             return await ctx.send("Your inventory is empty.")
@@ -200,7 +206,10 @@ class Shop(BaseCog):
         Cooldown will trigger regardless of the outcome.
         """
         cancel = ctx.prefix + "cancel"
-        author_instance = await self.get_instance(ctx, user=ctx.author)
+        try:
+            author_instance = await self.get_instance(ctx, user=ctx.author)
+        except AttributeError:
+            return await ctx.send("You can't use this command in pm when not in global mode.")
         author_inventory = await author_instance.Inventory.all()
         user_instance = await self.get_instance(ctx, user=user)
         user_inv = await user_instance.Inventory.all()
