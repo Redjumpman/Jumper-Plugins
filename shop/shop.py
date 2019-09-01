@@ -141,7 +141,7 @@ class Shop(BaseCog):
         [p]shop buy \"Holy Temple\" \"Healing Potion\"
         """
         try:
-            instance = await self.get_instance(ctx, user=ctx.author)
+            instance = await self.get_instance(ctx, settings=True)
         except AttributeError:
             return await ctx.send("You can't use this command in pm when not in global mode.")
         if not await instance.Shops():
