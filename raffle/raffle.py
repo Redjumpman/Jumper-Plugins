@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.raffle")
 
 __author__ = 'Redjumpman'
-__version__ = '4.2.0'
+__version__ = '4.2.1'
 
 BaseCog = getattr(commands, "Cog", object)
 
@@ -232,8 +232,17 @@ class Raffle(BaseCog):
 
     async def _get_response(self, ctx, question, predicate):
         question = await ctx.send(question)
-        resp = await ctx.bot.wait_for('message', timeout=60, check=predicate)
-        await resp.delete()
+        resp = await ctx.bot.wait_for(
+            'message',
+            timeout=60,
+            check=lambda m: (
+                m.author == ctx.author
+                and m.channel == ctx.channel
+                and predicate(m)
+            )
+        )
+        if ctx.channel.permissions_for(ctx.me).manage_messages:
+            await resp.delete()
         await question.delete()
         return resp.content
 
@@ -256,7 +265,8 @@ class Raffle(BaseCog):
                 if name == role.name:
                     roles.append((name, role.id))
         await q.delete()
-        await resp.delete()
+        if ctx.channel.permissions_for(ctx.me).manage_messages:
+            await resp.delete()
         return roles
 
     async def _get_channel(self, ctx):
@@ -267,10 +277,22 @@ class Raffle(BaseCog):
         return channel
 
     async def raffle_setup(self, ctx):
-        predicate1 = MessagePredicate.length_less(200, ctx, ctx.channel, ctx.author)
-        predicate2 = MessagePredicate.greater(1, ctx, ctx.channel, ctx.author)
+        predicate1 = lambda m: len(m.content) <= 200
+        def predicate2(m):
+            try:
+                if int(m.content) >= 1:
+                    return True
+                return False
+            except ValueError:
+                return False
         predicate3 = MessagePredicate.yes_or_no(ctx, ctx.channel, ctx.author)
-        predicate4 = MessagePredicate.greater(0, ctx, ctx.channel, ctx.author)
+        def predicate4(m):
+            try:
+                if int(m.content) >= 0:
+                    return True
+                return False
+            except ValueError:
+                return False
 
         q1 = "Please set a brief description (200 chars max)"
         q2 = ("Please set how many winners are pulled.\n**Note**: If there are "
@@ -364,9 +386,16 @@ class Raffle(BaseCog):
 
     async def pick_winner(self, guild, channel, msg):
         reaction = next(filter(lambda x: x.emoji == '\U0001F39F', msg.reactions), None)
+        if reaction is None:
+            return await channel.send('It appears there were no valid entries, so a '
+                                      'winner for the raffle could not be picked.')
         users = [user for user in await reaction.users().flatten() if guild.get_member(user.id)]
         users.remove(self.bot.user)
-        amt = int(msg.embeds[0].footer.text.split('Winners: ')[1][0])
+        try:
+            amt = int(msg.embeds[0].footer.text.split('Winners: ')[1][0])
+        except AttributeError: #the footer was not set in time
+            return await channel.send('An error occurred, so a winner for the raffle '
+                                      'could not be picked.')
         valid_entries = await self.validate_entries(users, msg)
         winners = random.sample(valid_entries, min(len(valid_entries), amt))
         if not winners:
