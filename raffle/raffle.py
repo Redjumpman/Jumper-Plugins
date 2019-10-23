@@ -83,7 +83,11 @@ class Raffle(BaseCog):
         end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
         fmt_end = time.strftime("%a %d %b %Y %H:%M:%S", time.gmtime(end))
 
-        embed = discord.Embed(description=description, title=title, color=self.bot.color)
+        try:
+            embed = discord.Embed(description=description, title=title, color=self.bot.color) ### old compat, i think ?
+        except:
+            color = self.bot.get_embed_color(ctx)
+            embed = discord.Embed(description=description, title=title, color=color) ### new code
         embed.add_field(name="Days on Server", value=f'{dos}')
         role_info = f'{", ".join(str_roles) if roles else "@everyone"}'
         embed.add_field(name="Allowed Roles", value=role_info)
