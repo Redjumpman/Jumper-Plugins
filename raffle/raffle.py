@@ -86,7 +86,7 @@ class Raffle(BaseCog):
         try:
             embed = discord.Embed(description=description, title=title, color=self.bot.color) ### old compat, i think ?
         except:
-            color = self.bot.get_embed_color(ctx)
+            color = await self.bot.get_embed_color(ctx)
             embed = discord.Embed(description=description, title=title, color=color) ### new code
         embed.add_field(name="Days on Server", value=f'{dos}')
         role_info = f'{", ".join(str_roles) if roles else "@everyone"}'
