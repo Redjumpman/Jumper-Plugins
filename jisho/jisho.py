@@ -12,20 +12,15 @@ from redbot.core import commands
 # Discord
 import discord
 
-BaseCog = getattr(commands, "Cog", object)
 
+class Jisho(commands.Cog):
 
-class Jisho(BaseCog):
-
-    def __init__(self):
-        self.connector = aiohttp.TCPConnector(force_close=True)
-        self.session = aiohttp.ClientSession(connector=self.connector)
+    def __init__(self, bot):
+        self.bot = bot
+        self.session = aiohttp.ClientSession()
 
     def cog_unload(self):
-        self.__unload()
-
-    def __unload(self):
-        self.session.close()
+        self.bot.loop.create_task(self.session.close())
 
     @commands.command()
     async def jisho(self, ctx, word: str):
