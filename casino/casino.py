@@ -49,7 +49,7 @@ class Casino(Database, commands.Cog):
         The higher your multiplier the lower your odds of winning.
         """
         if multiplier < 2:
-            return await ctx.send("You're multiplier must be 2 or higher.")
+            return await ctx.send("Your multiplier must be 2 or higher.")
 
         bet = await bank.get_balance(ctx.author)
         await Core().play_allin(ctx, bet, multiplier)
@@ -151,7 +151,7 @@ class Casino(Database, commands.Cog):
 
     # --------------------------------------------------------------------------------------------------
 
-    @commands.group(autohelp=False)
+    @commands.group()
     @commands.guild_only()
     async def casino(self, ctx):
         """Interacts with the Casino system.
@@ -363,11 +363,11 @@ class Casino(Database, commands.Cog):
         cmd_list2 = []
         for cmd in ctx.bot.get_command('casino').commands:
             if cmd.requires.privilege_level.name == 'ADMIN':
-                if cmd.requires.verify(ctx):
+                if await cmd.requires.verify(ctx):
                     cmd_list.append((cmd.qualified_name, cmd.short_doc))
 
         for cmd in ctx.bot.get_command('casinoset').commands:
-            if cmd.requires.verify(ctx):
+            if await cmd.requires.verify(ctx):
                 cmd_list2.append((cmd.qualified_name, cmd.short_doc))
         cmd_list = '\n'.join(["**{}** - {}".format(x, y) for x, y in cmd_list])
         cmd_list2 = '\n'.join(["**{}** - {}".format(x, y) for x, y in cmd_list2])
