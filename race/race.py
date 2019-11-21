@@ -419,7 +419,7 @@ class Race(commands.Cog):
         embed.add_field(name=f'{second[0].name} 🥈', value=second[1].emoji)
         if third:
             embed.add_field(name=f'{third[0].name} 🥉', value=third[1].emoji)
-        embed.add_field(name='-' * 90, value="\u200b")
+        embed.add_field(name='-' * 90, value="\u200b", inline=False)
         embed.add_field(name="Payouts", value=payout_msg)
         embed.add_field(name="Settings", value=race_config)
         embed.set_footer(text=f"Bet winners: {footer}")
@@ -488,7 +488,4 @@ class Race(commands.Cog):
                     self.winners.append((jockey, animal))
             t = "\u200b\n" + "\n".join(fields)
             # There is a display bug in discord that requires this if.
-            if counter == 0:
-                await track.edit(content='')
             await track.edit(content=t)
-            counter += 1
