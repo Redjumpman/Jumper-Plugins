@@ -486,5 +486,4 @@ class Race(commands.Cog):
                 if animal.position == 0 and len(self.winners) < 3:
                     self.winners.append((jockey, animal))
             t = "\u200b\n" + "\n".join(fields)
-            # There is a display bug in discord that requires this if.
             await track.edit(content=t)
