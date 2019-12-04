@@ -154,6 +154,7 @@ class Raffle(BaseCog):
                 raise ValueError
             raffles = list(r.items())
         try:
+            # pre-3.2 compatibility layer
             embed = self.embed_builder(raffles, ctx.bot.color, title)
         except AttributeError:
             color = await self.bot.get_embed_color(ctx)
