@@ -153,7 +153,11 @@ class Raffle(BaseCog):
             if not r:
                 raise ValueError
             raffles = list(r.items())
-        embed = self.embed_builder(raffles, ctx.bot.color, title)
+        try:
+            embed = self.embed_builder(raffles, ctx.bot.color, title)
+        except AttributeError:
+            color = await self.bot.get_embed_color(ctx)
+            embed = self.embed_builder(raffles, color, title)
         msg = await ctx.send(embed=embed)
 
         def predicate(m):
