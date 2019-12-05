@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.raffle")
 
 __author__ = 'Redjumpman'
-__version__ = '4.2.2'
+__version__ = '4.2.3'
 
 BaseCog = getattr(commands, "Cog", object)
 
@@ -153,7 +153,12 @@ class Raffle(BaseCog):
             if not r:
                 raise ValueError
             raffles = list(r.items())
-        embed = self.embed_builder(raffles, ctx.bot.color, title)
+        try:
+            # pre-3.2 compatibility layer
+            embed = self.embed_builder(raffles, ctx.bot.color, title)
+        except AttributeError:
+            color = await self.bot.get_embed_color(ctx)
+            embed = self.embed_builder(raffles, color, title)
         msg = await ctx.send(embed=embed)
 
         def predicate(m):
