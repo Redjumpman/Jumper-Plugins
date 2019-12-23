@@ -9,7 +9,7 @@
 <h4 align="center">A set of plugins for Red Discord-Bot by Redjumpman</h4>
 
 <p align="center">
-  <a href="paypal.me/redjumpman">
+  <a href="https://paypal.me/redjumpman">
     <img src="https://img.shields.io/badge/paypal-donate-red.svg">
   </a>
   <a href="https://www.python.org/downloads/release/python-366/"><img src="https://img.shields.io/badge/Made%20With-Python%203.6-blue.svg?style=for-the-badge">
