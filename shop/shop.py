@@ -38,7 +38,7 @@ def global_permissions():
             return True
         if not await Shop().shop_is_global():
             permissions = ctx.channel.permissions_for(ctx.author)
-            admin_role = await ctx.bot.db.guild(ctx.guild).admin_role()
+            admin_role = await ctx.bot._config.guild(ctx.guild).admin_role()
             author_roles = [role.id for role in ctx.author.roles]
             return ((admin_role in author_roles) or (ctx.author == ctx.guild.owner)
                     or permissions.administrator)
