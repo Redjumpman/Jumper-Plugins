@@ -25,7 +25,7 @@ from redbot.core.data_manager import bundled_data_path
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.05"
+__version__ = "3.1.06"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
