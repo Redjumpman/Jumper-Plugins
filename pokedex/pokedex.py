@@ -19,11 +19,11 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-__version__ = "3.0.10"
+__version__ = "3.1.0"
 __author__ = "Redjumpman"
 
 switcher = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI",
-            "7": "VII"}
+            "7": "VII", "8": "VIII"}
 
 exceptions = ('ho-oh', 'jangmo-o', 'hakamo-o', 'kommo-o', 'porygon-z',
               'nidoran-f', 'nidoran-m', 'wormadam-plant', 'wormadam-sandy',
@@ -68,7 +68,9 @@ class Pokedex(commands.Cog):
             Examples:
                 Regular:    [p]pokedex pikachu
                 Megas:      [p]pokedex charizard-mega y
+                Gigas:      [p]pokedex corviknight-giga
                 Alola:      [p]pokedex geodude-alola
+                Galarian:   [p]pokedex meowth-galar
                 Forms:      [p]pokedex hoopa-unbound
                 Variants:   [p]pokedex floette-orange
         """
@@ -103,13 +105,13 @@ class Pokedex(commands.Cog):
         await ctx.send(embed=embed)
 
     @pokemon.command()
-    async def moves(self, ctx, pokemon: str):
+    async def moves(self, ctx, *, pokemon: str):
         """Search for a Pokémon's moveset
 
             If the generation is not specified it will default to the latest generation.
 
             Examples:
-                Numbers:    [p]pokemon moves charizard 4
+                Numbers:    [p]pokemon moves charizard-4
                 Special:    [p]pokemon moves hoopa-unbound
                 Alolan:     [p]pokemon moves geodude-alola
         """
@@ -124,9 +126,16 @@ class Pokedex(commands.Cog):
             move_set = ast.literal_eval(poke.Moves)[generation]
         except KeyError:
             generation = '7'
-            move_set = ast.literal_eval(poke.Moves)[generation]
+            try:
+                move_set = ast.literal_eval(poke.Moves)[generation]
+            except KeyError:
+                generation = '8'
+                move_set = ast.literal_eval(poke.Moves)[generation]
+
         table = box(tabulate(move_set, headers=['Level', 'Move', 'Type', 'Power', 'Acc'],
                              numalign='right'), lang='ml')
+
+
 
         if len(table) <= 900:
             color = self.color_lookup(poke.Types.split('/')[0])
@@ -182,8 +191,12 @@ class Pokedex(commands.Cog):
         try:
             tm_set = ast.literal_eval(poke.Tms)[generation]
         except KeyError:
-            generation = '7'
-            tm_set = ast.literal_eval(poke.Tms)[generation]
+            try:
+                generation = '7'
+                tm_set = ast.literal_eval(poke.Tms)[generation]
+            except KeyError:
+                generation = '8'
+                tm_set = ast.literal_eval(poke.Tms)[generation]
 
         embeds = self.embed_builder(poke, tm_set, generation)
         await menu(ctx, embeds, DEFAULT_CONTROLS)
@@ -251,7 +264,9 @@ class Pokedex(commands.Cog):
                   'Pokémon SoulSilver'],
             '5': ['Pokémon Black', 'Pokémon White', 'Pokémon Black 2', 'Pokémon White 2'],
             '6': ['Pokémon X', 'Pokémon Y', 'Pokémon Omega Ruby', 'Pokémon Alpha Sapphire'],
-            '7': ['Pokémon Sun', 'Pokémon Moon', 'Pokémon Ultra Sun', 'Pokémon Ultra Moon']
+            '7': ['Pokémon Sun', 'Pokémon Moon', 'Pokémon Ultra Sun', 'Pokémon Ultra Moon',
+                  'Pokémon Sun Let\'s Go Pikachu', 'Pokémon Let\'s Go Eevee'],
+            '8': ['Pokémon Sword', 'Pokémon Shield']
         }
         return versions[generation]
 
