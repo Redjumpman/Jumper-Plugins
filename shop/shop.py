@@ -20,6 +20,7 @@ from .checks import Checks
 import discord
 
 # Red
+from redbot import VersionInfo, version_info
 from redbot.core import Config, bank, commands
 from redbot.core.data_manager import bundled_data_path
 
@@ -29,6 +30,11 @@ __version__ = "3.1.06"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
+
+if version_info < VersionInfo.from_str("3.3.2"):
+    SANITIZE_ROLES_KWARG = {}
+else:
+    SANITIZE_ROLES_KWARG = {"sanitize_roles": False}
 
 
 def global_permissions():
@@ -734,7 +740,7 @@ class Shop(BaseCog):
             role = discord.utils.get(ctx.guild.roles, name=alert_role)
             if role:
                 msg = "{}\n{}".format(role.mention, msg)
-        await ctx.send(msg)
+        await ctx.send(msg, **SANITIZE_ROLES_KWARG)
 
     async def change_mode(self, mode):
         await self.db.clear_all()
