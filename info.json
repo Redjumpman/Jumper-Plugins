@@ -1,5 +1,5 @@
 {
-    "author" : "Redjumpman (Redjumpman#1337)",
+    "author" : ["Redjumpman (Redjumpman#1337)"],
     "install_msg" : "Thank you for installing my repo.\nFor issues, bugs, or suggestions contact me in the discord support server here: https://discord.gg/c6HQUb7\nFor more information on my cogs go to my github here: <https://github.com/Redjumpman/Jumper-Cogs/tree/V3>",
     "name" : "JumperCogs",
     "short" : "Games and community development plugins.",
