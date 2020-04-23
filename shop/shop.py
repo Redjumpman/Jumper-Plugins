@@ -22,10 +22,11 @@ import discord
 # Red
 from redbot.core import Config, bank, commands
 from redbot.core.data_manager import bundled_data_path
+from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.06"
+__version__ = "3.1.07"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
@@ -939,7 +940,10 @@ class ShopManager:
         if _type == 'random':
             new_item = await self.random_item(shop)
             if new_item is None:
-                await bank.deposit_credits(self.ctx.author, cost)
+                try:
+                    await bank.deposit_credits(self.ctx.author, cost)
+                except BalanceTooHigh as e:
+                    await bank.set_balance(self.ctx.author, e.max_balance)
                 return await self.ctx.send("There aren't any non-random items available in {}, "
                                            "so {} cannot be purchased.".format(shop, item))
             else:

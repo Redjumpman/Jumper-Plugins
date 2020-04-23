@@ -9,9 +9,10 @@ from .kill import outputs
 
 # Red
 from redbot.core import Config, bank, checks, commands
+from redbot.core.errors import BalanceTooHigh
 
 
-__version__ = "3.1.04"
+__version__ = "3.1.05"
 __author__ = "Redjumpman"
 
 
@@ -136,7 +137,10 @@ class RussianRoulette(commands.Cog):
         players = [ctx.guild.get_member(player) for player in data["Players"]]
         filtered_players = [player for player in players if isinstance(player, discord.Member)]
         if len(filtered_players) < 2:
-            await bank.deposit_credits(ctx.author, data["Pot"])
+            try:
+                await bank.deposit_credits(ctx.author, data["Pot"])
+            except BalanceTooHigh as e:
+                await bank.set_balance(ctx.author, e.max_balance)
             await self.reset_game(ctx)
             return await ctx.send("You can't play by youself. That's just suicide.\nGame reset "
                                   "and cost refunded.")
@@ -176,7 +180,10 @@ class RussianRoulette(commands.Cog):
         winner = players[0]
         currency = await bank.get_currency_name(ctx.guild)
         total = await self.db.guild(ctx.guild).Session.Pot()
-        await bank.deposit_credits(winner, total)
+        try:
+            await bank.deposit_credits(winner, total)
+        except BalanceTooHigh as e:
+            await bank.set_balance(winner, e.max_balance)
         await ctx.send("Congratulations {}! You are the last person standing and have "
                        "won a total of {} {}.".format(winner.mention, total, currency))
         await self.reset_game(ctx)

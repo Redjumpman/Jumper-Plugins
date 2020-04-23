@@ -9,6 +9,7 @@ from .engine import game_engine
 # Red
 from redbot.core import bank
 from redbot.core.i18n import Translator
+from redbot.core.errors import BalanceTooHigh
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -234,7 +235,10 @@ class Blackjack:
             result = False
         elif dc == pc <= 21:
             outcome = _("Pushed")
-            await bank.deposit_credits(ctx.author, amount)
+            try:
+                await bank.deposit_credits(ctx.author, amount)
+            except BalanceTooHigh as e:
+                await bank.set_balance(ctx.author, e.max_balance)
             result = False
         else:
             outcome = _("House Wins!")

@@ -7,6 +7,7 @@ import random
 
 # Red
 from redbot.core import Config, bank, commands, checks
+from redbot.core.errors import BalanceTooHigh
 
 # Discord
 import discord
@@ -15,7 +16,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.12"
+__version__ = "2.0.13"
 
 guild_defaults = {"Wait": 60,
                   "Mode": "normal",
@@ -358,7 +359,10 @@ class Race(commands.Cog):
         else:
             if self.winners[0][0].bot:
                 return
-            await bank.deposit_credits(self.winners[0][0], settings["Prize"])
+            try:
+                await bank.deposit_credits(self.winners[0][0], settings["Prize"])
+            except BalanceTooHigh as e:
+                await bank.set_balance(self.winners[0][0], e.max_balance)
 
     async def bet_payouts(self, settings):
         if not self.bets or not settings["Bet_Allowed"]:

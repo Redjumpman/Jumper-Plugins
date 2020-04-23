@@ -8,6 +8,7 @@ from .data import Database
 
 # Red
 from redbot.core import bank
+from redbot.core.errors import BalanceTooHigh
 from redbot.core.i18n import Translator
 
 # Discord
@@ -209,10 +210,17 @@ class GameEngine(Database):
     async def deposit_winnings(self, amount, player_instance, settings):
         multiplier = settings['Games'][self.game]['Multiplier']
         if self.game == 'Allin' or self.game == 'Double':
-            return await bank.deposit_credits(self.player, amount), "(+0)"
+            try:
+                return await bank.deposit_credits(self.player, amount), "(+0)"
+            except BalanceTooHigh as e:
+                return await bank.set_balance(self.player, e.max_balance)
+			
         initial = round(amount * multiplier)
         total, amt, msg = await self.calculate_bonus(initial, player_instance, settings)
-        await bank.deposit_credits(self.player, total)
+        try:
+            await bank.deposit_credits(self.player, total)
+        except BalanceTooHigh as e:
+            await bank.set_balance(self.player, e.max_balance)
         return total, msg
 
     def bet_in_range(self, minimum, maximum):

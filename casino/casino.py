@@ -16,6 +16,7 @@ from .games import Core, Blackjack, Double, War
 # Red
 from redbot.core.i18n import Translator
 from redbot.core import bank, commands, checks
+from redbot.core.errors import BalanceTooHigh
 from redbot.core.utils.chat_formatting import box
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -25,7 +26,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.3.0"
+__version__ = "2.3.1"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -232,12 +233,16 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("No response. Action canceled."))
 
         if choice.content.lower() == 'yes':
-            await player_data.Pending_Credits.clear()
-            await bank.deposit_credits(player, amount)
-            await ctx.send(_("{0.mention} Your pending amount of {1} has been approved by "
-                             "{2.name}, and was deposited into your "
-                             "account.").format(player, amount, ctx.author))
-
+            try:
+                await bank.deposit_credits(player, amount)
+                await player_data.Pending_Credits.clear()
+                await ctx.send(_("{0.mention} Your pending amount of {1} has been approved by "
+                                 "{2.name}, and was deposited into your "
+                                 "account.").format(player, amount, ctx.author))
+            except BalanceTooHigh as e:
+                await ctx.send(_("{0.mention} Your pending amount of {1} has been approved by "
+                                 "{2.name}, but could not be deposited because your balance is at "
+                                 "the maximum amount of credits.").format(player, amount, ctx.author))
         else:
             await ctx.send(_("Action canceled."))
 
