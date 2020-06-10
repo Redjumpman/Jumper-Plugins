@@ -213,7 +213,7 @@ class GameEngine(Database):
             try:
                 return await bank.deposit_credits(self.player, amount), "(+0)"
             except BalanceTooHigh as e:
-                return await bank.set_balance(self.player, e.max_balance)
+                return await bank.set_balance(self.player, e.max_balance), "(+0)"
 			
         initial = round(amount * multiplier)
         total, amt, msg = await self.calculate_bonus(initial, player_instance, settings)
