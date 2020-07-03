@@ -107,7 +107,7 @@ class GameEngine(Database):
                        "game.").format(self.game, settings['Games'][self.game]['Access'], access))
 
         elif self.choices is not None and self.choice not in self.choices:
-            error = _("Incorrect response. Accepted response are:"
+            error = _("Incorrect response. Accepted responses are:"
                       "\n{}.").format(utils.fmt_join(self.choices))
 
         elif not self.bet_in_range(settings['Games'][self.game]['Min'],

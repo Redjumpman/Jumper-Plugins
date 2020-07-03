@@ -3,6 +3,7 @@
 # Standard Library
 import asyncio
 import calendar
+import logging
 import re
 from typing import Union
 from operator import itemgetter
@@ -26,10 +27,12 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.3.2"
+__version__ = "2.3.3"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
+
+log = logging.getLogger("red.jumper-plugins.casino")
 
 
 class Casino(Database, commands.Cog):
@@ -172,7 +175,7 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("There are no memberships to display."))
 
         await ctx.send(_("Which of the following memberships would you like to know more "
-                         "about?\n`{}`.").format(utils.fmt_join(memberships)))
+                         "about?\n`{}`").format(utils.fmt_join(memberships)))
 
         pred = MessagePredicate.contained_in(memberships, ctx=ctx)
 
@@ -188,7 +191,7 @@ class Casino(Database, commands.Cog):
         reqs = _("Credits: {Credits}\nRole: {Role}\nDays on Server: {DOS}").format(**perks)
         color = utils.color_lookup(perks['Color'])
         desc = _("Access: {Access}\n"
-                 "Cooldown Reduction: {Reduction}\n"
+                 "Cooldown Reduction: {Reduction} seconds\n"
                  "Bonus Multiplier: {Bonus}x\n"
                  "Color: {Color}").format(**perks)
 
@@ -256,7 +259,7 @@ class Casino(Database, commands.Cog):
                                     "may use this command."))
 
         options = (_("cooldowns"), _("stats"), _("all"))
-        await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
 
         pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
         try:
@@ -280,9 +283,9 @@ class Casino(Database, commands.Cog):
                                     "may use this command."))
 
         options = (_("settings"), _("games"), _("cooldowns"), _("memberships"), _("all"))
-        await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
         pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
-        await ctx.send(_("What would you like to reset?\n{}.").format(utils.fmt_join(options)))
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
 
         try:
             choice = await ctx.bot.wait_for('message', timeout=25.0, check=pred)
@@ -628,7 +631,7 @@ class Casino(Database, commands.Cog):
 
         if game.title() not in games:
             return await ctx.send(_("Invalid game name. Must be on of the following:\n"
-                                    "{}.").format(utils.fmt_join(list(games))))
+                                    "`{}`.").format(utils.fmt_join(list(games))))
 
         await settings.Games.set_raw(game.title(), 'Cooldown', value=seconds)
         cool = utils.cooldown_formatter(seconds)
@@ -719,8 +722,8 @@ class Casino(Database, commands.Cog):
                     await self.global_updater()
                 else:
                     await self.local_updater()
-        except Exception as e:
-            print(e)
+        except Exception:
+            log.error("Casino error in membership_updater:\n", exc_info=True)
 
     async def global_updater(self):
         while True:
@@ -784,9 +787,10 @@ class Casino(Database, commands.Cog):
         try:
             bal = await bank.get_balance(user)
         except AttributeError:
-            raise RuntimeError("Casino is in global mode, while economy is in local mode. "
-                               "Economy must be global if Casino is global. Either change casino "
-                               "back to local or make your economy global.")
+            log.error("Casino is in global mode, while economy is in local mode. "
+                      "Economy must be global if Casino is global. Either change casino "
+                      "back to local with the casinoset mode command or make your economy "
+                      "global with the bankset toggleglobal command.")
         for name, requirements in memberships.items():
             if _global:
                 if requirements['Credits'] and bal < requirements['Credits']:
@@ -822,7 +826,7 @@ class Casino(Database, commands.Cog):
     async def basic_check(ctx, game, games, base):
         if game.title() not in games:
             await ctx.send("Invalid game name. Must be on of the following:\n"
-                           "{}.".format(utils.fmt_join(list(games))))
+                           "`{}`".format(utils.fmt_join(list(games))))
             return False
         elif base < 0:
             await ctx.send(_("Go home. You're drunk."))
@@ -893,13 +897,17 @@ class Membership(Database):
             return (m.author == self.ctx.author and
                     valid_name in memberships or valid_name == self.cancel)
 
+        if not memberships:
+            await self.ctx.send(_("There are no memberships to delete."))
+            raise ExitProcess()
+
         await self.ctx.send(_("Which membership would you like to delete?\n"
-                              "{}.").format(utils.fmt_join(memberships)))
+                              "`{}`").format(utils.fmt_join(list(memberships.keys()))))
         membership = await self.ctx.bot.wait_for('message', timeout=25.0, check=mem_check)
 
         if membership.content == self.cancel:
             raise ExitProcess()
-        await self.ctx.send(_("Are you sure you wish to delete {}? "
+        await self.ctx.send(_("Are you sure you wish to delete `{}`? "
                               "This cannot be reverted.").format(membership.content))
 
         choice = await self.ctx.bot.wait_for('message', timeout=25.0,
@@ -941,8 +949,12 @@ class Membership(Database):
             return m.author == self.ctx.author and m.content in memberships or \
                    m.content == self.cancel
 
+        if not memberships:
+            await self.ctx.send(_("There are no memberships to edit."))
+            raise ExitProcess()
+
         await self.ctx.send(_("Which of the following memberships would you like to edit?\n"
-                              "{}.").format(utils.fmt_join(memberships)))
+                              "`{}`").format(utils.fmt_join(list(memberships.keys()))))
 
         membership = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
         if membership.content == self.cancel:
@@ -950,10 +962,10 @@ class Membership(Database):
 
         attrs = (_('Requirements'), _('Name'), _('Access'), _('Color'), _('Reduction'), _('Bonus'))
         await self.ctx.send(_("Which of the following attributes would you like to edit?\n"
-                              "{}.").format(utils.fmt_join(attrs)))
+                              "`{}`").format(utils.fmt_join(attrs)))
 
         pred = MessagePredicate.lower_contained_in((_('requirements'), _('access'), _('color'),
-                                                    _('name'), _('reduction'), self.cancel),
+                                                    _('name'), _('reduction'), _('bonus'),self.cancel),
                                                    ctx=self.ctx)
         attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
@@ -986,7 +998,7 @@ class Membership(Database):
 
     async def set_color(self, membership):
         await self.ctx.send(_("What color would you like to set?\n"
-                              "{}").format(utils.fmt_join(list(self.colors))))
+                              "`{}`").format(utils.fmt_join(list(self.colors))))
 
         pred = MessagePredicate.lower_contained_in(list(self.colors), ctx=self.ctx)
         color = await self.ctx.bot.wait_for("message", timeout=25.0,
@@ -1031,7 +1043,7 @@ class Membership(Database):
             return name.content, valid_name
 
         async with self.coro() as membership_data:
-            membership[valid_name] = membership_data.pop(membership)
+            membership_data[valid_name] = membership_data.pop(membership)
 
         await self.ctx.send(_('Name set to {}.').format(name.content))
 
@@ -1053,7 +1065,7 @@ class Membership(Database):
         await self.ctx.send(_('Access set to {}.').format(access.content.lower()))
 
     async def set_reduction(self, membership):
-        await self.ctx.send(_("What is the cooldown reduction of this membership?"))
+        await self.ctx.send(_("What is the cooldown reduction of this membership in seconds?"))
         reduction = await self.ctx.bot.wait_for("message", timeout=25.0,
                                                 check=MessagePredicate.positive(ctx=self.ctx))
 
@@ -1088,7 +1100,7 @@ class Membership(Database):
     async def req_loop(self, membership):
         while True:
             await self.ctx.send(_("Which requirement would you like to add or modify?\n"
-                                  "{}.").format(utils.fmt_join(self.requirements)))
+                                  "`{}`").format(utils.fmt_join(self.requirements)))
 
             pred = MessagePredicate.lower_contained_in((_('credits'), _('role'), _('dos'),
                                                         _('days on server'), self.cancel),
@@ -1170,7 +1182,7 @@ class Membership(Database):
                         "**Name:** {0}\n"
                         "**Access:** {Access}\n"
                         "**Bonus:** {Bonus}x\n"
-                        "**Reduction:** {Reduction}\n"
+                        "**Reduction:** {Reduction} seconds\n"
                         "**Color:** {Color}\n"
                         "**Credits Required:** {Credits}\n"
                         "**Role Required:** {Role}\n"
