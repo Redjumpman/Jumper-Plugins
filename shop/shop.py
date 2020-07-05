@@ -26,7 +26,7 @@ from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.07"
+__version__ = "3.1.08"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
@@ -1039,7 +1039,7 @@ class ItemManager:
             await self.ctx.send("Item deletion canceled.")
 
     async def edit(self):
-        choices = ('name', 'type', 'role', 'qty', 'cost', 'msgs', 'quantity', 'messages')
+        choices = ('name', 'type', 'role', 'qty', 'cost', 'msgs', 'quantity', 'info', 'messages')
 
         while True:
             shop, item, item_data = await self.get_item()
@@ -1059,7 +1059,8 @@ class ItemManager:
                     return True
 
             await self.ctx.send("What would you like to edit for this item?\n"
-                                "Name, Type, Role, Quantity, Cost, Info, or Messages")
+                                "`Name`, `Type`, `Role`, `Quantity`, `Cost`, `Info`, or `Messages`?\n"
+                                "Note that `Messages` cannot be edited on non-auto type items.")
             choice = await self.ctx.bot.wait_for('message', timeout=25.0, check=predicate)
 
             if choice.content.lower() == 'name':

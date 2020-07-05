@@ -40,7 +40,7 @@ class ShopMenu:
             data = await self.parse_data(data)
 
         groups = self.group_data(data)
-        page, maximum = 0, len(groups) - 1
+        page, maximum = 0, len(groups)
         e = await self.build_menu(groups, page)
 
         if msg is None:
@@ -77,7 +77,7 @@ class ShopMenu:
                         return pending_id
             if choice.content.lower() in ('>', 'n', 'next'):
                 page += 1
-            elif choice.content.lower() in ('bd', '<' 'back'):
+            elif choice.content.lower() in ('bd', '<', 'back'):
                 page -= 1
             elif choice.content.lower() in ('p', 'prev'):
                 if (self.shop and self.mode == 0) or (self.user and self.mode == 1):
@@ -117,8 +117,8 @@ class ShopMenu:
             except AttributeError:
                 return data
 
-    async def build_menu(self, groups, page=1):
-        footer = "You are viewing page {} of {}.".format(page if page > 0 else 1, len(groups))
+    async def build_menu(self, groups, page):
+        footer = "You are viewing page {} of {}.".format(page + 1 if page > 0 else 1, len(groups))
         if self.shop is None and self.mode == 0:
             output = ["{} - {}".format(idx, ele) for idx, ele in enumerate(groups[page], 1)]
         elif self.mode == 0:
@@ -170,7 +170,8 @@ class ShopMenu:
 
     def build_embed(self, options, footer):
         instructions = ("Type the number for your selection.\nType `next` and `back` to advance "
-                        "the menu or `prev` to see a previous menu.")
+                        "the menu or `prev` to see a previous menu.\n"
+                        "Using `exit` will exit the menu.")
 
         if self.shop is None and self.mode == 0:
             options = '\n'.join(options)
@@ -221,13 +222,13 @@ class MenuCheck:
         self.data = data
 
     def predicate(self, m):
-        choices = map(str, range(1, len(self.data[self.page]) + 1))
+        choices = list(map(str, range(1, len(self.data[self.page]) + 1)))
         if self.ctx.author == m.author:
             if m.content in choices:
                 return True
             elif m.content.lower() in ('exit', 'prev', 'p', 'x', 'e'):
                 return True
-            elif m.content.lower() in ('n', '>', 'next') and (self.page + 1) <= self.maximum:
+            elif m.content.lower() in ('n', '>', 'next') and (self.page + 1) < self.maximum:
                 return True
             elif m.content.lower() in ('b', '<', 'back') and (self.page - 1) >= 0:
                 return True
