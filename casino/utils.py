@@ -1,5 +1,31 @@
-from collections import Sequence
-import discord
+import re
+import math
+
+from typing import Union, Dict, List, Sequence
+
+utf8_re = re.compile(r"^[\U00000000-\U0010FFFF]*$")
+min_int, max_int = 1 - (2 ** 64), (2 ** 64) - 1
+
+
+def is_input_unsupported(data: Union[Dict, List, str, int, float]):
+    if type(data) is dict:
+        for k, v in data.items():
+            if is_input_unsupported(k) or is_input_unsupported(v):
+                return True
+    if type(data) is list:
+        for i in data:
+            if is_input_unsupported(i):
+                return True
+    if type(data) is str and not utf8_re.match(data):
+        return True
+    if type(data) is int:
+        if not (min_int <= data <= max_int):
+            return True
+    if type(data) is float:
+        if math.isnan(data) or math.isinf(data):
+            return True
+        if not (min_int <= data <= max_int):
+            return True
 
 
 class PluralDict(dict):

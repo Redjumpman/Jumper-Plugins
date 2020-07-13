@@ -1,6 +1,13 @@
+import asyncio
+import logging
 from copy import deepcopy
-from redbot.core import Config
+from typing import Final
+
+import discord
+from redbot.core import Config, bank
 from collections import namedtuple
+
+from casino.utils import is_input_unsupported, min_int, max_int
 
 user_defaults = {
     "Pending_Credits": 0,
@@ -70,16 +77,75 @@ global_defaults["Settings"]["Global"] = True
 _DataNamedTuple = namedtuple("Casino", "foo")
 _DataObj = _DataNamedTuple(foo=None)
 
+_SCHEMA_VERSION: Final[int] = 2
+
+log = logging.getLogger("red.jumper-plugins.casino")
+
 
 class Database:
 
-    db = Config.get_conf(_DataObj, 5074395001, force_registration=True)
+    db: Config = Config.get_conf(_DataObj, 5074395001, force_registration=True)
 
-    def __init__(self):
+    def __init__(self, bot):
+        self.bot = bot
         self.db.register_guild(**guild_defaults)
-        self.db.register_global(**global_defaults)
+        self.db.register_global(schema_version=1, **global_defaults)
         self.db.register_member(**member_defaults)
         self.db.register_user(**user_defaults)
+        self.migration_task: asyncio.Task = None
+        self.cog_ready_event: asyncio.Event = asyncio.Event()
+
+    async def initialise(self):
+        self.migration_task = self.bot.loop.create_task(
+            self.data_schema_migration(from_version=await self.db.schema_version(), to_version=_SCHEMA_VERSION)
+        )
+
+    async def data_schema_migration(self, from_version: int, to_version: int):
+        if from_version == to_version:
+            self.cog_ready_event.set()
+            return
+        if from_version < 2 <= to_version:
+            try:
+                async with self.db.all() as casino_data:
+                    temp = deepcopy(casino_data)
+                    global_payout = casino_data["Settings"]["Payout_Limit"]
+                    if is_input_unsupported(global_payout):
+                        casino_data["Settings"]["Payout_Limit"] = await bank.get_max_balance()
+                    for g, g_data in temp["Games"].items():
+                        for g_data_key, g_data_value in g_data.items():
+                            if g_data_key in ["Access", "Cooldown", "Max", "Min", "Multiplier"]:
+                                if is_input_unsupported(g_data_value):
+                                    if g_data_value < min_int:
+                                        g_data_value_new = min_int
+                                    else:
+                                        g_data_value_new = max_int
+                                    casino_data["Games"][g][g_data_key] = g_data_value_new
+                async with self.db._get_base_group(self.db.GUILD).all() as casino_data:
+                    temp = deepcopy(casino_data)
+                    for guild_id, guild_data in temp.items():
+                        if "Settings" in temp[guild_id] and "Payout_Limit" in temp[guild_id]["Settings"]:
+                            guild_payout = casino_data[guild_id]["Settings"]["Payout_Limit"]
+                            if is_input_unsupported(guild_payout):
+                                casino_data[guild_id]["Settings"]["Payout_Limit"] = await bank.get_max_balance(
+                                    guild_payout, guild=discord.Object(id=int(guild_id))
+                                )
+                        if "Games" in temp[guild_id]:
+                            for g, g_data in temp[guild_id]["Games"].items():
+                                for g_data_key, g_data_value in g_data.items():
+                                    if g_data_key in ["Access", "Cooldown", "Max", "Min", "Multiplier"]:
+                                        if is_input_unsupported(g_data_value):
+                                            if g_data_value < min_int:
+                                                g_data_value_new = min_int
+                                            else:
+                                                g_data_value_new = max_int
+                                            casino_data[guild_id]["Games"][g][g_data_key] = g_data_value_new
+                await self.db.schema_version.set(2)
+            except Exception as e:
+                log.exception(
+                    "Fatal Exception during Data migration to Scheme 2, Casino cog will not be loaded.", exc_info=e
+                )
+                raise
+        self.cog_ready_event.set()
 
     async def casino_is_global(self):
         """Checks to see if the casino is storing data on

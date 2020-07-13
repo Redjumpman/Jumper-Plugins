@@ -27,7 +27,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.3.3"
+__version__ = "2.3.4"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -41,7 +41,7 @@ class Casino(Database, commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = self.bot.loop.create_task(self.membership_updater())
-        super().__init__()
+        super().__init__(bot)
 
     # --------------------------------------------------------------------------------------------------
 
@@ -877,6 +877,13 @@ class Casino(Database, commands.Cog):
 
     def __unload(self):
         self.cycle_task.cancel()
+        if self.migration_task:
+            self.migration_task.cancel()
+
+    async def cog_before_invoke(self, ctx: commands.Context) -> None:
+        if not self.cog_ready_event.is_set():
+            async with ctx.typing():
+                await self.cog_ready_event.wait()
 
 
 class Membership(Database):
