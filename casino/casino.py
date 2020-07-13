@@ -13,12 +13,13 @@ from operator import itemgetter
 from . import utils
 from .data import Database
 from .games import Core, Blackjack, Double, War
+from .utils import is_input_unsupported
 
 # Red
 from redbot.core.i18n import Translator
 from redbot.core import bank, commands, checks
 from redbot.core.errors import BalanceTooHigh
-from redbot.core.utils.chat_formatting import box
+from redbot.core.utils.chat_formatting import box, humanize_number
 from redbot.core.utils.predicates import MessagePredicate
 
 # Discord
@@ -96,7 +97,7 @@ class Casino(Database, commands.Cog):
 
         Pick heads or tails and place your bet.
         """
-        if choice.lower() not in ("heads", "tails"):
+        if choice.lower() not in ("heads", "tails", "h", "t"):
             return await ctx.send("You must bet heads or tails.")
 
         await Core().play_coin(ctx, bet, choice)
@@ -579,7 +580,7 @@ class Casino(Database, commands.Cog):
         payout limits are ON. To turn on payout limits, use payouttoggle.
         """
 
-        if limit < 0:
+        if limit < 0 or is_input_unsupported(limit):
             return await ctx.send(_("Go home. You're drunk."))
 
         settings = await super().get_data(ctx)
@@ -634,6 +635,8 @@ class Casino(Database, commands.Cog):
         """
         settings = await super().get_data(ctx)
         games = await settings.Games.all()
+        if is_input_unsupported(multiplier):
+            return await ctx.send(_("Go home. You're drunk."))
 
         if game.title() == "Allin" or game.title() == "Double":
             return await ctx.send(_("This games's multiplier is determined by the user."))
@@ -687,6 +690,9 @@ class Casino(Database, commands.Cog):
         if not await self.basic_check(ctx, game, games, minimum):
             return
 
+        if is_input_unsupported(minimum):
+            return await ctx.send(_("Go home. You're drunk."))
+
         if game.title() == "Allin":
             return await ctx.send(_("You cannot set a minimum bid for Allin."))
 
@@ -705,6 +711,9 @@ class Casino(Database, commands.Cog):
 
         if not await self.basic_check(ctx, game, games, maximum):
             return
+
+        if is_input_unsupported(maximum):
+            return await ctx.send(_("Go home. You're drunk."))
 
         if game.title() == "Allin":
             return await ctx.send(_("You cannot set a maximum bid for Allin."))
@@ -727,6 +736,9 @@ class Casino(Database, commands.Cog):
 
         if not await self.basic_check(ctx, game, games, access):
             return
+
+        if is_input_unsupported(access):
+            return await ctx.send(_("Go home. You're drunk."))
 
         await data.Games.set_raw(game.title(), "Access", value=access)
         msg = _("{0.name} ({0.id}) changed the access level " "for {1} to {2}.").format(ctx.author, game, access)
@@ -1112,14 +1124,19 @@ class Membership(Database):
         if access.content.lower() == self.cancel:
             raise ExitProcess()
 
+        user_input = int(access.content)
+        if is_input_unsupported(user_input):
+            await self.ctx.send(_("Can't set the reduction to this value."))
+            return
+
         if self.mode == "create":
-            membership["Access"] = int(access.content)
+            membership["Access"] = user_input
             return
 
         async with self.coro() as membership_data:
-            membership_data[membership]["Access"] = int(access.content)
+            membership_data[membership]["Access"] = user_input
 
-        await self.ctx.send(_("Access set to {}.").format(access.content.lower()))
+        await self.ctx.send(_("Access set to {}.").format(user_input))
 
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership in seconds?"))
@@ -1127,13 +1144,17 @@ class Membership(Database):
 
         if reduction.content.lower() == self.cancel:
             raise ExitProcess()
+        user_input = int(reduction.content)
+        if is_input_unsupported(user_input):
+            await self.ctx.send(_("Can't set the reduction to this value."))
+            return
 
         if self.mode == "create":
-            membership["Reduction"] = int(reduction.content)
+            membership["Reduction"] = user_input
             return
 
         async with self.coro() as membership_data:
-            membership_data[membership]["Reduction"] = int(reduction.content)
+            membership_data[membership]["Reduction"] = user_input
 
     async def set_bonus(self, membership):
         await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n" "*Defaults to one*"))
@@ -1141,9 +1162,13 @@ class Membership(Database):
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
+        user_input = bonus.content
+        if is_input_unsupported(user_input):
+            await self.ctx.send(_("Can't set the bonus multiplier to this value."))
+            return
 
         if self.mode == "create":
-            membership["Bonus"] = float(bonus.content)
+            membership["Bonus"] = float(user_input)
             return
 
         async with self.coro() as membership_data:
@@ -1193,14 +1218,18 @@ class Membership(Database):
         if amount.content.lower() == self.cancel:
             raise ExitProcess()
 
+        amount = int(amount.content)
+        if is_input_unsupported(amount):
+            await self.ctx.send(_("Can't set the credit requirement to this value."))
+            return
         if self.mode == "create":
-            membership["Credits"] = int(amount.content)
+            membership["Credits"] = amount
             return
 
         async with self.coro() as membership_data:
-            membership_data[membership]["Credits"] = int(amount.content)
+            membership_data[membership]["Credits"] = amount
 
-        await self.ctx.send(_("Credits requirement set to {}.").format(amount.content))
+        await self.ctx.send(_("Credits requirement set to {}.").format(humanize_number(amount)))
 
     async def role_requirement(self, membership):
         await self.ctx.send(
