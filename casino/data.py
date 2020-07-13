@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from copy import deepcopy
-from typing import Final
 
 import discord
 from redbot.core import Config, bank
@@ -77,7 +76,6 @@ global_defaults["Settings"]["Global"] = True
 _DataNamedTuple = namedtuple("Casino", "foo")
 _DataObj = _DataNamedTuple(foo=None)
 
-_SCHEMA_VERSION: Final[int] = 2
 
 log = logging.getLogger("red.jumper-plugins.casino")
 
@@ -86,19 +84,13 @@ class Database:
 
     db: Config = Config.get_conf(_DataObj, 5074395001, force_registration=True)
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self):
         self.db.register_guild(**guild_defaults)
         self.db.register_global(schema_version=1, **global_defaults)
         self.db.register_member(**member_defaults)
         self.db.register_user(**user_defaults)
         self.migration_task: asyncio.Task = None
         self.cog_ready_event: asyncio.Event = asyncio.Event()
-
-    async def initialise(self):
-        self.migration_task = self.bot.loop.create_task(
-            self.data_schema_migration(from_version=await self.db.schema_version(), to_version=_SCHEMA_VERSION)
-        )
 
     async def data_schema_migration(self, from_version: int, to_version: int):
         if from_version == to_version:

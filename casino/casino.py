@@ -5,7 +5,7 @@ import asyncio
 import calendar
 import logging
 import re
-from typing import Union
+from typing import Union, Final
 from operator import itemgetter
 
 
@@ -33,6 +33,7 @@ __author__ = "Redjumpman"
 _ = Translator("Casino", __file__)
 
 log = logging.getLogger("red.jumper-plugins.casino")
+_SCHEMA_VERSION: Final[int] = 2
 
 
 class Casino(Database, commands.Cog):
@@ -41,7 +42,12 @@ class Casino(Database, commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cycle_task = self.bot.loop.create_task(self.membership_updater())
-        super().__init__(bot)
+        super().__init__()
+
+    async def initialise(self):
+        self.migration_task = self.bot.loop.create_task(
+            self.data_schema_migration(from_version=await self.db.schema_version(), to_version=_SCHEMA_VERSION)
+        )
 
     # --------------------------------------------------------------------------------------------------
 
