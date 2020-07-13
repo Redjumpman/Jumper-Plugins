@@ -3,6 +3,8 @@ import calendar
 from functools import wraps
 
 # Casino
+from typing import Optional
+
 from . import utils
 from .data import Database
 
@@ -176,28 +178,37 @@ class GameEngine(Database):
     async def game_teardown(self, result):
         data = await super().get_data(self.ctx)
         settings = await data.all()
+        message_obj: Optional[discord.Message]
 
-        win, amount, msg = result
+        win, amount, msg, message_obj = result
 
         if not win:
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
-            return await self.ctx.send(self.player.mention, embed=embed)
+            if message_obj:
+                return await message_obj.edit(content=self.player.mention, embed=embed)
+            else:
+                return await self.ctx.send(self.player.mention, embed=embed)
 
         player_data = await super().get_data(self.ctx, player=self.player)
         await self.update_stats(stat='Won')
         if self.limit_check(settings, amount):
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
-            return await self.limit_handler(embed, amount, player_data,
-                                            settings["Settings"]['Payout_Limit'])
+            return await self.limit_handler(embed, amount, player_data, settings["Settings"]['Payout_Limit'], message=message_obj)
 
         total, bonus = await self.deposit_winnings(amount, player_data, settings)
         embed = await self.build_embed(msg, settings, win, total=total, bonus=bonus)
-        return await self.ctx.send(self.player.mention, embed=embed)
+        if message_obj:
+            return await message_obj.edit(content=self.player.mention, embed=embed)
+        else:
+            return await self.ctx.send(self.player.mention, embed=embed)
 
-    async def limit_handler(self, embed, amount, player_instance, limit):
+    async def limit_handler(self, embed, amount, player_instance, limit, message):
         await player_instance.Pending_Credits.set(int(amount))
 
-        await self.ctx.send(self.player.mention, embed=embed)
+        if message:
+            await message.edit(content=self.player.mention, embed=embed)
+        else:
+            await self.ctx.send(self.player.mention, embed=embed)
         msg = _("{} Your winnings exceeded the maximum credit limit allowed ({}). The amount "
                 "of {} credits will be pending on your account until reviewed. Until an "
                 "Administrator or higher authority has released the pending currency, "
@@ -214,7 +225,7 @@ class GameEngine(Database):
                 return await bank.deposit_credits(self.player, amount), "(+0)"
             except BalanceTooHigh as e:
                 return await bank.set_balance(self.player, e.max_balance), "(+0)"
-			
+
         initial = round(amount * multiplier)
         total, amt, msg = await self.calculate_bonus(initial, player_instance, settings)
         try:

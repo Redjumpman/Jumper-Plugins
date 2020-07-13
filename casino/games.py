@@ -52,7 +52,7 @@ class Core:
 
     @game_engine("Allin")
     async def play_allin(self, ctx, bet, multiplier):
-        await ctx.send(_("You put all your chips into the machine and pull the lever..."))
+        message = await ctx.send(_("You put all your chips into the machine and pull the lever..."))
         await asyncio.sleep(3)
         outcome = random.randint(0, multiplier + 1)
         if outcome == 0:
@@ -63,38 +63,38 @@ class Core:
             bet *= multiplier
         else:
             msg = _("Nothing happens. You stare at the machine contemplating your decision.")
-        return outcome == 0, bet, msg
+        return outcome == 0, bet, msg, message
 
     @game_engine("Coin", (_("heads"), _("tails")))
     async def play_coin(self, ctx, bet, choice):
-        await ctx.send(_("The coin flips into the air..."))
+        message = await ctx.send(_("The coin flips into the air..."))
         await asyncio.sleep(2)
         outcome = random.choice((_("heads"), _("tails")))
         msg = _("The coin landed on {}!").format(outcome)
-        return choice.lower() in outcome, bet, msg
+        return choice.lower() in outcome, bet, msg, message
 
     @game_engine("Cups", ('1', '2', '3'))
     async def play_cups(self, ctx, bet, choice):
-        await ctx.send(_("The cups start shuffling along the table..."))
+        message = await ctx.send(_("The cups start shuffling along the table..."))
         await asyncio.sleep(3)
         outcome = random.randint(1, 3)
         msg = _("The coin was under cup {}!").format(outcome)
-        return int(choice) == outcome, bet, msg
+        return int(choice) == outcome, bet, msg, message
 
     @game_engine("Dice")
     async def play_dice(self, ctx, bet):
-        await ctx.send(_("The dice strike the back of the table and begin to tumble into "
+        message = await ctx.send(_("The dice strike the back of the table and begin to tumble into "
                          "place..."))
         await asyncio.sleep(2)
         die_one, die_two = self.roll_dice()
         outcome = die_one + die_two
 
         msg = _("The dice landed on {} and {} ({}).").format(die_one, die_two, outcome)
-        return outcome in (2, 7, 11, 12), bet, msg
+        return outcome in (2, 7, 11, 12), bet, msg, message
 
     @game_engine("Hilo", (_("low"), _("lo"), _('high'), _('hi'), _('seven'), _('7')))
     async def play_hilo(self, ctx, bet, choice):
-        await ctx.send(_("The dice hit the table and slowly fall into place..."))
+        message = await ctx.send(_("The dice hit the table and slowly fall into place..."))
         await asyncio.sleep(2)
 
         result = sum(self.roll_dice())
@@ -110,14 +110,17 @@ class Core:
         if result == 7 and outcome[1] == "7":
             bet *= 5
 
-        return choice.lower() in outcome, bet, msg
+        return choice.lower() in outcome, bet, msg, message
 
     @game_engine(name="Craps")
     async def play_craps(self, ctx, bet):
         return await self._craps_game(ctx, bet)
 
-    async def _craps_game(self, ctx, bet, comeout=False):
-        await ctx.send(_("The dice strike against the back of the table..."))
+    async def _craps_game(self, ctx, bet, comeout=False, message=None):
+        if message:
+            await message.edit(_("The dice strike against the back of the table..."))
+        else:
+            message = await ctx.send(_("The dice strike against the back of the table..."))
         await asyncio.sleep(2)
         d1, d2 = self.roll_dice()
         result = d1 + d2
@@ -125,20 +128,20 @@ class Core:
 
         if comeout:
             if result == comeout:
-                return True, bet, msg.format(d1, d2)
-            return False, bet, msg.format(d1, d2)
+                return True, bet, msg.format(d1, d2), message
+            return False, bet, msg.format(d1, d2), message
 
         if result == 7:
             bet *= 3
-            return True, bet, msg.format(d1, d2)
+            return True, bet, msg.format(d1, d2), message
         elif result == 11:
-            return True, bet, msg.format(d1, d2)
+            return True, bet, msg.format(d1, d2), message
         elif result in (2, 3, 12):
-            return False, bet, msg.format(d1, d2)
+            return False, bet, msg.format(d1, d2), message
 
-        await ctx.send("{}\nI'll roll the dice one more time. This time you will need exactly "
+        await message.edit("{}\nI'll roll the dice one more time. This time you will need exactly "
                        "{} to win.".format(msg.format(d1, d2), d1 + d2))
-        return await self._craps_game(ctx, bet, comeout=result)
+        return await self._craps_game(ctx, bet, comeout=result, message=message)
 
     @staticmethod
     def roll_dice():
@@ -157,8 +160,8 @@ class Blackjack:
 
     @game_engine(name="Blackjack")
     async def play(self, ctx, bet):
-        ph, dh, amt = await self.blackjack_game(ctx, bet)
-        result = await self.blackjack_results(ctx, amt, ph, dh)
+        ph, dh, amt, msg = await self.blackjack_game(ctx, bet)
+        result = await self.blackjack_results(ctx, amt, ph, dh, message=msg)
         return result
 
     @game_engine(name="Blackjack")
@@ -173,32 +176,32 @@ class Blackjack:
 
         # End game if player has 21
         if ph_count == 21:
-            return ph, dh, amount
+            return ph, dh, amount, None
         options = (_("hit"), _("stay"), _("double"))
         condition1 = MessagePredicate.lower_contained_in(options, ctx=ctx)
         condition2 = MessagePredicate.lower_contained_in((_("hit"), _("stay")), ctx=ctx)
 
         embed = self.bj_embed(ctx, ph, dh, ph_count, initial=True)
-        await ctx.send(ctx.author.mention, embed=embed)
+        msg = await ctx.send(ctx.author.mention, embed=embed)
 
         try:
             choice = await ctx.bot.wait_for('message', check=condition1, timeout=35.0)
         except asyncio.TimeoutError:
             dh = self.dealer(dh)
-            return ph, dh, amount
+            return ph, dh, amount, msg
 
         if choice.content.lower() == _("stay"):
             dh = self.dealer(dh)
-            return ph, dh, amount
+            return ph, dh, amount, msg
 
         if choice.content.lower() == _("double"):
-            return await self.double_down(ctx, ph, dh, amount, condition2)
+            return await self.double_down(ctx, ph, dh, amount, condition2, message=msg)
         else:
-            ph, dh = await self.bj_loop(ctx, ph, dh, ph_count, condition2)
+            ph, dh, message = await self.bj_loop(ctx, ph, dh, ph_count, condition2, message=msg)
             dh = self.dealer(dh)
-            return ph, dh, amount
+            return ph, dh, amount, msg
 
-    async def double_down(self, ctx, ph, dh, amount, condition2):
+    async def double_down(self, ctx, ph, dh, amount, condition2, message):
         try:
             await bank.withdraw_credits(ctx.author, amount)
         except ValueError:
@@ -208,22 +211,22 @@ class Blackjack:
             try:
                 choice2 = await ctx.bot.wait_for('message', check=condition2, timeout=35.0)
             except asyncio.TimeoutError:
-                return ph, dh, amount
+                return ph, dh, amount, message
 
             if choice2.content.lower() == _("stay"):
                 dh = self.dealer(dh)
-                return ph, dh, amount
+                return ph, dh, amount, message
             elif choice2.content.lower() == _("hit"):
-                ph, dh = await self.bj_loop(ctx, ph, dh, deck.bj_count(ph), condition2)
+                ph, dh, message = await self.bj_loop(ctx, ph, dh, deck.bj_count(ph), condition2, message=message)
                 dh = self.dealer(dh)
-                return ph, dh, amount
+                return ph, dh, amount, message
         else:
             deck.deal(hand=ph)
             dh = self.dealer(dh)
             amount *= 2
-            return ph, dh, amount
+            return ph, dh, amount, message
 
-    async def blackjack_results(self, ctx, amount, ph, dh):
+    async def blackjack_results(self, ctx, amount, ph, dh, message=None):
         dc = deck.bj_count(dh)
         pc = deck.bj_count(ph)
 
@@ -244,9 +247,9 @@ class Blackjack:
             outcome = _("House Wins!")
             result = False
         embed = self.bj_embed(ctx, ph, dh, pc, outcome=outcome)
-        return result, amount, embed
+        return result, amount, embed, message
 
-    async def bj_loop(self, ctx, ph, dh, count, condition2):
+    async def bj_loop(self, ctx, ph, dh, count, condition2, message: discord.Message):
         while count < 21:
             ph = deck.deal(hand=ph)
             count = deck.bj_count(hand=ph)
@@ -254,7 +257,7 @@ class Blackjack:
             if count >= 21:
                 break
             embed = self.bj_embed(ctx, ph, dh, count)
-            await ctx.send(ctx.author.mention, embed=embed)
+            await message.edit(content=ctx.author.mention, embed=embed)
             try:
                 resp = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
             except asyncio.TimeoutError:
@@ -262,11 +265,10 @@ class Blackjack:
 
             if resp.content.lower() == _("stay"):
                 break
-            else:
-                continue
+            await asyncio.sleep(1)
 
         # Return player hand & dealer hand when count >= 21 or the player picks stay.
-        return ph, dh
+        return ph, dh, message
 
     @staticmethod
     def dealer(dh):
@@ -308,16 +310,16 @@ class War:
 
     @game_engine("War")
     async def play(self, ctx, bet):
-        outcome, player_card, dealer_card, amount = await self.war_game(ctx, bet)
-        return await self.war_results(outcome, player_card, dealer_card, amount)
+        outcome, player_card, dealer_card, amount, msg = await self.war_game(ctx, bet)
+        return await self.war_results(outcome, player_card, dealer_card, amount, message=msg)
 
     async def war_game(self, ctx, bet):
         player_card, dealer_card, pc, dc = self.war_draw()
 
-        await ctx.send(_("The dealer shuffles the deck and deals 2 cards face down. One for the "
+        message = await ctx.send(_("The dealer shuffles the deck and deals 2 cards face down. One for the "
                          "player and one for the dealer..."))
         await asyncio.sleep(2)
-        await ctx.send(_("**FLIP!**"))
+        await message.edit(content=_("**FLIP!**"))
         await asyncio.sleep(1)
 
         if pc != dc:
@@ -325,9 +327,9 @@ class War:
                 outcome = "Win"
             else:
                 outcome = "Loss"
-            return outcome, player_card, dealer_card, bet
+            return outcome, player_card, dealer_card, bet, message
 
-        await ctx.send(_("The player and dealer are both showing a **{}**!\nTHIS MEANS "
+        await message.edit(content=_("The player and dealer are both showing a **{}**!\nTHIS MEANS "
                          "WAR! You may choose to surrender and forfeit half your bet, or "
                          "you can go to war.\nIf you go to war your bet will be doubled, "
                          "but the multiplier is only applied to your original bet, the rest will "
@@ -336,39 +338,39 @@ class War:
         try:
             choice = await ctx.bot.wait_for('message', check=pred, timeout=35.0)
         except asyncio.TimeoutError:
-            return "Surrender", player_card, dealer_card, bet
+            return "Surrender", player_card, dealer_card, bet, message
 
         if choice is None or choice.content.title() in (_("Surrender"), _("Ffs")):
             outcome = "Surrender"
             bet /= 2
-            return outcome, player_card, dealer_card, bet
+            return outcome, player_card, dealer_card, bet, message
         else:
             player_card, dealer_card, pc, dc = self.burn_and_draw()
 
-            await ctx.send(_("The dealer burns three cards and deals two cards face down..."))
+            await message.edit(content=_("The dealer burns three cards and deals two cards face down..."))
             await asyncio.sleep(3)
-            await ctx.send(_("**FLIP!**"))
+            await message.edit(content=_("**FLIP!**"))
 
             if pc >= dc:
                 outcome = "Win"
             else:
                 outcome = "Loss"
-            return outcome, player_card, dealer_card, bet
+            return outcome, player_card, dealer_card, bet, message
 
     @staticmethod
-    async def war_results(outcome, player_card, dealer_card, amount):
+    async def war_results(outcome, player_card, dealer_card, amount, message=None):
         msg = _("**Player Card:** {}\n**Dealer Card:** {}\n"
                 "").format(deck.fmt_card(player_card), deck.fmt_card(dealer_card))
         if outcome == "Win":
             msg += _("**Result**: Winner")
-            return True, amount, msg
+            return True, amount, msg, message
 
         elif outcome == "Loss":
             msg += _("**Result**: Loser")
-            return False, amount, msg
+            return False, amount, msg, message
         else:
             msg += _("**Result**: Surrendered")
-            return False, amount, msg
+            return False, amount, msg, message
 
     @staticmethod
     def get_count(pc, dc):
@@ -391,12 +393,12 @@ class Double:
 
     @game_engine("Double")
     async def play(self, ctx, bet):
-        count, amount = await self.double_game(ctx, bet)
-        return await self.double_results(ctx, count, amount)
+        count, amount, message = await self.double_game(ctx, bet)
+        return await self.double_results(ctx, count, amount, message=message)
 
     async def double_game(self, ctx, bet):
         count = 0
-
+        message = None
         while bet > 0:
             count += 1
 
@@ -412,7 +414,10 @@ class Double:
             pred = MessagePredicate.lower_contained_in((_("double"), _("cash out")), ctx=ctx)
 
             embed = self.double_embed(ctx, count, bet)
-            await ctx.send(ctx.author.mention, embed=embed)
+            if message:
+                await message.edit(content=ctx.author.mention, embed=embed)
+            else:
+                message = await ctx.send(ctx.author.mention, embed=embed)
             try:
                 resp = await ctx.bot.wait_for("message", check=pred, timeout=35.0)
             except asyncio.TimeoutError:
@@ -420,12 +425,11 @@ class Double:
 
             if resp.content.lower() == _("cash out"):
                 break
-            else:
-                continue
+            await asyncio.sleep(1)
 
-        return count, bet
+        return count, bet, message
 
-    async def double_results(self, ctx, count, amount):
+    async def double_results(self, ctx, count, amount, message=None):
         if amount > 0:
             outcome = _("Cashed Out!")
             result = True
@@ -433,7 +437,7 @@ class Double:
             outcome = _("You Lost It All!")
             result = False
         embed = self.double_embed(ctx, count, amount, outcome=outcome)
-        return result, amount, embed
+        return result, amount, embed, message
 
     @staticmethod
     def double_embed(ctx, count, amount, outcome=None):
