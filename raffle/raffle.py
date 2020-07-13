@@ -15,8 +15,8 @@ from redbot.core.utils.predicates import MessagePredicate
 
 log = logging.getLogger("red.raffle")
 
-__author__ = 'Redjumpman'
-__version__ = '4.2.3'
+__author__ = "Redjumpman"
+__version__ = "4.2.3"
 
 BaseCog = getattr(commands, "Cog", object)
 
@@ -24,10 +24,7 @@ BaseCog = getattr(commands, "Cog", object)
 class Raffle(BaseCog):
     """Run simple Raffles for your server."""
 
-    raffle_defaults = {
-        "Channel": None,
-        "Raffles": {}
-    }
+    raffle_defaults = {"Channel": None, "Raffles": {}}
 
     def __init__(self, bot):
         self.bot = bot
@@ -76,30 +73,40 @@ class Raffle(BaseCog):
         except asyncio.TimeoutError:
             return await ctx.send("Response timed out. A raffle failed to start.")
         str_roles = [r[0] for r in roles]
-        description = (f'{description}\n\nReact to this '
-                       f'message with \U0001F39F to enter.\n\n')
+        description = f"{description}\n\nReact to this " f"message with \U0001F39F to enter.\n\n"
 
         channel = await self._get_channel(ctx)
         end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
         fmt_end = time.strftime("%a %d %b %Y %H:%M:%S", time.gmtime(end))
 
         try:
-            embed = discord.Embed(description=description, title=title, color=self.bot.color) ### old compat, i think ?
+            embed = discord.Embed(
+                description=description, title=title, color=self.bot.color
+            )  ### old compat, i think ?
         except:
             color = await self.bot.get_embed_color(ctx)
-            embed = discord.Embed(description=description, title=title, color=color) ### new code
-        embed.add_field(name="Days on Server", value=f'{dos}')
+            embed = discord.Embed(description=description, title=title, color=color)  ### new code
+        embed.add_field(name="Days on Server", value=f"{dos}")
         role_info = f'{", ".join(str_roles) if roles else "@everyone"}'
         embed.add_field(name="Allowed Roles", value=role_info)
         msg = await channel.send(embed=embed)
-        embed.set_footer(text=(f'Started by: {ctx.author.name} | Winners: {winners} | '
-                               f'Ends at {fmt_end} UTC | Raffle ID: {msg.id}'))
+        embed.set_footer(
+            text=(
+                f"Started by: {ctx.author.name} | Winners: {winners} | " f"Ends at {fmt_end} UTC | Raffle ID: {msg.id}"
+            )
+        )
         await msg.edit(embed=embed)
-        await msg.add_reaction('\U0001F39F')
+        await msg.add_reaction("\U0001F39F")
 
         async with self.db.guild(ctx.guild).Raffles() as r:
-            new_raffle = {"Channel": channel.id, "Timestamp": end, "DOS": dos, "Roles": roles,
-                          "ID": msg.id, "Title": title}
+            new_raffle = {
+                "Channel": channel.id,
+                "Timestamp": end,
+                "DOS": dos,
+                "Roles": roles,
+                "ID": msg.id,
+                "Title": title,
+            }
             r[msg.id] = new_raffle
 
         await self.raffle_timer(ctx.guild, new_raffle, timer)
@@ -127,7 +134,7 @@ class Raffle(BaseCog):
         """Cancels an on-going raffle. No winner is chosen."""
         if message_id is None:
             try:
-                message_id = await self._menu(ctx, end='cancel')
+                message_id = await self._menu(ctx, end="cancel")
             except ValueError:
                 return await ctx.send("There are no active raffles to cancel.")
             except asyncio.TimeoutError:
@@ -147,7 +154,7 @@ class Raffle(BaseCog):
                 except KeyError:
                     pass
 
-    async def _menu(self, ctx, end='end'):
+    async def _menu(self, ctx, end="end"):
         title = f"Which of the following **Active** Raffles would you like to {end}?"
         async with self.db.guild(ctx.guild).Raffles() as r:
             if not r:
@@ -165,7 +172,7 @@ class Raffle(BaseCog):
             if m.channel == ctx.channel and m.author == ctx.author:
                 return int(m.content) in range(1, 11)
 
-        resp = await ctx.bot.wait_for('message', timeout=60, check=predicate)
+        resp = await ctx.bot.wait_for("message", timeout=60, check=predicate)
         message_id = raffles[int(resp.content) - 1][0]
         await resp.delete()
         await msg.delete()
@@ -175,8 +182,18 @@ class Raffle(BaseCog):
         embeds = []
         # FIXME Come back and make this more dynamic
         truncate = raffles[:10]
-        emojis = (':one:', ':two:', ':three:', ':four:', ':five:', ':six:', ':seven:',
-                  ':eight:', ':nine:', ':ten:')
+        emojis = (
+            ":one:",
+            ":two:",
+            ":three:",
+            ":four:",
+            ":five:",
+            ":six:",
+            ":seven:",
+            ":eight:",
+            ":nine:",
+            ":ten:",
+        )
         e = discord.Embed(colour=color, title=title)
         description = ""
         for raffle, number_emoji in zip(truncate, emojis):
@@ -202,8 +219,10 @@ class Raffle(BaseCog):
         except AttributeError:
             return await ctx.send("This is not a raffle message.")
         except IndexError:
-            return await ctx.send("Nice try slim. You can't add a reaction to a random msg "
-                                  "and think that I am stupid enough to say you won something.")
+            return await ctx.send(
+                "Nice try slim. You can't add a reaction to a random msg "
+                "and think that I am stupid enough to say you won something."
+            )
 
     @commands.group(autohelp=True)
     @commands.guild_only()
@@ -233,8 +252,7 @@ class Raffle(BaseCog):
             await ctx.send("Title is too long. Must be 35 characters or less.")
             return None
         elif timer is None:
-            await ctx.send("Incorrect time format. Please use help on this command "
-                           "for more information.")
+            await ctx.send("Incorrect time format. Please use help on this command " "for more information.")
             return None
         else:
             return timer
@@ -242,13 +260,9 @@ class Raffle(BaseCog):
     async def _get_response(self, ctx, question, predicate):
         question = await ctx.send(question)
         resp = await ctx.bot.wait_for(
-            'message',
+            "message",
             timeout=60,
-            check=lambda m: (
-                m.author == ctx.author
-                and m.channel == ctx.channel
-                and predicate(m)
-            )
+            check=lambda m: (m.author == ctx.author and m.channel == ctx.channel and predicate(m)),
         )
         if ctx.channel.permissions_for(ctx.me).manage_messages:
             await resp.delete()
@@ -256,20 +270,22 @@ class Raffle(BaseCog):
         return resp.content
 
     async def _get_roles(self, ctx):
-        q = await ctx.send("What role or roles are allowed to enter? Use commas to separate "
-                           "multiple entries. For example: `Admin, Patrons, super mod, helper`")
+        q = await ctx.send(
+            "What role or roles are allowed to enter? Use commas to separate "
+            "multiple entries. For example: `Admin, Patrons, super mod, helper`"
+        )
 
         def predicate(m):
             if m.author == ctx.author and m.channel == ctx.channel:
-                given = set(m.content.split(', '))
+                given = set(m.content.split(", "))
                 guild_roles = {r.name for r in ctx.guild.roles}
                 return guild_roles.issuperset(given)
             else:
                 return False
 
-        resp = await ctx.bot.wait_for('message', timeout=60, check=predicate)
+        resp = await ctx.bot.wait_for("message", timeout=60, check=predicate)
         roles = []
-        for name in resp.content.split(', '):
+        for name in resp.content.split(", "):
             for role in ctx.guild.roles:
                 if name == role.name:
                     roles.append((name, role.id))
@@ -287,6 +303,7 @@ class Raffle(BaseCog):
 
     async def raffle_setup(self, ctx):
         predicate1 = lambda m: len(m.content) <= 200
+
         def predicate2(m):
             try:
                 if int(m.content) >= 1:
@@ -294,7 +311,9 @@ class Raffle(BaseCog):
                 return False
             except ValueError:
                 return False
+
         predicate3 = MessagePredicate.yes_or_no(ctx, ctx.channel, ctx.author)
+
         def predicate4(m):
             try:
                 if int(m.content) >= 0:
@@ -304,8 +323,10 @@ class Raffle(BaseCog):
                 return False
 
         q1 = "Please set a brief description (200 chars max)"
-        q2 = ("Please set how many winners are pulled.\n**Note**: If there are "
-              "more winners than entries, I will make everyone a winner.")
+        q2 = (
+            "Please set how many winners are pulled.\n**Note**: If there are "
+            "more winners than entries, I will make everyone a winner."
+        )
         q3 = "Would you like to set a 'days on server' requirement?"
         q4 = "Do you want to limit this raffle to specific roles?"
 
@@ -314,11 +335,10 @@ class Raffle(BaseCog):
         dos = 0
         roles = []
 
-        if await self._get_response(ctx, q3, predicate3) == 'yes':
-            dos = await self._get_response(ctx, "How many days on the server are required?",
-                                           predicate4)
+        if await self._get_response(ctx, q3, predicate3) == "yes":
+            dos = await self._get_response(ctx, "How many days on the server are required?", predicate4)
 
-        if await self._get_response(ctx, q4, predicate3) == 'yes':
+        if await self._get_response(ctx, q4, predicate3) == "yes":
             roles = await self._get_roles(ctx)
 
         return description, int(winners), int(dos), roles
@@ -376,10 +396,10 @@ class Raffle(BaseCog):
 
         errored = False
         try:
-            msg = await channel.get_message(raffles[str(message_id)]['ID'])
+            msg = await channel.get_message(raffles[str(message_id)]["ID"])
         except AttributeError:
             try:
-                msg = await channel.fetch_message(raffles[str(message_id)]['ID'])
+                msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
             except discord.NotFound:
                 errored = True
         except discord.errors.NotFound:
@@ -394,40 +414,38 @@ class Raffle(BaseCog):
                 pass
 
     async def pick_winner(self, guild, channel, msg):
-        reaction = next(filter(lambda x: x.emoji == '\U0001F39F', msg.reactions), None)
+        reaction = next(filter(lambda x: x.emoji == "\U0001F39F", msg.reactions), None)
         if reaction is None:
-            return await channel.send('It appears there were no valid entries, so a '
-                                      'winner for the raffle could not be picked.')
+            return await channel.send(
+                "It appears there were no valid entries, so a " "winner for the raffle could not be picked."
+            )
         users = [user for user in await reaction.users().flatten() if guild.get_member(user.id)]
         users.remove(self.bot.user)
         try:
-            amt = int(msg.embeds[0].footer.text.split('Winners: ')[1][0])
-        except AttributeError: #the footer was not set in time
-            return await channel.send('An error occurred, so a winner for the raffle '
-                                      'could not be picked.')
+            amt = int(msg.embeds[0].footer.text.split("Winners: ")[1][0])
+        except AttributeError:  # the footer was not set in time
+            return await channel.send("An error occurred, so a winner for the raffle " "could not be picked.")
         valid_entries = await self.validate_entries(users, msg)
         winners = random.sample(valid_entries, min(len(valid_entries), amt))
         if not winners:
-            await channel.send('It appears there were no valid entries, so a winner '
-                               'for the raffle could not be picked.')
+            await channel.send(
+                "It appears there were no valid entries, so a winner " "for the raffle could not be picked."
+            )
         else:
-            display = ', '.join(winner.mention for winner in winners)
-            await channel.send(f"Congratulations {display}! You have won the "
-                               f"{msg.embeds[0].title} raffle!")
+            display = ", ".join(winner.mention for winner in winners)
+            await channel.send(f"Congratulations {display}! You have won the " f"{msg.embeds[0].title} raffle!")
 
     async def validate_entries(self, users, msg):
         dos, roles = msg.embeds[0].fields
         dos = int(dos.value)
-        roles = roles.value.split(', ')
+        roles = roles.value.split(", ")
 
         try:
             if dos:
-                users = [user for user in users if
-                         dos < (user.joined_at.now() - user.joined_at).days]
+                users = [user for user in users if dos < (user.joined_at.now() - user.joined_at).days]
 
             if roles:
-                users = [user for user in users if any(role in [r.name for r in user.roles]
-                                                       for role in roles)]
+                users = [user for user in users if any(role in [r.name for r in user.roles] for role in roles)]
         except AttributeError:
             return None
         return users

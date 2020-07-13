@@ -27,7 +27,9 @@ def game_engine(name=None, choice=None, choices=None):
             if await engine.check_conditions():
                 result = await coro(*args, **kwargs)
                 await engine.game_teardown(result)
+
         return wrapped
+
     return wrapper
 
 
@@ -63,7 +65,8 @@ class GameEngine(Database):
             The amount the player has wagered.
 
     """
-    __slots__ = ('game', 'choice', 'choices', 'ctx', 'bet', 'player', 'guild')
+
+    __slots__ = ("game", "choice", "choices", "ctx", "bet", "player", "guild")
 
     def __init__(self, game, choice, choices, ctx, bet):
         self.game = game
@@ -95,41 +98,42 @@ class GameEngine(Database):
 
         """
         settings, player_data = await super().get_all(self.ctx, self.player)
-        access = self.access_calculator(settings['Memberships'], player_data["Membership"]["Name"])
+        access = self.access_calculator(settings["Memberships"], player_data["Membership"]["Name"])
 
         if not settings["Settings"]["Casino_Open"]:
             error = _("The Casino is closed.")
 
-        elif not settings['Games'][self.game]['Open']:
+        elif not settings["Games"][self.game]["Open"]:
             error = _("{} is closed.".format(self.game))
 
-        elif settings['Games'][self.game]['Access'] > access:
-            error = (_("{} requires an access level of {}. Your current access level is {}. Obtain "
-                       "a higher membership to play this "
-                       "game.").format(self.game, settings['Games'][self.game]['Access'], access))
+        elif settings["Games"][self.game]["Access"] > access:
+            error = _(
+                "{} requires an access level of {}. Your current access level is {}. Obtain "
+                "a higher membership to play this "
+                "game."
+            ).format(self.game, settings["Games"][self.game]["Access"], access)
 
         elif self.choices is not None and self.choice not in self.choices:
-            error = _("Incorrect response. Accepted responses are:"
-                      "\n{}.").format(utils.fmt_join(self.choices))
+            error = _("Incorrect response. Accepted responses are:" "\n{}.").format(utils.fmt_join(self.choices))
 
-        elif not self.bet_in_range(settings['Games'][self.game]['Min'],
-                                   settings['Games'][self.game]['Max']):
-            error = _("Your bet must be between "
-                      "{} and {}.".format(settings['Games'][self.game]['Min'],
-                                          settings['Games'][self.game]['Max']))
+        elif not self.bet_in_range(settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]):
+            error = _(
+                "Your bet must be between "
+                "{} and {}.".format(settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"])
+            )
 
         elif not await bank.can_spend(self.player, self.bet):
             error = _("You do not have enough credits to cover the bet.")
 
         else:
-            error = await self.check_cooldown(settings['Games'][self.game], player_data)
+            error = await self.check_cooldown(settings["Games"][self.game], player_data)
 
         if error:
             await self.ctx.send(error)
             return False
         else:
             await bank.withdraw_credits(self.player, self.bet)
-            await self.update_stats(stat='Played')
+            await self.update_stats(stat="Played")
             return True
 
     async def update_stats(self, stat: str):
@@ -167,12 +171,11 @@ class GameEngine(Database):
         membership = await super()._get_player_membership(self.ctx, self.player)
         reduction = membership[1]["Reduction"]
         if now >= user_time - reduction:
-            await super()._update_cooldown(self.ctx, self.game, now+base)
+            await super()._update_cooldown(self.ctx, self.game, now + base)
         else:
             seconds = int((user_time + reduction - now))
             remaining = utils.time_formatter(seconds)
-            msg = _("{} is still on a cooldown. You still have: {} "
-                    "remaining.").format(self.game, remaining)
+            msg = _("{} is still on a cooldown. You still have: {} " "remaining.").format(self.game, remaining)
             return msg
 
     async def game_teardown(self, result):
@@ -190,10 +193,12 @@ class GameEngine(Database):
                 return await self.ctx.send(self.player.mention, embed=embed)
 
         player_data = await super().get_data(self.ctx, player=self.player)
-        await self.update_stats(stat='Won')
+        await self.update_stats(stat="Won")
         if self.limit_check(settings, amount):
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
-            return await self.limit_handler(embed, amount, player_data, settings["Settings"]['Payout_Limit'], message=message_obj)
+            return await self.limit_handler(
+                embed, amount, player_data, settings["Settings"]["Payout_Limit"], message=message_obj,
+            )
 
         total, bonus = await self.deposit_winnings(amount, player_data, settings)
         embed = await self.build_embed(msg, settings, win, total=total, bonus=bonus)
@@ -209,18 +214,20 @@ class GameEngine(Database):
             await message.edit(content=self.player.mention, embed=embed)
         else:
             await self.ctx.send(self.player.mention, embed=embed)
-        msg = _("{} Your winnings exceeded the maximum credit limit allowed ({}). The amount "
-                "of {} credits will be pending on your account until reviewed. Until an "
-                "Administrator or higher authority has released the pending currency, "
-                "**DO NOT** attempt to place a bet that will exceed the payout limit. You "
-                "may only have **ONE** pending payout at a "
-                "time.").format(self.player.name, limit, amount)
+        msg = _(
+            "{} Your winnings exceeded the maximum credit limit allowed ({}). The amount "
+            "of {} credits will be pending on your account until reviewed. Until an "
+            "Administrator or higher authority has released the pending currency, "
+            "**DO NOT** attempt to place a bet that will exceed the payout limit. You "
+            "may only have **ONE** pending payout at a "
+            "time."
+        ).format(self.player.name, limit, amount)
 
         await self.player.send(msg)
 
     async def deposit_winnings(self, amount, player_instance, settings):
-        multiplier = settings['Games'][self.game]['Multiplier']
-        if self.game == 'Allin' or self.game == 'Double':
+        multiplier = settings["Games"][self.game]["Multiplier"]
+        if self.game == "Allin" or self.game == "Double":
             try:
                 return await bank.deposit_credits(self.player, amount), "(+0)"
             except BalanceTooHigh as e:
@@ -248,7 +255,7 @@ class GameEngine(Database):
         currency = await bank.get_currency_name(self.guild)
         bal_msg = _("**Remaining Balance:** {} {}").format(balance, currency)
         embed = discord.Embed()
-        embed.title = _("{} Casino | {}").format(settings['Settings']["Casino_Name"], self.game)
+        embed.title = _("{} Casino | {}").format(settings["Settings"]["Casino_Name"], self.game)
 
         if isinstance(msg, discord.Embed):
             for field in msg.fields:
@@ -258,17 +265,16 @@ class GameEngine(Database):
 
         if win:
             embed.colour = 0x00FF00
-            end = _("Congratulations, you just won {} {} {}!\n"
-                    "{}").format(total, currency, bonus, bal_msg)
+            end = _("Congratulations, you just won {} {} {}!\n" "{}").format(total, currency, bonus, bal_msg)
         else:
             embed.colour = 0xFF0000
             end = _("Sorry, you didn't win anything.\n{}").format(bal_msg)
-        embed.add_field(name='-' * 65, value=end)
+        embed.add_field(name="-" * 65, value=end)
         return embed
 
     @staticmethod
     def access_calculator(memberships, user_membership):
-        if user_membership == 'Basic':
+        if user_membership == "Basic":
             return 0
 
         try:
@@ -282,7 +288,7 @@ class GameEngine(Database):
     async def calculate_bonus(amount, player_instance, settings):
         membership = await player_instance.Membership.Name()
         try:
-            bonus_multiplier = settings[membership]['Bonus']
+            bonus_multiplier = settings[membership]["Bonus"]
         except KeyError:
             bonus_multiplier = 1
         total = round(amount * bonus_multiplier)

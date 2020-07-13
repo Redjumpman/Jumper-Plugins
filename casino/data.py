@@ -4,10 +4,7 @@ from collections import namedtuple
 
 user_defaults = {
     "Pending_Credits": 0,
-    "Membership": {
-        "Name": "Basic",
-        "Assigned": False
-    },
+    "Membership": {"Name": "Basic", "Assigned": False},
     "Played": {
         "Allin": 0,
         "Blackjack": 0,
@@ -17,7 +14,7 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
+        "Double": 0,
     },
     "Won": {
         "Allin": 0,
@@ -28,7 +25,7 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
+        "Double": 0,
     },
     "Cooldowns": {
         "Allin": 0,
@@ -39,8 +36,8 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
-    }
+        "Double": 0,
+    },
 }
 
 guild_defaults = {
@@ -50,83 +47,19 @@ guild_defaults = {
         "Casino_Name": "Redjumpman's",
         "Casino_Open": True,
         "Payout_Switch": False,
-        "Payout_Limit": 10000
+        "Payout_Limit": 10000,
     },
     "Games": {
-        "Allin": {
-            "Access": 0,
-            "Cooldown": 43200,
-            "Min": None,
-            "Max": None,
-            "Multiplier": None,
-            "Open": True
-
-        },
-        "Blackjack": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Min": 50,
-            "Max": 500,
-            "Multiplier": 2.0,
-            "Open": True
-        },
-        "Coin": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Max": 10,
-            "Min": 10,
-            "Multiplier": 1.5,
-            "Open": True
-        },
-        "Craps": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Max": 500,
-            "Min": 50,
-            "Multiplier": 2.0,
-            "Open": True
-        },
-        "Cups": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Max": 100,
-            "Min": 25,
-            "Multiplier": 1.8,
-            "Open": True
-        },
-        "Dice": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Max": 100,
-            "Min": 25,
-            "Multiplier": 1.8,
-            "Open": True
-        },
-        "Hilo": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Min": 25,
-            "Max": 75,
-            "Multiplier": 1.7,
-            "Open": True
-        },
-        "Double": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Min": 10,
-            "Max": 250,
-            "Multiplier": None,
-            "Open": True
-        },
-        "War": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Min": 25,
-            "Max": 75,
-            "Multiplier": 1.5,
-            "Open": True
-        }
-    }
+        "Allin": {"Access": 0, "Cooldown": 43200, "Min": None, "Max": None, "Multiplier": None, "Open": True,},
+        "Blackjack": {"Access": 0, "Cooldown": 5, "Min": 50, "Max": 500, "Multiplier": 2.0, "Open": True,},
+        "Coin": {"Access": 0, "Cooldown": 5, "Max": 10, "Min": 10, "Multiplier": 1.5, "Open": True,},
+        "Craps": {"Access": 0, "Cooldown": 5, "Max": 500, "Min": 50, "Multiplier": 2.0, "Open": True,},
+        "Cups": {"Access": 0, "Cooldown": 5, "Max": 100, "Min": 25, "Multiplier": 1.8, "Open": True,},
+        "Dice": {"Access": 0, "Cooldown": 5, "Max": 100, "Min": 25, "Multiplier": 1.8, "Open": True,},
+        "Hilo": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.7, "Open": True,},
+        "Double": {"Access": 0, "Cooldown": 5, "Min": 10, "Max": 250, "Multiplier": None, "Open": True,},
+        "War": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.5, "Open": True},
+    },
 }
 
 member_defaults = deepcopy(user_defaults)
@@ -207,8 +140,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Settings.clear()
-        msg = ("{0.name} ({0.id}) reset all "
-               "casino settings.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) reset all " "casino settings.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_memberships(self, ctx):
@@ -217,8 +149,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Memberships.clear()
-        msg = ("{0.name} ({0.id}) cleared "
-               "all casino memberships.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) cleared " "all casino memberships.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_games(self, ctx):
@@ -227,8 +158,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Games.clear()
-        msg = ("{0.name} ({0.id}) restored casino games to "
-               "default settings.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) restored casino games to " "default settings.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_all_settings(self, ctx):
@@ -253,8 +183,7 @@ class Database:
         await data.Played.clear()
         await data.Won.clear()
 
-        msg = ("{0.name} ({0.id}) reset all stats for "
-               "{1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all stats for " "{1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_player_all(self, ctx, player):
@@ -269,8 +198,7 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.clear()
 
-        msg = ("{0.name} ({0.id}) reset all data "
-               "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all data " "for {1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_player_cooldowns(self, ctx, player):
@@ -285,8 +213,7 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.Cooldowns.clear()
 
-        msg = ("{0.name} ({0.id}) reset all cooldowns "
-               "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all cooldowns " "for {1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_cooldowns(self, ctx):
@@ -300,14 +227,12 @@ class Database:
                 except AttributeError:
                     user = await ctx.bot.get_user_info(player)
                 await self.db.user(user).Cooldowns.clear()
-            msg = ("{0.name} ({0.id}) reset all "
-                   "global cooldowns.").format(ctx.author)
+            msg = ("{0.name} ({0.id}) reset all " "global cooldowns.").format(ctx.author)
         else:
             for player in await self.db.all_members(ctx.guild):
                 user = ctx.guild.get_member(player)
                 await self.db.member(user).Cooldowns.clear()
-            msg = ("{0.name} ({0.id}) reset all "
-                   "cooldowns on {1.name}.").format(ctx.author, ctx.guild)
+            msg = ("{0.name} ({0.id}) reset all " "cooldowns on {1.name}.").format(ctx.author, ctx.guild)
 
         await ctx.send(msg)
 
@@ -320,7 +245,7 @@ class Database:
         Toggles how data is stored for casino between local and global.
         When switching modes, all perviously stored data will be deleted.
         """
-        if mode == 'global':
+        if mode == "global":
             await self.db.clear_all_members()
             await self.db.clear_all_guilds()
             await self.db.Settings.Global.set(True)
@@ -356,6 +281,5 @@ class Database:
         try:
             return name, memberships[name]
         except KeyError:
-            await player_data.Membership.set({"Name": "Basic",
-                                              "Assigned": False})
+            await player_data.Membership.set({"Name": "Basic", "Assigned": False})
             return "Basic", basic

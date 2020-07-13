@@ -59,7 +59,7 @@ class Core:
             msg = "▂▃▅▇█▓▒░ [♠]  [♥]  [♦]  [♣] ░▒▓█▇▅▃▂\n"
             msg += _("          CONGRATULATIONS YOU WON\n")
             msg += _("░▒▓█▇▅▃▂ ⚅ J A C K P O T ⚅ ▂▃▅▇█▓▒░")
-            msg = box(msg, lang='py')
+            msg = box(msg, lang="py")
             bet *= multiplier
         else:
             msg = _("Nothing happens. You stare at the machine contemplating your decision.")
@@ -73,7 +73,7 @@ class Core:
         msg = _("The coin landed on {}!").format(outcome)
         return choice.lower() in outcome, bet, msg, message
 
-    @game_engine("Cups", ('1', '2', '3'))
+    @game_engine("Cups", ("1", "2", "3"))
     async def play_cups(self, ctx, bet, choice):
         message = await ctx.send(_("The cups start shuffling along the table..."))
         await asyncio.sleep(3)
@@ -83,8 +83,7 @@ class Core:
 
     @game_engine("Dice")
     async def play_dice(self, ctx, bet):
-        message = await ctx.send(_("The dice strike the back of the table and begin to tumble into "
-                         "place..."))
+        message = await ctx.send(_("The dice strike the back of the table and begin to tumble into " "place..."))
         await asyncio.sleep(2)
         die_one, die_two = self.roll_dice()
         outcome = die_one + die_two
@@ -92,7 +91,7 @@ class Core:
         msg = _("The dice landed on {} and {} ({}).").format(die_one, die_two, outcome)
         return outcome in (2, 7, 11, 12), bet, msg, message
 
-    @game_engine("Hilo", (_("low"), _("lo"), _('high'), _('hi'), _('seven'), _('7')))
+    @game_engine("Hilo", (_("low"), _("lo"), _("high"), _("hi"), _("seven"), _("7")))
     async def play_hilo(self, ctx, bet, choice):
         message = await ctx.send(_("The dice hit the table and slowly fall into place..."))
         await asyncio.sleep(2)
@@ -139,8 +138,10 @@ class Core:
         elif result in (2, 3, 12):
             return False, bet, msg.format(d1, d2), message
 
-        await message.edit("{}\nI'll roll the dice one more time. This time you will need exactly "
-                       "{} to win.".format(msg.format(d1, d2), d1 + d2))
+        await message.edit(
+            "{}\nI'll roll the dice one more time. This time you will need exactly "
+            "{} to win.".format(msg.format(d1, d2), d1 + d2)
+        )
         return await self._craps_game(ctx, bet, comeout=result, message=message)
 
     @staticmethod
@@ -185,7 +186,7 @@ class Blackjack:
         msg = await ctx.send(ctx.author.mention, embed=embed)
 
         try:
-            choice = await ctx.bot.wait_for('message', check=condition1, timeout=35.0)
+            choice = await ctx.bot.wait_for("message", check=condition1, timeout=35.0)
         except asyncio.TimeoutError:
             dh = self.dealer(dh)
             return ph, dh, amount, msg
@@ -205,11 +206,10 @@ class Blackjack:
         try:
             await bank.withdraw_credits(ctx.author, amount)
         except ValueError:
-            await ctx.send(_("{} You can not cover the bet. Please choose "
-                             "hit or stay.").format(ctx.author.mention))
+            await ctx.send(_("{} You can not cover the bet. Please choose " "hit or stay.").format(ctx.author.mention))
 
             try:
-                choice2 = await ctx.bot.wait_for('message', check=condition2, timeout=35.0)
+                choice2 = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
             except asyncio.TimeoutError:
                 return ph, dh, amount, message
 
@@ -274,7 +274,7 @@ class Blackjack:
     def dealer(dh):
         count = deck.bj_count(dh)
         # forces hit if ace in first two cards without 21
-        if deck.hand_check(dh, 'Ace') and count != 21:
+        if deck.hand_check(dh, "Ace") and count != 21:
             deck.deal(hand=dh)
             count = deck.bj_count(dh)
 
@@ -296,11 +296,11 @@ class Blackjack:
         dealer_hand = hole if not outcome else ", ".join(deck.fmt_hand(dh))
 
         embed = discord.Embed(colour=0xFF0000)
-        embed.add_field(name=_("{}'s Hand").format(ctx.author.name),
-                        value=hand.format(", ".join(deck.fmt_hand(ph)), count1))
-        embed.add_field(name=_("{}'s Hand").format(ctx.bot.user.name),
-                        value=hand.format(dealer_hand, count2))
-        embed.add_field(name='\u200b', value=options, inline=False)
+        embed.add_field(
+            name=_("{}'s Hand").format(ctx.author.name), value=hand.format(", ".join(deck.fmt_hand(ph)), count1),
+        )
+        embed.add_field(name=_("{}'s Hand").format(ctx.bot.user.name), value=hand.format(dealer_hand, count2))
+        embed.add_field(name="\u200b", value=options, inline=False)
         embed.set_footer(text=footer.format(len(deck)))
         return embed
 
@@ -316,8 +316,12 @@ class War:
     async def war_game(self, ctx, bet):
         player_card, dealer_card, pc, dc = self.war_draw()
 
-        message = await ctx.send(_("The dealer shuffles the deck and deals 2 cards face down. One for the "
-                         "player and one for the dealer..."))
+        message = await ctx.send(
+            _(
+                "The dealer shuffles the deck and deals 2 cards face down. One for the "
+                "player and one for the dealer..."
+            )
+        )
         await asyncio.sleep(2)
         await message.edit(content=_("**FLIP!**"))
         await asyncio.sleep(1)
@@ -329,14 +333,18 @@ class War:
                 outcome = "Loss"
             return outcome, player_card, dealer_card, bet, message
 
-        await message.edit(content=_("The player and dealer are both showing a **{}**!\nTHIS MEANS "
-                         "WAR! You may choose to surrender and forfeit half your bet, or "
-                         "you can go to war.\nIf you go to war your bet will be doubled, "
-                         "but the multiplier is only applied to your original bet, the rest will "
-                         "be pushed.").format(deck.fmt_card(player_card)))
+        await message.edit(
+            content=_(
+                "The player and dealer are both showing a **{}**!\nTHIS MEANS "
+                "WAR! You may choose to surrender and forfeit half your bet, or "
+                "you can go to war.\nIf you go to war your bet will be doubled, "
+                "but the multiplier is only applied to your original bet, the rest will "
+                "be pushed."
+            ).format(deck.fmt_card(player_card))
+        )
         pred = MessagePredicate.lower_contained_in((_("war"), _("surrender"), _("ffs")), ctx=ctx)
         try:
-            choice = await ctx.bot.wait_for('message', check=pred, timeout=35.0)
+            choice = await ctx.bot.wait_for("message", check=pred, timeout=35.0)
         except asyncio.TimeoutError:
             return "Surrender", player_card, dealer_card, bet, message
 
@@ -359,8 +367,9 @@ class War:
 
     @staticmethod
     async def war_results(outcome, player_card, dealer_card, amount, message=None):
-        msg = _("**Player Card:** {}\n**Dealer Card:** {}\n"
-                "").format(deck.fmt_card(player_card), deck.fmt_card(dealer_card))
+        msg = _("**Player Card:** {}\n**Dealer Card:** {}\n" "").format(
+            deck.fmt_card(player_card), deck.fmt_card(dealer_card)
+        )
         if outcome == "Win":
             msg += _("**Result**: Winner")
             return True, amount, msg, message
@@ -452,11 +461,9 @@ class Double:
             score = double.format(amount, count)
 
         embed = discord.Embed(colour=0xFF0000)
-        embed.add_field(name=_("{}'s Score").format(ctx.author.name),
-                        value=score)
-        embed.add_field(name='\u200b', value=options, inline=False)
+        embed.add_field(name=_("{}'s Score").format(ctx.author.name), value=score)
+        embed.add_field(name="\u200b", value=options, inline=False)
         if not outcome:
-            embed.add_field(name='\u200b', value='Remember, you can cash out at anytime.',
-                            inline=False)
-        embed.set_footer(text='Try again and test your luck!')
+            embed.add_field(name="\u200b", value="Remember, you can cash out at anytime.", inline=False)
+        embed.set_footer(text="Try again and test your luck!")
         return embed

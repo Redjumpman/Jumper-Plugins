@@ -21,8 +21,7 @@ outputs = (
     "What I'm not crying. *sniff*",
     "I TOLD YOU, YOU COULD DO IT!",
     "Well I'm sure someone will miss you, {0}.",
-    "Never forget. {0}."
-    "Yeah. Real smart guys. Just kill off all the fun people.",
+    "Never forget. {0}." "Yeah. Real smart guys. Just kill off all the fun people.",
     "I think I got some splatter on me. Gross",
     "I told you it would blow your mind!",
     "Well this is fun...",
@@ -58,5 +57,5 @@ outputs = (
     "Don't act like you didn't enjoy that, {1}!",
     "Is it weird that I wish {1} was dead instead?",
     "Oh real great. {0} dies and I'm still stuck with {1}. Real. Great.",
-    "Are you eating cheetos? Have some respect {1}! {0} just died!"
+    "Are you eating cheetos? Have some respect {1}! {0} just died!",
 )
