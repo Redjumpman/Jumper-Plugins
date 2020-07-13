@@ -12,7 +12,7 @@ from redbot.core import Config, bank, checks, commands
 from redbot.core.errors import BalanceTooHigh
 
 
-__version__ = "3.1.05"
+__version__ = "3.1.06"
 __author__ = "Redjumpman"
 
 
