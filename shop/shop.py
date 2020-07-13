@@ -147,14 +147,14 @@ class Shop(BaseCog):
         shops = await instance.Shops.all()
         col = await self.check_availability(ctx, shops)
         if not col:
-            return await ctx.send("Either no items have been created, or you need a " "higher role.")
+            return await ctx.send("Either no items have been created, or you need a higher role.")
         if purchase:
             try:
                 shop, item = purchase
             except ValueError:
-                return await ctx.send("Too many parameters passed. Use help on this command for " "more information.")
+                return await ctx.send("Too many parameters passed. Use help on this command for more information.")
             if shop not in shops:
-                return await ctx.send("Either that shop does not exist, or you don't have access " "to it.")
+                return await ctx.send("Either that shop does not exist, or you don't have access to it.")
 
         else:
             style = await instance.Settings.Sorting()
@@ -303,7 +303,7 @@ class Shop(BaseCog):
     async def wipe(self, ctx):
         """Wipes all shop cog data."""
         await ctx.send(
-            "You are about to delete all shop and user data from the bot. Are you " "sure this is what you wish to do?"
+            "You are about to delete all shop and user data from the bot. Are you sure this is what you wish to do?"
         )
 
         try:
@@ -494,7 +494,7 @@ class Shop(BaseCog):
                             item["Qty"] += amount
                         except TypeError:
                             continue
-            await ctx.send("All items in {} have had their quantities increased by {}." "".format(shop, amount))
+            await ctx.send("All items in {} have had their quantities increased by {}.".format(shop, amount))
         else:
             await ctx.send("Restock canceled.")
 
@@ -563,7 +563,7 @@ class Shop(BaseCog):
         mode = "global" if await self.shop_is_global() else "local"
         alt = "local" if mode == "global" else "global"
         await ctx.send(
-            "Shop is currently set to {} mode. Would you like to change to {} " "mode instead?".format(mode, alt)
+            "Shop is currently set to {} mode. Would you like to change to {} mode instead?".format(mode, alt)
         )
         checks = Checks(ctx)
         try:
@@ -625,7 +625,7 @@ class Shop(BaseCog):
         By default shops are ordered by price."""
         instance = await self.get_instance(ctx, settings=True)
         if style not in ("price", "quantity", "name"):
-            return await ctx.send("You must pick a valid sorting option: " "`price`, `quantity`, or `name`.")
+            return await ctx.send("You must pick a valid sorting option: `price`, `quantity`, or `name`.")
         await instance.Settings.Sorting.set(style.lower())
         await ctx.send(f"Shops will now be sorted by {style}.")
 
@@ -677,7 +677,7 @@ class Shop(BaseCog):
 
     @staticmethod
     async def clear_all_pending(ctx, instance, user):
-        await ctx.send("You are about to clear all pending items from {}.\n" "Are you sure you wish to do this?")
+        await ctx.send("You are about to clear all pending items from {}.\nAre you sure you wish to do this?")
         choice = await ctx.bot.wait_for("message", timeout=25, check=Checks(ctx).confirm)
         if choice.content.lower() == "yes":
             async with instance.Pending() as p:
@@ -709,7 +709,7 @@ class Shop(BaseCog):
         role = discord.utils.get(ctx.message.guild.roles, name=role_name)
         if role is None:
             await ctx.send(
-                "Could not assign the role, {}, because it does not exist " "on the server.".format(role_name)
+                "Could not assign the role, {}, because it does not exist on the server.".format(role_name)
             )
         try:
             await ctx.author.add_roles(role, reason="Shop role token was redeemed.")
@@ -768,14 +768,14 @@ class Shop(BaseCog):
             async with instance.Shops() as shops:
                 shops[name.content]["Role"] = role.content
             await ctx.send(
-                "{} is now restricted to only users " "with the {} role.".format(name.content, role.content)
+                "{} is now restricted to only users with the {} role.".format(name.content, role.content)
             )
 
     async def delete_shop(self, ctx, instance):
         shops = await instance.Shops.all()
         await ctx.send("What shop would you like to delete?")
         name = await ctx.bot.wait_for("message", timeout=25, check=Checks(ctx, custom=shops).content)
-        await ctx.send("Are you sure you wish to delete {} and all of its " "items?".format(name.content))
+        await ctx.send("Are you sure you wish to delete {} and all of its items?".format(name.content))
         choice = await ctx.bot.wait_for("message", timeout=25, check=Checks(ctx).confirm)
 
         if choice.content.lower() == "no":
@@ -942,7 +942,7 @@ class ShopManager:
             await bank.withdraw_credits(self.ctx.author, cost)
         except ValueError:
             return await self.ctx.send(
-                "You cannot afford {}x {} for {} {}. Transaction " "ended.".format(num.content, item, cost, cur)
+                "You cannot afford {}x {} for {} {}. Transaction ended.".format(num.content, item, cost, cur)
             )
         im = ItemManager(self.ctx, self.instance)
         if _type == "auto":
@@ -971,7 +971,7 @@ class ShopManager:
         await im.remove(shop, item, stock, amount)
         await self.add(item, item_data, amount)
         await self.ctx.send(
-            "{} purchased {}x {} for {} {}." "".format(self.ctx.author.mention, amount, item, cost, cur)
+            "{} purchased {}x {} for {} {}.".format(self.ctx.author.mention, amount, item, cost, cur)
         )
 
     async def add(self, item, data, quantity):
@@ -1027,7 +1027,7 @@ class ItemManager:
         shops = await self.instance.Shops()
         shop = await self.ctx.bot.wait_for("message", timeout=25, check=Checks(self.ctx, custom=shops.keys()).content)
         await self.add(data, shop.content, name)
-        await self.ctx.send("Item creation complete. Check your logs to ensure it went to the " "approriate shop.")
+        await self.ctx.send("Item creation complete. Check your logs to ensure it went to the approriate shop.")
 
     async def delete(self):
         shop_list = await self.instance.Shops.all()
@@ -1117,7 +1117,7 @@ class ItemManager:
             async with self.instance.Shops() as shops:
                 shops[shop]["Items"][item]["Messages"].extend(auto_msgs)
                 shops[shop]["Items"][item]["Qty"] += len(auto_msgs)
-            return await self.ctx.send("{} messages were added to {}." "".format(len(auto_msgs), item))
+            return await self.ctx.send("{} messages were added to {}.".format(len(auto_msgs), item))
         return auto_msgs
 
     async def set_name(self, item=None, shop=None):
@@ -1151,7 +1151,7 @@ class ItemManager:
 
     async def set_role(self, item=None, shop=None):
         await self.ctx.send(
-            "What role do you wish for this item to assign?\n" "*Note, you cannot add a role higher than your own.*"
+            "What role do you wish for this item to assign?\n*Note, you cannot add a role higher than your own.*"
         )
         role = await self.ctx.bot.wait_for("message", timeout=25, check=self.hierarchy_check)
         if item:
@@ -1163,10 +1163,10 @@ class ItemManager:
     async def set_quantity(self, _type=None, item=None, shop=None):
         if _type == "auto":
             return await self.ctx.send(
-                "You can't change the quantity of an auto item. The " "quantity will match the messages set."
+                "You can't change the quantity of an auto item. The quantity will match the messages set."
             )
 
-        await self.ctx.send("What quantity do you want to set this item to?\n" "Type 0 for infinite.")
+        await self.ctx.send("What quantity do you want to set this item to?\nType 0 for infinite.")
 
         def check(m):
             return m.author == self.ctx.author and m.content.isdigit() and int(m.content) >= 0
@@ -1177,7 +1177,7 @@ class ItemManager:
             async with self.instance.Shops() as shops:
                 shops[shop]["Items"][item]["Qty"] = qty
             return await self.ctx.send(
-                "Quantity for {} now set to " "{}.".format(item, "infinite." if qty == "--" else qty)
+                "Quantity for {} now set to {}.".format(item, "infinite." if qty == "--" else qty)
             )
         return qty
 
@@ -1215,7 +1215,7 @@ class ItemManager:
             shops[shop]["Items"][item]["Type"] = _type.content.lower()
 
     async def set_info(self, item=None, shop=None):
-        await self.ctx.send("Specify the info text for this item.\n" "*Note* cannot be longer than 500 characters.")
+        await self.ctx.send("Specify the info text for this item.\n*Note* cannot be longer than 500 characters.")
         info = await self.ctx.bot.wait_for("message", timeout=40, check=Checks(self.ctx, length=500).length_under)
         if item:
             async with self.instance.Shops() as shops:
@@ -1241,9 +1241,9 @@ class ItemManager:
                 if new_allowed:
                     shops[shop] = {"Items": {item: data}, "Role": "@everyone"}
                     return log.info("Created the shop: {} and added {}.".format(shop, item))
-                log.error("{} could not be added to {}, " "because it does not exist.".format(item, shop))
+                log.error("{} could not be added to {}, because it does not exist.".format(item, shop))
             elif item in shops[shop]["Items"]:
-                log.error("{} was not added because that item already exists in {}." "".format(item, shop))
+                log.error("{} was not added because that item already exists in {}.".format(item, shop))
             else:
                 shops[shop]["Items"][item] = data
                 log.info("{} added to {}.".format(item, shop))
@@ -1292,17 +1292,17 @@ class Parser:
             log.warning("Row {} was not added because of an invalid type.".format(idx))
             return False
         elif row["Type"].lower() == "role" and not row["Role"]:
-            log.warning("Row {} was not added because the type is a role, but no role was set" ".".format(idx))
+            log.warning("Row {} was not added because the type is a role, but no role was set.".format(idx))
             return False
         elif (
             row["Type"].lower() == "role" and discord.utils.get(self.ctx.message.guild.roles, name=row["Role"]) is None
         ):
             log.warning(
-                "Row {} was not added because the {} role does not exist on " "the server.".format(idx, row["Role"])
+                "Row {} was not added because the {} role does not exist on the server.".format(idx, row["Role"])
             )
             return False
         elif row["Type"].lower() == "auto" and int(row["Qty"]) == 0:
-            log.warning("Row {} was not added because auto items cannot have an infinite quantity." "".format(idx))
+            log.warning("Row {} was not added because auto items cannot have an infinite quantity.".format(idx))
             return False
         elif row["Type"].lower() == "auto" and int(row["Qty"]) != len(messages):
             log.warning(
@@ -1311,7 +1311,7 @@ class Parser:
             )
             return False
         elif row["Type"].lower() == "auto" and any(len(x) > 2000 for x in messages):
-            log.warning("Row {} was not added because one of the messages exceeds 2000 characters." "".format(idx))
+            log.warning("Row {} was not added because one of the messages exceeds 2000 characters.".format(idx))
             return False
         elif row["Type"].lower() == "role":
             if discord.utils.get(self.ctx.message.guild.roles, name=row["Role"]) > self.ctx.author.top_role:
@@ -1371,7 +1371,7 @@ class Parser:
                     data["Qty"] = "--"
                 item_manager = ItemManager(self.ctx, self.instance)
                 await item_manager.add(data, row["Shop"], row["Item"], new_allowed=True)
-        await self.msg.edit(content="Bulk process finished. Please check your " "console for more information.")
+        await self.msg.edit(content="Bulk process finished. Please check your console for more information.")
 
 
 class ExitProcess(Exception):
