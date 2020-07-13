@@ -73,7 +73,7 @@ class Raffle(BaseCog):
         except asyncio.TimeoutError:
             return await ctx.send("Response timed out. A raffle failed to start.")
         str_roles = [r[0] for r in roles]
-        description = f"{description}\n\nReact to this " f"message with \U0001F39F to enter.\n\n"
+        description = f"{description}\n\nReact to this message with \U0001F39F to enter.\n\n"
 
         channel = await self._get_channel(ctx)
         end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
@@ -92,7 +92,7 @@ class Raffle(BaseCog):
         msg = await channel.send(embed=embed)
         embed.set_footer(
             text=(
-                f"Started by: {ctx.author.name} | Winners: {winners} | " f"Ends at {fmt_end} UTC | Raffle ID: {msg.id}"
+                f"Started by: {ctx.author.name} | Winners: {winners} | Ends at {fmt_end} UTC | Raffle ID: {msg.id}"
             )
         )
         await msg.edit(embed=embed)
@@ -252,7 +252,7 @@ class Raffle(BaseCog):
             await ctx.send("Title is too long. Must be 35 characters or less.")
             return None
         elif timer is None:
-            await ctx.send("Incorrect time format. Please use help on this command " "for more information.")
+            await ctx.send("Incorrect time format. Please use help on this command for more information.")
             return None
         else:
             return timer
@@ -417,23 +417,23 @@ class Raffle(BaseCog):
         reaction = next(filter(lambda x: x.emoji == "\U0001F39F", msg.reactions), None)
         if reaction is None:
             return await channel.send(
-                "It appears there were no valid entries, so a " "winner for the raffle could not be picked."
+                "It appears there were no valid entries, so a winner for the raffle could not be picked."
             )
         users = [user for user in await reaction.users().flatten() if guild.get_member(user.id)]
         users.remove(self.bot.user)
         try:
             amt = int(msg.embeds[0].footer.text.split("Winners: ")[1][0])
         except AttributeError:  # the footer was not set in time
-            return await channel.send("An error occurred, so a winner for the raffle " "could not be picked.")
+            return await channel.send("An error occurred, so a winner for the raffle could not be picked.")
         valid_entries = await self.validate_entries(users, msg)
         winners = random.sample(valid_entries, min(len(valid_entries), amt))
         if not winners:
             await channel.send(
-                "It appears there were no valid entries, so a winner " "for the raffle could not be picked."
+                "It appears there were no valid entries, so a winner for the raffle could not be picked."
             )
         else:
             display = ", ".join(winner.mention for winner in winners)
-            await channel.send(f"Congratulations {display}! You have won the " f"{msg.embeds[0].title} raffle!")
+            await channel.send(f"Congratulations {display}! You have won the {msg.embeds[0].title} raffle!")
 
     async def validate_entries(self, users, msg):
         dos, roles = msg.embeds[0].fields
