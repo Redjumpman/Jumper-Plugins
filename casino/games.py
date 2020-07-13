@@ -117,7 +117,8 @@ class Core:
 
     async def _craps_game(self, ctx, bet, comeout=False, message=None):
         if message:
-            await message.edit(_("The dice strike against the back of the table..."))
+            await asyncio.sleep(3)
+            await message.edit(content=_("The dice strike against the back of the table..."))
         else:
             message = await ctx.send(_("The dice strike against the back of the table..."))
         await asyncio.sleep(2)
@@ -139,7 +140,7 @@ class Core:
             return False, bet, msg.format(d1, d2), message
 
         await message.edit(
-            "{}\nI'll roll the dice one more time. This time you will need exactly "
+            content="{}\nI'll roll the dice one more time. This time you will need exactly "
             "{} to win.".format(msg.format(d1, d2), d1 + d2)
         )
         return await self._craps_game(ctx, bet, comeout=result, message=message)

@@ -5,6 +5,8 @@ from functools import wraps
 # Casino
 from typing import Optional
 
+from redbot.core.utils.chat_formatting import humanize_number
+
 from . import utils
 from .data import Database
 
@@ -253,7 +255,7 @@ class GameEngine(Database):
     async def build_embed(self, msg, settings, win, total, bonus):
         balance = await bank.get_balance(self.player)
         currency = await bank.get_currency_name(self.guild)
-        bal_msg = _("**Remaining Balance:** {} {}").format(balance, currency)
+        bal_msg = _("**Remaining Balance:** {} {}").format(humanize_number(balance), currency)
         embed = discord.Embed()
         embed.title = _("{} Casino | {}").format(settings["Settings"]["Casino_Name"], self.game)
 
@@ -265,7 +267,9 @@ class GameEngine(Database):
 
         if win:
             embed.colour = 0x00FF00
-            end = _("Congratulations, you just won {} {} {}!\n" "{}").format(total, currency, bonus, bal_msg)
+            end = _("Congratulations, you just won {} {} {}!\n" "{}").format(
+                humanize_number(total), currency, bonus, bal_msg
+            )
         else:
             embed.colour = 0xFF0000
             end = _("Sorry, you didn't win anything.\n{}").format(bal_msg)
@@ -293,7 +297,7 @@ class GameEngine(Database):
             bonus_multiplier = 1
         total = round(amount * bonus_multiplier)
         bonus = total - amount
-        return total, amount, "(+{})".format(bonus if bonus_multiplier > 1 else 0)
+        return total, amount, "(+{})".format(humanize_number(bonus) if bonus_multiplier > 1 else 0)
 
     @staticmethod
     def limit_check(settings, amount):
