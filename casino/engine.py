@@ -111,12 +111,11 @@ class GameEngine(Database):
         elif settings["Games"][self.game]["Access"] > access:
             error = _(
                 "{} requires an access level of {}. Your current access level is {}. Obtain "
-                "a higher membership to play this "
-                "game."
+                "a higher membership to play this game."
             ).format(self.game, settings["Games"][self.game]["Access"], access)
 
         elif self.choices is not None and self.choice not in self.choices:
-            error = _("Incorrect response. Accepted responses are:" "\n{}.").format(utils.fmt_join(self.choices))
+            error = _("Incorrect response. Accepted responses are:\n{}.").format(utils.fmt_join(self.choices))
 
         elif not self.bet_in_range(settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]):
             error = _(
@@ -177,7 +176,7 @@ class GameEngine(Database):
         else:
             seconds = int((user_time + reduction - now))
             remaining = utils.time_formatter(seconds)
-            msg = _("{} is still on a cooldown. You still have: {} " "remaining.").format(self.game, remaining)
+            msg = _("{} is still on a cooldown. You still have: {} remaining.").format(self.game, remaining)
             return msg
 
     async def game_teardown(self, result):
@@ -267,7 +266,7 @@ class GameEngine(Database):
 
         if win:
             embed.colour = 0x00FF00
-            end = _("Congratulations, you just won {} {} {}!\n" "{}").format(
+            end = _("Congratulations, you just won {} {} {}!\n{}").format(
                 humanize_number(total), currency, bonus, bal_msg
             )
         else:
