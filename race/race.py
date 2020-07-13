@@ -16,7 +16,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.13"
+__version__ = "2.0.14"
 
 guild_defaults = {
     "Wait": 60,
