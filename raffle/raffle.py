@@ -28,8 +28,8 @@ class Raffle(BaseCog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.db = Config.get_conf(self, 5074395005, force_registration=True)
-        self.db.register_guild(**self.raffle_defaults)
+        self.config = Config.get_conf(self, 5074395005, force_registration=True)
+        self.config.register_guild(**self.raffle_defaults)
         self.load_check = self.bot.loop.create_task(self.raffle_worker())
 
     @commands.group(autohelp=True)
@@ -47,7 +47,7 @@ class Raffle(BaseCog):
     @raffle.command(hidden=True)
     @commands.is_owner()
     async def clear(self, ctx):
-        await self.db.guild(ctx.guild).Raffles.clear()
+        await self.config.guild(ctx.guild).Raffles.clear()
         await ctx.send("Raffle data cleared out.")
 
     @raffle.command()
@@ -98,7 +98,7 @@ class Raffle(BaseCog):
         await msg.edit(embed=embed)
         await msg.add_reaction("\U0001F39F")
 
-        async with self.db.guild(ctx.guild).Raffles() as r:
+        async with self.config.guild(ctx.guild).Raffles() as r:
             new_raffle = {
                 "Channel": channel.id,
                 "Timestamp": end,
@@ -148,7 +148,7 @@ class Raffle(BaseCog):
             await ctx.send("The raffle has been canceled.")
         finally:
             # Attempt to cleanup if a message was deleted and it's still stored in config.
-            async with self.db.guild(ctx.guild).Raffles() as r:
+            async with self.config.guild(ctx.guild).Raffles() as r:
                 try:
                     del r[str(message_id)]
                 except KeyError:
@@ -156,7 +156,7 @@ class Raffle(BaseCog):
 
     async def _menu(self, ctx, end="end"):
         title = f"Which of the following **Active** Raffles would you like to {end}?"
-        async with self.db.guild(ctx.guild).Raffles() as r:
+        async with self.config.guild(ctx.guild).Raffles() as r:
             if not r:
                 raise ValueError
             raffles = list(r.items())
@@ -235,9 +235,9 @@ class Raffle(BaseCog):
     async def channel(self, ctx, channel: discord.TextChannel = None):
         """Set the output channel for raffles."""
         if channel:
-            await self.db.guild(ctx.guild).Channel.set(channel.id)
+            await self.config.guild(ctx.guild).Channel.set(channel.id)
             return await ctx.send(f"Raffle output channel set to {channel.mention}.")
-        await self.db.guild(ctx.guild).Channel.clear()
+        await self.config.guild(ctx.guild).Channel.clear()
         await ctx.send("Raffles will now be started where they were created.")
 
     def cog_unload(self):
@@ -295,7 +295,7 @@ class Raffle(BaseCog):
         return roles
 
     async def _get_channel(self, ctx):
-        channel_id = await self.db.guild(ctx.guild).Channel()
+        channel_id = await self.config.guild(ctx.guild).Channel()
         channel = self.bot.get_channel(channel_id)
         if channel is None:
             channel = ctx.channel
@@ -351,10 +351,10 @@ class Raffle(BaseCog):
         """
         try:
             await self.bot.wait_until_ready()
-            guilds = [self.bot.get_guild(guild) for guild in await self.db.all_guilds()]
+            guilds = [self.bot.get_guild(guild) for guild in await self.config.all_guilds()]
             coros = []
             for guild in guilds:
-                raffles = await self.db.guild(guild).Raffles.all()
+                raffles = await self.config.guild(guild).Raffles.all()
                 if raffles:
                     now = calendar.timegm(datetime.utcnow().utctimetuple())
                     for key, value in raffles.items():
@@ -379,19 +379,19 @@ class Raffle(BaseCog):
         guild : Guild
             The guild object
         raffle : dict
-            All of the raffle information gained from the db to include:
+            All of the raffle information gained from the config to include:
             ID, channel, message, timestamp, and entries.
         remaining : int
             Number of seconds remaining until the raffle should end
         """
         await asyncio.sleep(remaining)
-        async with self.db.guild(guild).Raffles() as r:
+        async with self.config.guild(guild).Raffles() as r:
             data = r.get(str(raffle["ID"]))
         if data:
             await self.raffle_teardown(guild, raffle["ID"])
 
     async def raffle_teardown(self, guild, message_id):
-        raffles = await self.db.guild(guild).Raffles.all()
+        raffles = await self.config.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
 
         errored = False
@@ -407,7 +407,7 @@ class Raffle(BaseCog):
         if not errored:
             await self.pick_winner(guild, channel, msg)
 
-        async with self.db.guild(guild).Raffles() as r:
+        async with self.config.guild(guild).Raffles() as r:
             try:
                 del r[str(message_id)]
             except KeyError:
@@ -451,7 +451,7 @@ class Raffle(BaseCog):
         return users
 
     async def raffle_removal(self, ctx, message_id):
-        async with self.db.guild(ctx.guild).Raffles() as r:
+        async with self.config.guild(ctx.guild).Raffles() as r:
             try:
                 del r[str(message_id)]
             except KeyError:

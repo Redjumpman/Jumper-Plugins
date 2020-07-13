@@ -46,7 +46,7 @@ class Casino(Database, commands.Cog):
 
     async def initialise(self):
         self.migration_task = self.bot.loop.create_task(
-            self.data_schema_migration(from_version=await self.db.schema_version(), to_version=_SCHEMA_VERSION)
+            self.data_schema_migration(from_version=await self.config.schema_version(), to_version=_SCHEMA_VERSION)
         )
 
     # --------------------------------------------------------------------------------------------------
@@ -762,10 +762,10 @@ class Casino(Database, commands.Cog):
 
     async def global_updater(self):
         while True:
-            users = await self.db.all_users()
+            users = await self.config.all_users()
             if not users:
                 break
-            memberships = await self.db.Memberships.all()
+            memberships = await self.config.Memberships.all()
             if not memberships:
                 break
             for user in users:
@@ -778,11 +778,11 @@ class Casino(Database, commands.Cog):
                         continue
                 except discord.errors.NotFound:
                     continue
-                if await self.db.user(user_obj).Membership.Assigned():
-                    user_mem = await self.db.user(user_obj).Membership.Name()
+                if await self.config.user(user_obj).Membership.Assigned():
+                    user_mem = await self.config.user(user_obj).Membership.Name()
                     if user_mem not in memberships:
                         basic = {"Name": "Basic", "Assigned": False}
-                        await self.db.user(user_obj).Membership.set(basic)
+                        await self.config.user(user_obj).Membership.set(basic)
                     else:
                         continue
                 await self.process_user(memberships, user_obj, _global=True)
@@ -790,28 +790,28 @@ class Casino(Database, commands.Cog):
 
     async def local_updater(self):
         while True:
-            guilds = await self.db.all_guilds()
+            guilds = await self.config.all_guilds()
             if not guilds:
                 break
             for guild in guilds:
                 guild_obj = self.bot.get_guild(guild)
                 if not guild_obj:
                     continue
-                users = await self.db.all_members(guild_obj)
+                users = await self.config.all_members(guild_obj)
                 if not users:
                     continue
-                memberships = await self.db.guild(guild_obj).Memberships.all()
+                memberships = await self.config.guild(guild_obj).Memberships.all()
                 if not memberships:
                     continue
                 for user in users:
                     user_obj = guild_obj.get_member(user)
                     if user_obj is None:
                         continue
-                    if await self.db.member(user_obj).Membership.Assigned():
-                        user_mem = await self.db.member(user_obj).Membership.Name()
+                    if await self.config.member(user_obj).Membership.Assigned():
+                        user_mem = await self.config.member(user_obj).Membership.Name()
                         if user_mem not in memberships:
                             basic = {"Name": "Basic", "Assigned": False}
-                            await self.db.member(user_obj).Membership.set(basic)
+                            await self.config.member(user_obj).Membership.set(basic)
                         else:
                             continue
                     await self.process_user(memberships, user_obj)
@@ -848,11 +848,11 @@ class Casino(Database, commands.Cog):
 
         membership = max(qualified, key=itemgetter(1))[0] if qualified else "Basic"
         if _global:
-            async with self.db.user(user).Membership() as data:
+            async with self.config.user(user).Membership() as data:
                 data["Name"] = membership
                 data["Assigned"] = False
         else:
-            async with self.db.member(user).Membership() as data:
+            async with self.config.member(user).Membership() as data:
                 data["Name"] = membership
                 data["Assigned"] = False
 

@@ -61,11 +61,11 @@ class Shop(BaseCog):
     global_defaults["Global"] = False
 
     def __init__(self):
-        self.db = Config.get_conf(self, 5074395003, force_registration=True)
-        self.db.register_guild(**self.shop_defaults)
-        self.db.register_global(**self.global_defaults)
-        self.db.register_member(**self.member_defaults)
-        self.db.register_user(**self.user_defaults)
+        self.config = Config.get_conf(self, 5074395003, force_registration=True)
+        self.config.register_guild(**self.shop_defaults)
+        self.config.register_global(**self.global_defaults)
+        self.config.register_member(**self.member_defaults)
+        self.config.register_user(**self.user_defaults)
 
     # -----------------------COMMANDS-------------------------------------
 
@@ -108,10 +108,10 @@ class Shop(BaseCog):
             return await instance.Inventory.all()
 
     async def _inv_hook_instance(self, user):
-        if await self.db.Global():
-            return self.db.user(user)
+        if await self.config.Global():
+            return self.config.user(user)
         else:
-            return self.db.member(user)
+            return self.config.member(user)
 
     @commands.group(autohelp=True)
     async def shop(self, ctx):
@@ -312,7 +312,7 @@ class Shop(BaseCog):
             return await ctx.send("No Response. Action canceled.")
 
         if choice.content.lower() == "yes":
-            await self.db.clear_all()
+            await self.config.clear_all()
             msg = "{0.name} ({0.id}) wiped all shop data.".format(ctx.author)
             log.info(msg)
             await ctx.send(msg)
@@ -691,19 +691,19 @@ class Shop(BaseCog):
         if not user:
             user = ctx.author
 
-        if await self.db.Global():
+        if await self.config.Global():
             if settings:
-                return self.db
+                return self.config
             else:
-                return self.db.user(user)
+                return self.config.user(user)
         else:
             if settings:
-                return self.db.guild(ctx.guild)
+                return self.config.guild(ctx.guild)
             else:
-                return self.db.member(user)
+                return self.config.member(user)
 
     async def assign_role(self, ctx, instance, item, role_name):
-        if await self.db.Global():
+        if await self.config.Global():
             await ctx.send("Unable to assign role, because shop is in global mode.")
 
         role = discord.utils.get(ctx.message.guild.roles, name=role_name)
@@ -742,12 +742,12 @@ class Shop(BaseCog):
         await ctx.send(msg)
 
     async def change_mode(self, mode):
-        await self.db.clear_all()
+        await self.config.clear_all()
         if mode == "global":
-            await self.db.Global.set(True)
+            await self.config.Global.set(True)
 
     async def shop_is_global(self):
-        return await self.db.Global()
+        return await self.config.Global()
 
     async def edit_shop(self, ctx, instance):
         shops = await instance.Shops.all()
