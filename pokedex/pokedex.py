@@ -122,7 +122,7 @@ class Pokedex(commands.Cog):
                 poke = self.build_data(f"#{pokemon}", key="ID")
             else:
                 return await ctx.send(
-                    "When searching by pokedex number, it must " "be a three digit number. Example: 001"
+                    "When searching by pokedex number, it must be a three digit number. Example: 001"
                 )
         else:
             poke = self.build_data(pokemon.title())
