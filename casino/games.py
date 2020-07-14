@@ -145,7 +145,7 @@ class Core:
         elif result in (2, 3, 12):
             return False, bet, msg.format(d1, d2), message
         msg2 = _(
-            "{}\nI'll roll the dice one more time. This time you will need exactly " "{} to win."
+            "{}\nI'll roll the dice one more time. This time you will need exactly {} to win."
         ).format(msg.format(d1, d2), d1 + d2)
         if not await self.old_message_cache.get_guild(ctx.guild):
             await message.edit(content=msg2)
