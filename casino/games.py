@@ -50,9 +50,14 @@ class Core:
         second roll to win.
     """
 
+    def __init__(self, old_message_cache):
+        self.old_message_cache = old_message_cache
+
     @game_engine("Allin")
     async def play_allin(self, ctx, bet, multiplier):
-        message = await ctx.send(_("You put all your chips into the machine and pull the lever..."))
+        message = await ctx.send(
+            _("You put all your chips into the machine and pull the lever...")
+        )
         await asyncio.sleep(3)
         outcome = random.randint(0, multiplier + 1)
         if outcome == 0:
@@ -83,7 +88,9 @@ class Core:
 
     @game_engine("Dice")
     async def play_dice(self, ctx, bet):
-        message = await ctx.send(_("The dice strike the back of the table and begin to tumble into " "place..."))
+        message = await ctx.send(
+            _("The dice strike the back of the table and begin to tumble into " "place...")
+        )
         await asyncio.sleep(2)
         die_one, die_two = self.roll_dice()
         outcome = die_one + die_two
@@ -116,11 +123,12 @@ class Core:
         return await self._craps_game(ctx, bet)
 
     async def _craps_game(self, ctx, bet, comeout=False, message=None):
-        if message:
+        msg1 = _("The dice strike against the back of the table...")
+        if (not await self.old_message_cache.get_guild(ctx.guild)) and message:
             await asyncio.sleep(3)
-            await message.edit(content=_("The dice strike against the back of the table..."))
+            await message.edit(content=msg1)
         else:
-            message = await ctx.send(_("The dice strike against the back of the table..."))
+            message = await ctx.send(msg1)
         await asyncio.sleep(2)
         d1, d2 = self.roll_dice()
         result = d1 + d2
@@ -138,11 +146,13 @@ class Core:
             return True, bet, msg.format(d1, d2), message
         elif result in (2, 3, 12):
             return False, bet, msg.format(d1, d2), message
-
-        await message.edit(
-            content="{}\nI'll roll the dice one more time. This time you will need exactly "
-            "{} to win.".format(msg.format(d1, d2), d1 + d2)
-        )
+        msg2 = _(
+            "{}\nI'll roll the dice one more time. This time you will need exactly " "{} to win."
+        ).format(msg.format(d1, d2), d1 + d2)
+        if not await self.old_message_cache.get_guild(ctx.guild):
+            await message.edit(content=msg2)
+        else:
+            await ctx.send(msg2)
         return await self._craps_game(ctx, bet, comeout=result, message=message)
 
     @staticmethod
@@ -157,7 +167,8 @@ class Blackjack:
     can double down.
     """
 
-    def __init__(self):
+    def __init__(self, old_message_cache):
+        self.old_message_cache = old_message_cache
         super().__init__()
 
     @game_engine(name="Blackjack")
@@ -207,7 +218,11 @@ class Blackjack:
         try:
             await bank.withdraw_credits(ctx.author, amount)
         except ValueError:
-            await ctx.send(_("{} You can not cover the bet. Please choose " "hit or stay.").format(ctx.author.mention))
+            await ctx.send(
+                _("{} You can not cover the bet. Please choose " "hit or stay.").format(
+                    ctx.author.mention
+                )
+            )
 
             try:
                 choice2 = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
@@ -218,7 +233,9 @@ class Blackjack:
                 dh = self.dealer(dh)
                 return ph, dh, amount, message
             elif choice2.content.lower() == _("hit"):
-                ph, dh, message = await self.bj_loop(ctx, ph, dh, deck.bj_count(ph), condition2, message=message)
+                ph, dh, message = await self.bj_loop(
+                    ctx, ph, dh, deck.bj_count(ph), condition2, message=message
+                )
                 dh = self.dealer(dh)
                 return ph, dh, amount, message
         else:
@@ -258,7 +275,10 @@ class Blackjack:
             if count >= 21:
                 break
             embed = self.bj_embed(ctx, ph, dh, count)
-            await message.edit(content=ctx.author.mention, embed=embed)
+            if not await self.old_message_cache.get_guild(ctx.guild):
+                await message.edit(content=ctx.author.mention, embed=embed)
+            else:
+                await ctx.send(content=ctx.author.mention, embed=embed)
             try:
                 resp = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
             except asyncio.TimeoutError:
@@ -298,9 +318,12 @@ class Blackjack:
 
         embed = discord.Embed(colour=0xFF0000)
         embed.add_field(
-            name=_("{}'s Hand").format(ctx.author.name), value=hand.format(", ".join(deck.fmt_hand(ph)), count1),
+            name=_("{}'s Hand").format(ctx.author.name),
+            value=hand.format(", ".join(deck.fmt_hand(ph)), count1),
         )
-        embed.add_field(name=_("{}'s Hand").format(ctx.bot.user.name), value=hand.format(dealer_hand, count2))
+        embed.add_field(
+            name=_("{}'s Hand").format(ctx.bot.user.name), value=hand.format(dealer_hand, count2)
+        )
         embed.add_field(name="\u200b", value=options, inline=False)
         embed.set_footer(text=footer.format(len(deck)))
         return embed
@@ -308,6 +331,9 @@ class Blackjack:
 
 class War:
     """A simple class for the war card game."""
+
+    def __init__(self, old_message_cache):
+        self.old_message_cache = old_message_cache
 
     @game_engine("War")
     async def play(self, ctx, bet):
@@ -324,7 +350,11 @@ class War:
             )
         )
         await asyncio.sleep(2)
-        await message.edit(content=_("**FLIP!**"))
+        text = _("**FLIP!**")
+        if not await self.old_message_cache.get_guild(ctx.guild):
+            await message.edit(content=text)
+        else:
+            await ctx.send(text)
         await asyncio.sleep(1)
 
         if pc != dc:
@@ -333,16 +363,17 @@ class War:
             else:
                 outcome = "Loss"
             return outcome, player_card, dealer_card, bet, message
-
-        await message.edit(
-            content=_(
-                "The player and dealer are both showing a **{}**!\nTHIS MEANS "
-                "WAR! You may choose to surrender and forfeit half your bet, or "
-                "you can go to war.\nIf you go to war your bet will be doubled, "
-                "but the multiplier is only applied to your original bet, the rest will "
-                "be pushed."
-            ).format(deck.fmt_card(player_card))
-        )
+        content = _(
+            "The player and dealer are both showing a **{}**!\nTHIS MEANS "
+            "WAR! You may choose to surrender and forfeit half your bet, or "
+            "you can go to war.\nIf you go to war your bet will be doubled, "
+            "but the multiplier is only applied to your original bet, the rest will "
+            "be pushed."
+        ).format(deck.fmt_card(player_card))
+        if not await self.old_message_cache.get_guild(ctx.guild):
+            await message.edit(content=content)
+        else:
+            await ctx.send(content=content)
         pred = MessagePredicate.lower_contained_in((_("war"), _("surrender"), _("ffs")), ctx=ctx)
         try:
             choice = await ctx.bot.wait_for("message", check=pred, timeout=35.0)
@@ -356,9 +387,17 @@ class War:
         else:
             player_card, dealer_card, pc, dc = self.burn_and_draw()
 
-            await message.edit(content=_("The dealer burns three cards and deals two cards face down..."))
+            msg1 = _("The dealer burns three cards and deals two cards face down...")
+            msg2 = _("**FLIP!**")
+
+            if not await self.old_message_cache.get_guild(ctx.guild):
+                action = message.edit
+            else:
+                action = ctx.send
+
+            await action(content=msg1)
             await asyncio.sleep(3)
-            await message.edit(content=_("**FLIP!**"))
+            await action(content=msg2)
 
             if pc >= dc:
                 outcome = "Win"
@@ -401,6 +440,9 @@ class War:
 class Double:
     """A simple class for the Double Or Nothing game."""
 
+    def __init__(self, old_message_cache):
+        self.old_message_cache = old_message_cache
+
     @game_engine("Double")
     async def play(self, ctx, bet):
         count, amount, message = await self.double_game(ctx, bet)
@@ -424,7 +466,7 @@ class Double:
             pred = MessagePredicate.lower_contained_in((_("double"), _("cash out")), ctx=ctx)
 
             embed = self.double_embed(ctx, count, bet)
-            if message:
+            if (not await self.old_message_cache.get_guild(ctx.guild)) and message:
                 await message.edit(content=ctx.author.mention, embed=embed)
             else:
                 message = await ctx.send(ctx.author.mention, embed=embed)
@@ -465,6 +507,8 @@ class Double:
         embed.add_field(name=_("{}'s Score").format(ctx.author.name), value=score)
         embed.add_field(name="\u200b", value=options, inline=False)
         if not outcome:
-            embed.add_field(name="\u200b", value="Remember, you can cash out at anytime.", inline=False)
+            embed.add_field(
+                name="\u200b", value="Remember, you can cash out at anytime.", inline=False
+            )
         embed.set_footer(text="Try again and test your luck!")
         return embed

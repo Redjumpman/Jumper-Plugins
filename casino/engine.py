@@ -116,12 +116,18 @@ class GameEngine(Database):
             ).format(self.game, settings["Games"][self.game]["Access"], access)
 
         elif self.choices is not None and self.choice not in self.choices:
-            error = _("Incorrect response. Accepted responses are:" "\n{}.").format(utils.fmt_join(self.choices))
+            error = _("Incorrect response. Accepted responses are:" "\n{}.").format(
+                utils.fmt_join(self.choices)
+            )
 
-        elif not self.bet_in_range(settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]):
+        elif not self.bet_in_range(
+            settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]
+        ):
             error = _(
                 "Your bet must be between "
-                "{} and {}.".format(settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"])
+                "{} and {}.".format(
+                    settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]
+                )
             )
 
         elif not await bank.can_spend(self.player, self.bet):
@@ -177,7 +183,9 @@ class GameEngine(Database):
         else:
             seconds = int((user_time + reduction - now))
             remaining = utils.time_formatter(seconds)
-            msg = _("{} is still on a cooldown. You still have: {} " "remaining.").format(self.game, remaining)
+            msg = _("{} is still on a cooldown. You still have: {} " "remaining.").format(
+                self.game, remaining
+            )
             return msg
 
     async def game_teardown(self, result):
@@ -189,7 +197,7 @@ class GameEngine(Database):
 
         if not win:
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
-            if message_obj:
+            if (not await self.old_message_cache.get_guild(self.ctx.guild)) and message_obj:
                 return await message_obj.edit(content=self.player.mention, embed=embed)
             else:
                 return await self.ctx.send(self.player.mention, embed=embed)
@@ -199,12 +207,16 @@ class GameEngine(Database):
         if self.limit_check(settings, amount):
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
             return await self.limit_handler(
-                embed, amount, player_data, settings["Settings"]["Payout_Limit"], message=message_obj,
+                embed,
+                amount,
+                player_data,
+                settings["Settings"]["Payout_Limit"],
+                message=message_obj,
             )
 
         total, bonus = await self.deposit_winnings(amount, player_data, settings)
         embed = await self.build_embed(msg, settings, win, total=total, bonus=bonus)
-        if message_obj:
+        if (not await self.old_message_cache.get_guild(self.ctx.guild)) and message_obj:
             return await message_obj.edit(content=self.player.mention, embed=embed)
         else:
             return await self.ctx.send(self.player.mention, embed=embed)
@@ -212,7 +224,7 @@ class GameEngine(Database):
     async def limit_handler(self, embed, amount, player_instance, limit, message):
         await player_instance.Pending_Credits.set(int(amount))
 
-        if message:
+        if (not await self.old_message_cache.get_guild(self.ctx.guild)) and message:
             await message.edit(content=self.player.mention, embed=embed)
         else:
             await self.ctx.send(self.player.mention, embed=embed)

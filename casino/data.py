@@ -6,7 +6,8 @@ import discord
 from redbot.core import Config, bank
 from collections import namedtuple
 
-from casino.utils import is_input_unsupported, min_int, max_int
+from .cache import OldMessageTypeManager
+from .utils import is_input_unsupported, min_int, max_int
 
 user_defaults = {
     "Pending_Credits": 0,
@@ -47,6 +48,7 @@ user_defaults = {
 }
 
 guild_defaults = {
+    "use_old_style": False,
     "Memberships": {},
     "Settings": {
         "Global": False,
@@ -56,14 +58,70 @@ guild_defaults = {
         "Payout_Limit": 10000,
     },
     "Games": {
-        "Allin": {"Access": 0, "Cooldown": 43200, "Min": None, "Max": None, "Multiplier": None, "Open": True,},
-        "Blackjack": {"Access": 0, "Cooldown": 5, "Min": 50, "Max": 500, "Multiplier": 2.0, "Open": True,},
-        "Coin": {"Access": 0, "Cooldown": 5, "Max": 10, "Min": 10, "Multiplier": 1.5, "Open": True,},
-        "Craps": {"Access": 0, "Cooldown": 5, "Max": 500, "Min": 50, "Multiplier": 2.0, "Open": True,},
-        "Cups": {"Access": 0, "Cooldown": 5, "Max": 100, "Min": 25, "Multiplier": 1.8, "Open": True,},
-        "Dice": {"Access": 0, "Cooldown": 5, "Max": 100, "Min": 25, "Multiplier": 1.8, "Open": True,},
-        "Hilo": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.7, "Open": True,},
-        "Double": {"Access": 0, "Cooldown": 5, "Min": 10, "Max": 250, "Multiplier": None, "Open": True,},
+        "Allin": {
+            "Access": 0,
+            "Cooldown": 43200,
+            "Min": None,
+            "Max": None,
+            "Multiplier": None,
+            "Open": True,
+        },
+        "Blackjack": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Min": 50,
+            "Max": 500,
+            "Multiplier": 2.0,
+            "Open": True,
+        },
+        "Coin": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Max": 10,
+            "Min": 10,
+            "Multiplier": 1.5,
+            "Open": True,
+        },
+        "Craps": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Max": 500,
+            "Min": 50,
+            "Multiplier": 2.0,
+            "Open": True,
+        },
+        "Cups": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Max": 100,
+            "Min": 25,
+            "Multiplier": 1.8,
+            "Open": True,
+        },
+        "Dice": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Max": 100,
+            "Min": 25,
+            "Multiplier": 1.8,
+            "Open": True,
+        },
+        "Hilo": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Min": 25,
+            "Max": 75,
+            "Multiplier": 1.7,
+            "Open": True,
+        },
+        "Double": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Min": 10,
+            "Max": 250,
+            "Multiplier": None,
+            "Open": True,
+        },
         "War": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.5, "Open": True},
     },
 }
@@ -89,6 +147,7 @@ class Database:
         self.config.register_global(schema_version=1, **global_defaults)
         self.config.register_member(**member_defaults)
         self.config.register_user(**user_defaults)
+        self.old_message_cache = OldMessageTypeManager(config=self.config, enable_cache=True)
         self.migration_task: asyncio.Task = None
         self.cog_ready_event: asyncio.Event = asyncio.Event()
 
@@ -115,26 +174,40 @@ class Database:
                 async with self.config._get_base_group(self.config.GUILD).all() as casino_data:
                     temp = deepcopy(casino_data)
                     for guild_id, guild_data in temp.items():
-                        if "Settings" in temp[guild_id] and "Payout_Limit" in temp[guild_id]["Settings"]:
+                        if (
+                            "Settings" in temp[guild_id]
+                            and "Payout_Limit" in temp[guild_id]["Settings"]
+                        ):
                             guild_payout = casino_data[guild_id]["Settings"]["Payout_Limit"]
                             if is_input_unsupported(guild_payout):
-                                casino_data[guild_id]["Settings"]["Payout_Limit"] = await bank.get_max_balance(
+                                casino_data[guild_id]["Settings"][
+                                    "Payout_Limit"
+                                ] = await bank.get_max_balance(
                                     guild_payout, guild=discord.Object(id=int(guild_id))
                                 )
                         if "Games" in temp[guild_id]:
                             for g, g_data in temp[guild_id]["Games"].items():
                                 for g_data_key, g_data_value in g_data.items():
-                                    if g_data_key in ["Access", "Cooldown", "Max", "Min", "Multiplier"]:
+                                    if g_data_key in [
+                                        "Access",
+                                        "Cooldown",
+                                        "Max",
+                                        "Min",
+                                        "Multiplier",
+                                    ]:
                                         if is_input_unsupported(g_data_value):
                                             if g_data_value < min_int:
                                                 g_data_value_new = min_int
                                             else:
                                                 g_data_value_new = max_int
-                                            casino_data[guild_id]["Games"][g][g_data_key] = g_data_value_new
+                                            casino_data[guild_id]["Games"][g][
+                                                g_data_key
+                                            ] = g_data_value_new
                 await self.config.schema_version.set(2)
             except Exception as e:
                 log.exception(
-                    "Fatal Exception during Data migration to Scheme 2, Casino cog will not be loaded.", exc_info=e
+                    "Fatal Exception during Data migration to Scheme 2, Casino cog will not be loaded.",
+                    exc_info=e,
                 )
                 raise
         self.cog_ready_event.set()
@@ -216,7 +289,9 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Games.clear()
-        msg = ("{0.name} ({0.id}) restored casino games to " "default settings.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) restored casino games to " "default settings.").format(
+            ctx.author
+        )
         await ctx.send(msg)
 
     async def _reset_all_settings(self, ctx):
@@ -241,7 +316,9 @@ class Database:
         await data.Played.clear()
         await data.Won.clear()
 
-        msg = ("{0.name} ({0.id}) reset all stats for " "{1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all stats for " "{1.name} ({1.id}).").format(
+            ctx.author, player
+        )
         await ctx.send(msg)
 
     async def _reset_player_all(self, ctx, player):
@@ -256,7 +333,9 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.clear()
 
-        msg = ("{0.name} ({0.id}) reset all data " "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all data " "for {1.name} ({1.id}).").format(
+            ctx.author, player
+        )
         await ctx.send(msg)
 
     async def _reset_player_cooldowns(self, ctx, player):
@@ -271,7 +350,9 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.Cooldowns.clear()
 
-        msg = ("{0.name} ({0.id}) reset all cooldowns " "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all cooldowns " "for {1.name} ({1.id}).").format(
+            ctx.author, player
+        )
         await ctx.send(msg)
 
     async def _reset_cooldowns(self, ctx):
@@ -290,7 +371,9 @@ class Database:
             for player in await self.config.all_members(ctx.guild):
                 user = ctx.guild.get_member(player)
                 await self.config.member(user).Cooldowns.clear()
-            msg = ("{0.name} ({0.id}) reset all " "cooldowns on {1.name}.").format(ctx.author, ctx.guild)
+            msg = ("{0.name} ({0.id}) reset all " "cooldowns on {1.name}.").format(
+                ctx.author, ctx.guild
+            )
 
         await ctx.send(msg)
 
