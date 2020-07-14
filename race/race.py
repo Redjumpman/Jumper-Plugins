@@ -16,7 +16,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.13"
+__version__ = "2.0.14"
 
 guild_defaults = {
     "Wait": 60,
@@ -107,7 +107,7 @@ class Race(commands.Cog):
         embed.add_field(
             name="Wins",
             value=(
-                f"1st: {user_data['Wins']['1']}\n2nd: " f"{user_data['Wins']['2']}\n" f"3rd: {user_data['Wins']['3']}"
+                f"1st: {user_data['Wins']['1']}\n2nd: {user_data['Wins']['2']}\n3rd: {user_data['Wins']['3']}"
             ),
         )
         embed.add_field(name="Losses", value=f'{user_data["Losses"]}')
@@ -242,7 +242,7 @@ class Race(commands.Cog):
     async def multiplier(self, ctx, multiplier: float):
         """Sets the betting multiplier."""
         if multiplier < 0:
-            return await ctx.send("So... you want them to lose money...when they win." "I'm not doing that.")
+            return await ctx.send("So... you want them to lose money...when they win. I'm not doing that.")
         if multiplier == 0:
             return await ctx.send("That means they win nothing. Just turn off betting.")
 
@@ -490,7 +490,7 @@ class Race(commands.Cog):
     async def run_game(self, ctx):
         players = await self._game_setup(ctx)
         setup = "\u200b\n" + "\n".join(
-            f":carrot: **{animal.current}** 🏁" f"[{jockey.name}]" for animal, jockey in players
+            f":carrot: **{animal.current}** 🏁[{jockey.name}]" for animal, jockey in players
         )
         track = await ctx.send(setup)
         while not all(animal.position == 0 for animal, jockey in players):

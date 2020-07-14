@@ -12,7 +12,7 @@ from redbot.core import Config, bank, checks, commands
 from redbot.core.errors import BalanceTooHigh
 
 
-__version__ = "3.1.05"
+__version__ = "3.1.06"
 __author__ = "Redjumpman"
 
 
@@ -90,7 +90,7 @@ class RussianRoulette(commands.Cog):
 
     async def game_checks(self, ctx, settings):
         if settings["Session"]["Active"]:
-            await ctx.author.send("You cannot join or start a game of russian roulette " "while one is active.")
+            await ctx.author.send("You cannot join or start a game of russian roulette while one is active.")
             return False
 
         if ctx.author.id in settings["Session"]["Players"]:
@@ -98,14 +98,14 @@ class RussianRoulette(commands.Cog):
             return False
 
         if len(settings["Session"]["Players"]) == settings["Chamber_Size"]:
-            await ctx.send("The roulette circle is full. Wait for this game to " "finish to join.")
+            await ctx.send("The roulette circle is full. Wait for this game to finish to join.")
             return False
 
         try:
             await bank.withdraw_credits(ctx.author, settings["Cost"])
         except ValueError:
             currency = await bank.get_currency_name(ctx.guild)
-            await ctx.send("Insufficient funds! This game requires " "{} {}.".format(settings["Cost"], currency))
+            await ctx.send("Insufficient funds! This game requires {} {}.".format(settings["Cost"], currency))
             return False
         else:
             return True
@@ -141,7 +141,7 @@ class RussianRoulette(commands.Cog):
             except BalanceTooHigh as e:
                 await bank.set_balance(ctx.author, e.max_balance)
             await self.reset_game(ctx)
-            return await ctx.send("You can't play by youself. That's just suicide.\nGame reset " "and cost refunded.")
+            return await ctx.send("You can't play by youself. That's just suicide.\nGame reset and cost refunded.")
         chamber = await self.config.guild(ctx.guild).Chamber_Size()
 
         counter = 1
@@ -161,7 +161,7 @@ class RussianRoulette(commands.Cog):
         while True:
             for turn, player in enumerate(itertools.cycle(players), 1):
                 await ctx.send(
-                    "{} presses the revolver to their head and slowly squeezes the " "trigger...".format(player.name)
+                    "{} presses the revolver to their head and slowly squeezes the trigger...".format(player.name)
                 )
                 await asyncio.sleep(5)
                 if turn == position:
