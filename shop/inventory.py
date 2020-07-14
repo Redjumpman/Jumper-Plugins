@@ -60,10 +60,10 @@ class Inventory:
         return [self.data[i : i + 5] if len(self.data) > 5 else self.data for i in range(0, len(self.data), 5)]
 
     def update(self, groups, page=0):
-        header = f"{'#':<3} {'Items':<29} {'Qty':<7} {'Type':<8}\n" f"{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}"
+        header = f"{'#':<3} {'Items':<29} {'Qty':<7} {'Type':<8}\n{'--':<3} {'-'*29:<29} {'-'*4:<7} {'-'*8:<8}"
         fmt = [header]
         for idx, x in enumerate(groups[page], 1):
-            line_one = f"{f'{idx}.': <{3}} {x[0]: <{28}s} {x[1]['Qty']: < {9}}" f"{x[1]['Type']: <{7}s}"
+            line_one = f"{f'{idx}.': <{3}} {x[0]: <{28}s} {x[1]['Qty']: < {9}}{x[1]['Type']: <{7}s}"
             fmt.append(line_one)
             fmt.append(f'< {x[1]["Info"][:50]} >' if len(x[1]["Info"]) < 50 else f'< {x[1]["Info"][:47]}... >')
             fmt.append("",)
