@@ -26,6 +26,7 @@ class Raffle(BaseCog):
 
     raffle_defaults = {
         "Channel": None,
+        "reaction": None,
         "Raffles": {}
     }
 
@@ -76,8 +77,11 @@ class Raffle(BaseCog):
         except asyncio.TimeoutError:
             return await ctx.send("Response timed out. A raffle failed to start.")
         str_roles = [r[0] for r in roles]
+        reaction = await self.db.guild(ctx.guild).reaction()
+        if not reaction:
+            reaction = '\U0001F39F'
         description = (f'{description}\n\nReact to this '
-                       f'message with \U0001F39F to enter.\n\n')
+                       f'message with {reaction} to enter.\n\n')
 
         channel = await self._get_channel(ctx)
         end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
@@ -95,7 +99,7 @@ class Raffle(BaseCog):
         embed.set_footer(text=(f'Started by: {ctx.author.name} | Winners: {winners} | '
                                f'Ends at {fmt_end} UTC | Raffle ID: {msg.id}'))
         await msg.edit(embed=embed)
-        await msg.add_reaction('\U0001F39F')
+        await msg.add_reaction(reaction)
 
         async with self.db.guild(ctx.guild).Raffles() as r:
             new_raffle = {"Channel": channel.id, "Timestamp": end, "DOS": dos, "Roles": roles,
@@ -211,6 +215,15 @@ class Raffle(BaseCog):
     async def setraffle(self, ctx):
         """Set Raffle group command"""
         pass
+
+    @setraffle.command()
+    async def emoji(self, ctx, emoji: discord.Emoji = None):
+        """Set the emoji for the raffle."""
+        if emoji:
+            await self.db.guild(ctx.guild).reaction.set(str(emoji))
+            return await ctx.send(f"Reactemoji was set to {emoji}.")
+        await self.db.guild(ctx.guild).reaction.clear()
+        await ctx.send("Reactemoji was resetted to \U0001F39F.")
 
     @setraffle.command()
     async def channel(self, ctx, channel: discord.TextChannel = None):
@@ -394,7 +407,10 @@ class Raffle(BaseCog):
                 pass
 
     async def pick_winner(self, guild, channel, msg):
-        reaction = next(filter(lambda x: x.emoji == '\U0001F39F', msg.reactions), None)
+        reaction = await self.db.guild(guild).reaction()
+        if not reaction:
+            reaction = '\U0001F39F'
+        reaction = next(filter(lambda x: str(x.emoji) == reaction, msg.reactions), None)
         if reaction is None:
             return await channel.send('It appears there were no valid entries, so a '
                                       'winner for the raffle could not be picked.')
