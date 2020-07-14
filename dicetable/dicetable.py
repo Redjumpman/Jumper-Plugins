@@ -52,7 +52,7 @@ class DiceTable(BaseCog):
             die, maximum = self.parse_dice(dice)
         except IndexError:
             return await ctx.send(
-                "Must be in the format of `number` `die` `number` Example:\n" "2d12, 1d20, 5d6, 2d4 3 4"
+                "Must be in the format of `number` `die` `number` Example:\n2d12, 1d20, 5d6, 2d4 3 4"
             )
 
         if modifier < 0:
