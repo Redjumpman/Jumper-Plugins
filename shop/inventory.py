@@ -44,7 +44,7 @@ class Inventory:
                 return groups[page][int(choice.content) - 1][0]
             elif choice.content.lower() in (">", "n", "next"):
                 page += 1
-            elif choice.content.lower() in ("bd", "<" "back"):
+            elif choice.content.lower() in ("bd", "<", "back"):
                 page -= 1
             elif choice.content.lower() in ("e", "x", "exit"):
                 await choice.delete()
