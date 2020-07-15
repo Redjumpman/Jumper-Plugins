@@ -3,6 +3,7 @@ import asyncio
 import itertools
 import random
 import discord
+import contextlib
 
 # Russian Roulette
 from .kill import outputs
@@ -90,7 +91,8 @@ class RussianRoulette(commands.Cog):
 
     async def game_checks(self, ctx, settings):
         if settings["Session"]["Active"]:
-            await ctx.author.send("You cannot join or start a game of russian roulette while one is active.")
+            with contextlib.suppress(discord.Forbidden):
+                await ctx.author.send("You cannot join or start a game of russian roulette while one is active.")
             return False
 
         if ctx.author.id in settings["Session"]["Players"]:
