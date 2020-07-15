@@ -1,13 +1,17 @@
+import asyncio
+import logging
 from copy import deepcopy
-from redbot.core import Config
+
+import discord
+from redbot.core import Config, bank
 from collections import namedtuple
+
+from .cache import OldMessageTypeManager
+from .utils import is_input_unsupported, min_int, max_int
 
 user_defaults = {
     "Pending_Credits": 0,
-    "Membership": {
-        "Name": "Basic",
-        "Assigned": False
-    },
+    "Membership": {"Name": "Basic", "Assigned": False},
     "Played": {
         "Allin": 0,
         "Blackjack": 0,
@@ -17,7 +21,7 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
+        "Double": 0,
     },
     "Won": {
         "Allin": 0,
@@ -28,7 +32,7 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
+        "Double": 0,
     },
     "Cooldowns": {
         "Allin": 0,
@@ -39,18 +43,19 @@ user_defaults = {
         "Dice": 0,
         "Hilo": 0,
         "War": 0,
-        "Double": 0
-    }
+        "Double": 0,
+    },
 }
 
 guild_defaults = {
+    "use_old_style": False,
     "Memberships": {},
     "Settings": {
         "Global": False,
         "Casino_Name": "Redjumpman's",
         "Casino_Open": True,
         "Payout_Switch": False,
-        "Payout_Limit": 10000
+        "Payout_Limit": 10000,
     },
     "Games": {
         "Allin": {
@@ -59,8 +64,7 @@ guild_defaults = {
             "Min": None,
             "Max": None,
             "Multiplier": None,
-            "Open": True
-
+            "Open": True,
         },
         "Blackjack": {
             "Access": 0,
@@ -68,7 +72,7 @@ guild_defaults = {
             "Min": 50,
             "Max": 500,
             "Multiplier": 2.0,
-            "Open": True
+            "Open": True,
         },
         "Coin": {
             "Access": 0,
@@ -76,7 +80,7 @@ guild_defaults = {
             "Max": 10,
             "Min": 10,
             "Multiplier": 1.5,
-            "Open": True
+            "Open": True,
         },
         "Craps": {
             "Access": 0,
@@ -84,7 +88,7 @@ guild_defaults = {
             "Max": 500,
             "Min": 50,
             "Multiplier": 2.0,
-            "Open": True
+            "Open": True,
         },
         "Cups": {
             "Access": 0,
@@ -92,7 +96,7 @@ guild_defaults = {
             "Max": 100,
             "Min": 25,
             "Multiplier": 1.8,
-            "Open": True
+            "Open": True,
         },
         "Dice": {
             "Access": 0,
@@ -100,7 +104,7 @@ guild_defaults = {
             "Max": 100,
             "Min": 25,
             "Multiplier": 1.8,
-            "Open": True
+            "Open": True,
         },
         "Hilo": {
             "Access": 0,
@@ -108,7 +112,7 @@ guild_defaults = {
             "Min": 25,
             "Max": 75,
             "Multiplier": 1.7,
-            "Open": True
+            "Open": True,
         },
         "Double": {
             "Access": 0,
@@ -116,17 +120,10 @@ guild_defaults = {
             "Min": 10,
             "Max": 250,
             "Multiplier": None,
-            "Open": True
+            "Open": True,
         },
-        "War": {
-            "Access": 0,
-            "Cooldown": 5,
-            "Min": 25,
-            "Max": 75,
-            "Multiplier": 1.5,
-            "Open": True
-        }
-    }
+        "War": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.5, "Open": True},
+    },
 }
 
 member_defaults = deepcopy(user_defaults)
@@ -138,20 +135,87 @@ _DataNamedTuple = namedtuple("Casino", "foo")
 _DataObj = _DataNamedTuple(foo=None)
 
 
+log = logging.getLogger("red.jumper-plugins.casino")
+
+
 class Database:
 
-    db = Config.get_conf(_DataObj, 5074395001, force_registration=True)
+    config: Config = Config.get_conf(_DataObj, 5074395001, force_registration=True)
 
     def __init__(self):
-        self.db.register_guild(**guild_defaults)
-        self.db.register_global(**global_defaults)
-        self.db.register_member(**member_defaults)
-        self.db.register_user(**user_defaults)
+        self.config.register_guild(**guild_defaults)
+        self.config.register_global(schema_version=1, **global_defaults)
+        self.config.register_member(**member_defaults)
+        self.config.register_user(**user_defaults)
+        self.old_message_cache = OldMessageTypeManager(config=self.config, enable_cache=True)
+        self.migration_task: asyncio.Task = None
+        self.cog_ready_event: asyncio.Event = asyncio.Event()
+
+    async def data_schema_migration(self, from_version: int, to_version: int):
+        if from_version == to_version:
+            self.cog_ready_event.set()
+            return
+        if from_version < 2 <= to_version:
+            try:
+                async with self.config.all() as casino_data:
+                    temp = deepcopy(casino_data)
+                    global_payout = casino_data["Settings"]["Payout_Limit"]
+                    if is_input_unsupported(global_payout):
+                        casino_data["Settings"]["Payout_Limit"] = await bank.get_max_balance()
+                    for g, g_data in temp["Games"].items():
+                        for g_data_key, g_data_value in g_data.items():
+                            if g_data_key in ["Access", "Cooldown", "Max", "Min", "Multiplier"]:
+                                if is_input_unsupported(g_data_value):
+                                    if g_data_value < min_int:
+                                        g_data_value_new = min_int
+                                    else:
+                                        g_data_value_new = max_int
+                                    casino_data["Games"][g][g_data_key] = g_data_value_new
+                async with self.config._get_base_group(self.config.GUILD).all() as casino_data:
+                    temp = deepcopy(casino_data)
+                    for guild_id, guild_data in temp.items():
+                        if (
+                            "Settings" in temp[guild_id]
+                            and "Payout_Limit" in temp[guild_id]["Settings"]
+                        ):
+                            guild_payout = casino_data[guild_id]["Settings"]["Payout_Limit"]
+                            if is_input_unsupported(guild_payout):
+                                casino_data[guild_id]["Settings"][
+                                    "Payout_Limit"
+                                ] = await bank.get_max_balance(
+                                    guild_payout, guild=discord.Object(id=int(guild_id))
+                                )
+                        if "Games" in temp[guild_id]:
+                            for g, g_data in temp[guild_id]["Games"].items():
+                                for g_data_key, g_data_value in g_data.items():
+                                    if g_data_key in [
+                                        "Access",
+                                        "Cooldown",
+                                        "Max",
+                                        "Min",
+                                        "Multiplier",
+                                    ]:
+                                        if is_input_unsupported(g_data_value):
+                                            if g_data_value < min_int:
+                                                g_data_value_new = min_int
+                                            else:
+                                                g_data_value_new = max_int
+                                            casino_data[guild_id]["Games"][g][
+                                                g_data_key
+                                            ] = g_data_value_new
+                await self.config.schema_version.set(2)
+            except Exception as e:
+                log.exception(
+                    "Fatal Exception during Data migration to Scheme 2, Casino cog will not be loaded.",
+                    exc_info=e,
+                )
+                raise
+        self.cog_ready_event.set()
 
     async def casino_is_global(self):
         """Checks to see if the casino is storing data on
            a per server basis or globally."""
-        return await self.db.Settings.Global()
+        return await self.config.Settings.Global()
 
     async def get_data(self, ctx, player=None):
         """
@@ -165,14 +229,14 @@ class Database:
         """
         if await self.casino_is_global():
             if player is None:
-                return self.db
+                return self.config
             else:
-                return self.db.user(player)
+                return self.config.user(player)
         else:
             if player is None:
-                return self.db.guild(ctx.guild)
+                return self.config.guild(ctx.guild)
             else:
-                return self.db.member(player)
+                return self.config.member(player)
 
     async def get_all(self, ctx, player):
         """
@@ -197,7 +261,7 @@ class Database:
 
         This wipes everything, including member/user data.
         """
-        await self.db.clear_all()
+        await self.config.clear_all()
         msg = "{0.name} ({0.id}) wiped all casino data.".format(ctx.author)
         await ctx.send(msg)
 
@@ -207,8 +271,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Settings.clear()
-        msg = ("{0.name} ({0.id}) reset all "
-               "casino settings.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) reset all casino settings.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_memberships(self, ctx):
@@ -217,8 +280,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Memberships.clear()
-        msg = ("{0.name} ({0.id}) cleared "
-               "all casino memberships.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) cleared all casino memberships.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_games(self, ctx):
@@ -227,8 +289,7 @@ class Database:
         """
         data = await self.get_data(ctx)
         await data.Games.clear()
-        msg = ("{0.name} ({0.id}) restored casino games to "
-               "default settings.").format(ctx.author)
+        msg = ("{0.name} ({0.id}) restored casino games to default settings.").format(ctx.author)
         await ctx.send(msg)
 
     async def _reset_all_settings(self, ctx):
@@ -253,8 +314,7 @@ class Database:
         await data.Played.clear()
         await data.Won.clear()
 
-        msg = ("{0.name} ({0.id}) reset all stats for "
-               "{1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all stats for {1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_player_all(self, ctx, player):
@@ -269,8 +329,7 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.clear()
 
-        msg = ("{0.name} ({0.id}) reset all data "
-               "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all data for {1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_player_cooldowns(self, ctx, player):
@@ -285,8 +344,7 @@ class Database:
         data = await self.get_data(ctx, player=player)
         await data.Cooldowns.clear()
 
-        msg = ("{0.name} ({0.id}) reset all cooldowns "
-               "for {1.name} ({1.id}).").format(ctx.author, player)
+        msg = ("{0.name} ({0.id}) reset all cooldowns for {1.name} ({1.id}).").format(ctx.author, player)
         await ctx.send(msg)
 
     async def _reset_cooldowns(self, ctx):
@@ -294,20 +352,18 @@ class Database:
         Resets all game cooldowns for every player in the database.
         """
         if await self.casino_is_global():
-            for player in await self.db.all_users():
+            for player in await self.config.all_users():
                 try:
                     user = await ctx.bot.fetch_user(player)
                 except AttributeError:
                     user = await ctx.bot.get_user_info(player)
-                await self.db.user(user).Cooldowns.clear()
-            msg = ("{0.name} ({0.id}) reset all "
-                   "global cooldowns.").format(ctx.author)
+                await self.config.user(user).Cooldowns.clear()
+            msg = ("{0.name} ({0.id}) reset all global cooldowns.").format(ctx.author)
         else:
-            for player in await self.db.all_members(ctx.guild):
+            for player in await self.config.all_members(ctx.guild):
                 user = ctx.guild.get_member(player)
-                await self.db.member(user).Cooldowns.clear()
-            msg = ("{0.name} ({0.id}) reset all "
-                   "cooldowns on {1.name}.").format(ctx.author, ctx.guild)
+                await self.config.member(user).Cooldowns.clear()
+            msg = ("{0.name} ({0.id}) reset all cooldowns on {1.name}.").format(ctx.author, ctx.guild)
 
         await ctx.send(msg)
 
@@ -320,14 +376,14 @@ class Database:
         Toggles how data is stored for casino between local and global.
         When switching modes, all perviously stored data will be deleted.
         """
-        if mode == 'global':
-            await self.db.clear_all_members()
-            await self.db.clear_all_guilds()
-            await self.db.Settings.Global.set(True)
+        if mode == "global":
+            await self.config.clear_all_members()
+            await self.config.clear_all_guilds()
+            await self.config.Settings.Global.set(True)
         else:
-            await self.db.clear_all_users()
-            await self.db.clear_all_globals()
-            await self.db.Settings.Global.set(False)
+            await self.config.clear_all_users()
+            await self.config.clear_all_globals()
+            await self.config.Settings.Global.set(False)
 
     async def _update_cooldown(self, ctx, game, time):
         player_data = await self.get_data(ctx, player=ctx.author)
@@ -356,6 +412,5 @@ class Database:
         try:
             return name, memberships[name]
         except KeyError:
-            await player_data.Membership.set({"Name": "Basic",
-                                              "Assigned": False})
+            await player_data.Membership.set({"Name": "Basic", "Assigned": False})
             return "Basic", basic

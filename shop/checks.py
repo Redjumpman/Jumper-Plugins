@@ -20,7 +20,7 @@ class Checks:
         return self.ctx.author == m.author
 
     def confirm(self, m):
-        return self.same(m) and m.content.lower() in ('yes', 'no')
+        return self.same(m) and m.content.lower() in ("yes", "no")
 
     def valid_int(self, m):
         return self.same(m) and m.content.isdigit()

@@ -14,7 +14,7 @@ from redbot.core import commands
 from tabulate import tabulate
 
 
-__version__ = "2.0.03"
+__version__ = "2.0.04"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
@@ -51,22 +51,25 @@ class DiceTable(BaseCog):
         try:
             die, maximum = self.parse_dice(dice)
         except IndexError:
-            return await ctx.send("Must be in the format of `number` `die` `number` Example:\n"
-                                  "2d12, 1d20, 5d6, 2d4 3 4")
+            return await ctx.send(
+                "Must be in the format of `number` `die` `number` Example:\n2d12, 1d20, 5d6, 2d4 3 4"
+            )
 
         if modifier < 0:
             sign = ""
         else:
             sign = "+"
 
-        rolls = [("{}".format(x), self.roll_dice(die, maximum), sign + str(modifier))
-                 for idx, x in enumerate(range(1, times + 1))]
+        rolls = [
+            ("{}".format(x), self.roll_dice(die, maximum), sign + str(modifier))
+            for idx, x in enumerate(range(1, times + 1))
+        ]
         final = [x + (str(x[1] + modifier),) for x in rolls]
         headers = ["Roll", "Result", "Modifier", "Total"]
-        t = '**Dice:** {}\n```{}```'.format(dice, tabulate(final, headers=headers))
-        embed = discord.Embed(title='Dice Table Output', color=0x3366FF)
-        embed.add_field(name='\u200b', value=t, inline=False)
-        embed.add_field(name='\u200b', value='\u200b')
+        t = "**Dice:** {}\n```{}```".format(dice, tabulate(final, headers=headers))
+        embed = discord.Embed(title="Dice Table Output", color=0x3366FF)
+        embed.add_field(name="\u200b", value=t, inline=False)
+        embed.add_field(name="\u200b", value="\u200b")
         await ctx.message.delete()
         await ctx.send(embed=embed)
 

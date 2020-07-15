@@ -14,7 +14,6 @@ import discord
 
 
 class Jisho(commands.Cog):
-
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
@@ -31,7 +30,7 @@ class Jisho(commands.Cog):
         if not search_args:
             return
         limit, query = search_args
-        message = urllib.parse.quote(query, encoding='utf-8')
+        message = urllib.parse.quote(query, encoding="utf-8")
         url = "http://jisho.org/api/v1/search/words?keyword=" + message
         async with self.session.get(url) as response:
             data = await response.json()
@@ -40,20 +39,18 @@ class Jisho(commands.Cog):
         except KeyError:
             return await ctx.send("I was unable to retrieve any data")
         try:
-            await ctx.send('\n'.join(messages))
+            await ctx.send("\n".join(messages))
         except discord.HTTPException:
             await ctx.send("No data for that word.")
 
     def parse_data(self, result):
         japanese = result["japanese"]
-        output = self.display_word(japanese[0], "**{reading}**",
-                                   "**{word}** {reading}") + "\n"
+        output = self.display_word(japanese[0], "**{reading}**", "**{word}** {reading}") + "\n"
         new_line = ""
         if result["is_common"]:
             new_line += "Common word. "
         if result["tags"]:
-            new_line += "Wanikani level " + ", ".join(
-                [tag[8:] for tag in result["tags"]]) + ". "
+            new_line += "Wanikani level " + ", ".join([tag[8:] for tag in result["tags"]]) + ". "
         if new_line:
             output += new_line + "\n"
         senses = result["senses"]
@@ -71,9 +68,9 @@ class Jisho(commands.Cog):
                 output += ". *See also: {}*".format(", ".join(sense["see_also"]))
             output += "\n"
         if len(japanese) > 1:
-            output += "Other forms: {}\n".format(", ".join(
-                [self.display_word(x, "{reading}", "{word} ({reading})") for x in
-                 japanese[1:]]))
+            output += "Other forms: {}\n".format(
+                ", ".join([self.display_word(x, "{reading}", "{word} ({reading})") for x in japanese[1:]])
+            )
         return output
 
     def display_word(self, obj, *formats):
