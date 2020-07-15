@@ -39,8 +39,11 @@ class Inventory:
             check = MenuCheck(self.ctx, groups, page, maximum)
             choice = await self.ctx.bot.wait_for("message", timeout=35.0, check=check.predicate)
             if choice.content.isdigit() and int(choice.content) in range(1, len(groups[page]) + 1):
-                await choice.delete()
-                await msg.delete()
+                try:
+                    await choice.delete()
+                    await msg.delete()
+                except (discord.NotFound, discord.Forbidden):
+                    pass
                 return groups[page][int(choice.content) - 1][0]
             elif choice.content.lower() in (">", "n", "next"):
                 page += 1

@@ -26,7 +26,7 @@ from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.09"
+__version__ = "3.1.10"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
@@ -37,7 +37,7 @@ def global_permissions():
         is_owner = await ctx.bot.is_owner(ctx.author)
         if is_owner:
             return True
-        if not await Shop().shop_is_global():
+        if not await Shop().shop_is_global() and ctx.guild:
             permissions = ctx.channel.permissions_for(ctx.author)
             admin_role = await ctx.bot._config.guild(ctx.guild).admin_role()
             author_roles = [role.id for role in ctx.author.roles]
@@ -75,7 +75,7 @@ class Shop(BaseCog):
         try:
             instance = await self.get_instance(ctx, user=ctx.author)
         except AttributeError:
-            return await ctx.send("You can't use this command in pm when not in global mode.")
+            return await ctx.send("You can't use this command in DMs when not in global mode.")
         if not await instance.Inventory():
             return await ctx.send("You don't have any items to display.")
         data = await instance.Inventory.all()
@@ -118,6 +118,7 @@ class Shop(BaseCog):
         """Shop group command"""
         pass
 
+    @commands.max_concurrency(1, commands.BucketType.user)
     @shop.command()
     async def buy(self, ctx, *purchase):
         """Shop menu appears with no purchase order.
@@ -126,7 +127,7 @@ class Shop(BaseCog):
         shop menu.
 
         Using the purchase argument allows direct purchases from a shop.
-        The order is `Shop Name, Item Name` and names with spaces
+        The order is "Shop Name" "Item Name" and names with spaces
         must include quotes.
 
         Examples
@@ -138,7 +139,7 @@ class Shop(BaseCog):
         try:
             instance = await self.get_instance(ctx, settings=True)
         except AttributeError:
-            return await ctx.send("You can't use this command in pm when not in global mode.")
+            return await ctx.send("You can't use this command in DMs when not in global mode.")
         if not await instance.Shops():
             return await ctx.send("No shops have been created yet.")
         if await instance.Settings.Closed():
@@ -147,7 +148,10 @@ class Shop(BaseCog):
         shops = await instance.Shops.all()
         col = await self.check_availability(ctx, shops)
         if not col:
-            return await ctx.send("Either no items have been created, or you need a higher role.")
+            return await ctx.send(
+                "Either no items have been created, you need a higher role,  "
+                "or this command should be used in a server and not DMs."
+            )
         if purchase:
             try:
                 shop, item = purchase
@@ -179,7 +183,7 @@ class Shop(BaseCog):
         try:
             instance = await self.get_instance(ctx, user=ctx.author)
         except AttributeError:
-            return await ctx.send("You can't use this command in pm when not in global mode.")
+            return await ctx.send("You can't use this command in DMs when not in global mode.")
         data = await instance.Inventory.all()
         if data is None:
             return await ctx.send("Your inventory is empty.")
@@ -190,6 +194,7 @@ class Shop(BaseCog):
         await self.pending_prompt(ctx, instance, data, item)
 
     @shop.command()
+    @commands.guild_only()
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def trade(self, ctx, user: discord.Member, quantity: int, *, item: str):
         """Attempts to trade an item with another user.
@@ -198,10 +203,7 @@ class Shop(BaseCog):
         Cooldown will trigger regardless of the outcome.
         """
         cancel = ctx.prefix + "cancel"
-        try:
-            author_instance = await self.get_instance(ctx, user=ctx.author)
-        except AttributeError:
-            return await ctx.send("You can't use this command in pm when not in global mode.")
+        author_instance = await self.get_instance(ctx, user=ctx.author)
         author_inventory = await author_instance.Inventory.all()
         user_instance = await self.get_instance(ctx, user=user)
         user_inv = await user_instance.Inventory.all()
@@ -288,7 +290,10 @@ class Shop(BaseCog):
     @shop.command()
     async def tradetoggle(self, ctx):
         """Disables or enables trading with you."""
-        instance = await self.get_instance(ctx, user=ctx.author)
+        try:
+            instance = await self.get_instance(ctx, user=ctx.author)
+        except AttributeError:
+            return await ctx.send("You can't use this command in DMs when not in global mode.")
         status = await instance.Trading()
         await instance.Trading.set(not status)
         await ctx.send("Trading with you is now {}.".format("disabled" if status else "enabled"))
@@ -653,9 +658,10 @@ class Shop(BaseCog):
 
     @staticmethod
     async def check_availability(ctx, shops):
-        perms = ctx.author.guild_permissions.administrator
-        author_roles = [r.name for r in ctx.author.roles]
-        return [x for x, y in shops.items() if (y["Role"] in author_roles or perms) and y["Items"]]
+        if ctx.guild:
+            perms = ctx.author.guild_permissions.administrator
+            author_roles = [r.name for r in ctx.author.roles]
+            return [x for x, y in shops.items() if (y["Role"] in author_roles or perms) and y["Items"]]
 
     @staticmethod
     async def clear_single_pending(ctx, instance, data, item, user):
@@ -704,11 +710,15 @@ class Shop(BaseCog):
 
     async def assign_role(self, ctx, instance, item, role_name):
         if await self.config.Global():
-            await ctx.send("Unable to assign role, because shop is in global mode.")
+            if not ctx.guild:
+                return await ctx.send(
+                    "Unable to assign role, because shop is in global mode."
+                    "Try redeeming your item in a server instead of in DMs."
+                )
 
         role = discord.utils.get(ctx.message.guild.roles, name=role_name)
         if role is None:
-            await ctx.send(
+            return await ctx.send(
                 "Could not assign the role, {}, because it does not exist on the server.".format(role_name)
             )
         try:
@@ -767,9 +777,7 @@ class Shop(BaseCog):
             role = await ctx.bot.wait_for("message", timeout=25, check=Checks(ctx).role)
             async with instance.Shops() as shops:
                 shops[name.content]["Role"] = role.content
-            await ctx.send(
-                "{} is now restricted to only users with the {} role.".format(name.content, role.content)
-            )
+            await ctx.send("{} is now restricted to only users with the {} role.".format(name.content, role.content))
 
     async def delete_shop(self, ctx, instance):
         shops = await instance.Shops.all()
@@ -791,11 +799,17 @@ class Shop(BaseCog):
         if name.content in await instance.Shops():
             return await ctx.send("A shop with this name already exists.")
 
-        await ctx.send(
+        msg = (
             "What role can use this shop? Use `all` for everyone.\n"
-            "*Note: this role must exist on this server and is "
-            "case sensitive.*"
+            "*Note: this role must exist on this server and is case sensitive.*\n"
         )
+        if await self.shop_is_global():
+            msg += (
+                "Shop is also currently in global mode. If you choose to restrict "
+                "this shop to a role that is on this server, the shop will only be "
+                "visible on this server to people with the role."
+            )
+        await ctx.send(msg)
 
         def predicate(m):
             if m.author == ctx.author:
@@ -934,7 +948,7 @@ class ShopManager:
         amount = int(num.content)
         try:
             await num.delete()
-        except discord.NotFound:
+        except (discord.NotFound, discord.Forbidden):
             pass
 
         cost *= amount
@@ -970,9 +984,7 @@ class ShopManager:
 
         await im.remove(shop, item, stock, amount)
         await self.add(item, item_data, amount)
-        await self.ctx.send(
-            "{} purchased {}x {} for {} {}.".format(self.ctx.author.mention, amount, item, cost, cur)
-        )
+        await self.ctx.send("{} purchased {}x {} for {} {}.".format(self.ctx.author.mention, amount, item, cost, cur))
 
     async def add(self, item, data, quantity):
         async with self.user_data.Inventory() as inv:
@@ -1328,9 +1340,7 @@ class Parser:
     async def parse_text_entry(self, text):
         keys = ("Shop", "Item", "Type", "Qty", "Cost", "Info", "Role", "Messages")
         raw_data = [
-            [f.strip() for f in y]
-            for y in [x.split(",") for x in text.strip("`").split("\n") if x]
-            if 6 <= len(y) <= 8
+            [f.strip() for f in y] for y in [x.split(",") for x in text.strip("`").split("\n") if x] if 6 <= len(y) <= 8
         ]
         bulk = [{key: value for key, value in zip_longest(keys, x)} for x in raw_data]
         await self.parse_bulk(bulk)

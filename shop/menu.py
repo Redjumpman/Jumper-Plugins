@@ -57,14 +57,14 @@ class ShopMenu:
                 selection = groups[page][int(choice.content) - 1]
                 try:
                     await choice.delete()
-                except discord.NotFound:
+                except (discord.NotFound, discord.Forbidden):
                     pass
                 if self.mode == 0:
                     item = await self.next_menu(data, selection, msg)
                     if not self.enabled:
                         try:
                             await msg.delete()
-                        except discord.NotFound:
+                        except (discord.NotFound, discord.Forbidden):
                             pass
                         return item
                 else:
@@ -72,7 +72,7 @@ class ShopMenu:
                     if not self.enabled:
                         try:
                             await msg.delete()
-                        except discord.NotFound:
+                        except (discord.NotFound, discord.Forbidden):
                             pass
                         return pending_id
             if choice.content.lower() in (">", "n", "next"):
@@ -83,7 +83,7 @@ class ShopMenu:
                 if (self.shop and self.mode == 0) or (self.user and self.mode == 1):
                     try:
                         await choice.delete()
-                    except discord.NotFound:
+                    except (discord.NotFound, discord.Forbidden):
                         pass
                     if self.mode == 0:
                         self.shop = None
@@ -94,13 +94,13 @@ class ShopMenu:
             elif choice.content.lower() in ("e", "x", "exit"):
                 try:
                     await choice.delete()
-                except discord.NotFound:
+                except (discord.NotFound, discord.Forbidden):
                     pass
                 raise MenuExit
 
             try:
                 await choice.delete()
-            except discord.NotFound:
+            except (discord.NotFound, discord.Forbidden):
                 msg, groups, page, maximum = await self.setup(msg=msg)
             embed = await self.build_menu(groups, page=page)
             await msg.edit(embed=embed)
@@ -167,9 +167,12 @@ class ShopMenu:
 
     def build_embed(self, options, footer):
         instructions = (
-            "Type the number for your selection.\nType `next` and `back` to advance "
-            "the menu or `prev` to see a previous menu.\n"
-            "Using `exit` will exit the menu."
+            "Type the number for your selection or one of the words below "
+            "for page navigation if there are multiple pages available.\n"
+            "Next page: Type n, next, or >\n"
+            "Previous page: Type b, back, or <\n"
+            "Return to previous menu: Type p or prev\n"
+            "Exit menu system: Type e, x, or exit"
         )
 
         if self.shop is None and self.mode == 0:
