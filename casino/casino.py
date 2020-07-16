@@ -28,7 +28,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.0"
+__version__ = "2.4.1"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -523,6 +523,13 @@ class Casino(Database, commands.Cog):
 
     # --------------------------------------------------------------------------------------------------
 
+    async def global_casino_only(ctx):
+        if await ctx.cog.config.Settings.Global() and not await ctx.bot.is_owner(ctx.author):
+            return False
+        else:
+            return True
+
+    @commands.check(global_casino_only)
     @commands.group()
     @commands.guild_only()
     @checks.admin_or_permissions(administrator=True)
