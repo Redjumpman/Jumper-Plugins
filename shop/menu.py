@@ -40,7 +40,7 @@ class ShopMenu:
             data = await self.parse_data(data)
 
         groups = self.group_data(data)
-        page, maximum = 0, len(groups)
+        page, maximum = 0, len(groups) - 1
         e = await self.build_menu(groups, page)
 
         if msg is None:
@@ -77,7 +77,7 @@ class ShopMenu:
                         return pending_id
             if choice.content.lower() in (">", "n", "next"):
                 page += 1
-            elif choice.content.lower() in ("bd", "<", "back"):
+            elif choice.content.lower() in ("b", "<", "back"):
                 page -= 1
             elif choice.content.lower() in ("p", "prev"):
                 if (self.shop and self.mode == 0) or (self.user and self.mode == 1):
@@ -100,8 +100,10 @@ class ShopMenu:
 
             try:
                 await choice.delete()
-            except (discord.NotFound, discord.Forbidden):
+            except discord.NotFound:
                 msg, groups, page, maximum = await self.setup(msg=msg)
+            except discord.Forbidden:
+                pass
             embed = await self.build_menu(groups, page=page)
             await msg.edit(embed=embed)
 
@@ -230,7 +232,7 @@ class MenuCheck:
                 return True
             elif m.content.lower() in ("exit", "prev", "p", "x", "e"):
                 return True
-            elif m.content.lower() in ("n", ">", "next") and (self.page + 1) < self.maximum:
+            elif m.content.lower() in ("n", ">", "next") and (self.page + 1) <= self.maximum:
                 return True
             elif m.content.lower() in ("b", "<", "back") and (self.page - 1) >= 0:
                 return True

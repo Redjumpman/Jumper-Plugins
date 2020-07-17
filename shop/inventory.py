@@ -27,7 +27,7 @@ class Inventory:
         options = self.update(groups, page)
         embed = self.build_embed(options, page, groups)
         if msg:
-            msg.edit(embed=embed)
+            await msg.edit(embed=embed)
         else:
             msg = await self.ctx.send(embed=embed)
         return msg, groups
@@ -47,17 +47,21 @@ class Inventory:
                 return groups[page][int(choice.content) - 1][0]
             elif choice.content.lower() in (">", "n", "next"):
                 page += 1
-            elif choice.content.lower() in ("bd", "<", "back"):
+            elif choice.content.lower() in ("b", "<", "back"):
                 page -= 1
             elif choice.content.lower() in ("e", "x", "exit"):
-                await choice.delete()
-                await msg.delete()
+                try:
+                    await choice.delete()
+                    await msg.delete()
+                except (discord.NotFound, discord.Forbidden):
+                    pass
                 raise ExitMenu
             elif choice.content.lower() in ("p", "prev"):
                 continue
             else:
                 msg, _ = await self.setup(groups=groups, page=page, msg=msg)
                 await msg.edit(embed=msg)
+            msg, _ = await self.setup(groups=groups, page=page, msg=msg)
 
     def splitter(self):
         return [self.data[i : i + 5] if len(self.data) > 5 else self.data for i in range(0, len(self.data), 5)]
@@ -74,8 +78,14 @@ class Inventory:
 
     def build_embed(self, options, page, groups):
         title = "{}'s Inventory".format(self.ctx.author.name)
-        footer = "You are viewing page {} of {}.".format(page if page > 0 else 1, len(groups))
-        instructions = "Type the number for your selection.\nType `next` and `back` to advance."
+        footer = "You are viewing page {} of {}.".format(page + 1 if page > 0 else 1, len(groups))
+        instructions = (
+            "Type the number for your selection or one of the words below "
+            "for page navigation if there are multiple pages available.\n"
+            "Next page: Type n, next, or >\n"
+            "Previous page: Type b, back, or <\n"
+            "Exit menu system: Type e, x, or exit"
+        )
         embed = discord.Embed(color=0x5EC6FF)
         embed.add_field(name=title, value=options, inline=False)
         embed.set_footer(text="\n".join((instructions, footer)))

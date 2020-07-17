@@ -26,7 +26,7 @@ from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.10"
+__version__ = "3.1.11"
 __author__ = "Redjumpman"
 
 BaseCog = getattr(commands, "Cog", object)
@@ -70,6 +70,7 @@ class Shop(BaseCog):
     # -----------------------COMMANDS-------------------------------------
 
     @commands.command()
+    @commands.max_concurrency(1, commands.BucketType.user)
     async def inventory(self, ctx):
         """Displays your purchased items."""
         try:
@@ -118,8 +119,8 @@ class Shop(BaseCog):
         """Shop group command"""
         pass
 
-    @commands.max_concurrency(1, commands.BucketType.user)
     @shop.command()
+    @commands.max_concurrency(1, commands.BucketType.user)
     async def buy(self, ctx, *purchase):
         """Shop menu appears with no purchase order.
 
@@ -177,6 +178,7 @@ class Shop(BaseCog):
         except ExitProcess:
             await ctx.send("Transaction canceled.")
 
+    @commands.max_concurrency(1, commands.BucketType.user)
     @shop.command()
     async def redeem(self, ctx, *, item: str):
         """Redeems an item in your inventory."""
@@ -327,13 +329,14 @@ class Shop(BaseCog):
     @shop.command()
     @global_permissions()
     @commands.guild_only()
+    @commands.max_concurrency(1, commands.BucketType.user)
     async def pending(self, ctx):
         """Displays the pending menu."""
         instance = await self.get_instance(ctx, settings=True)
         if not await instance.Pending():
             return await ctx.send("There are not any pending items.")
         data = await instance.Pending.all()
-        menu = ShopMenu(ctx, data, mode=1)
+        menu = ShopMenu(ctx, data, mode=1, sorting="name")
 
         try:
             user, item, = await menu.display()
@@ -937,13 +940,13 @@ class ShopManager:
                         return 0 < int(m.content) <= stock
                     except TypeError:
                         return 0 < int(m.content)
-                elif m.content.lower() in ("exit", "cancel", "x"):
+                elif m.content.lower() in ("exit", "cancel", "e", "x"):
                     return True
             else:
                 return False
 
         num = await self.ctx.bot.wait_for("message", timeout=25.0, check=predicate)
-        if num.content.lower() in ("exit", "cancel", "x"):
+        if num.content.lower() in ("exit", "cancel", "e", "x"):
             raise ExitProcess()
         amount = int(num.content)
         try:
