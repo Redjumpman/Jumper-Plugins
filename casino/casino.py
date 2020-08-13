@@ -28,7 +28,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.1"
+__version__ = "2.4.2"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -1126,7 +1126,9 @@ class Membership(Database):
     async def set_color(self, membership):
         await self.ctx.send(_("What color would you like to set?\n`{}`").format(utils.fmt_join(list(self.colors))))
 
-        pred = MessagePredicate.lower_contained_in(list(self.colors), ctx=self.ctx)
+        color_list = list(self.colors)
+        color_list.append(str(self.cancel))
+        pred = MessagePredicate.lower_contained_in(color_list, ctx=self.ctx)
         color = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
         if color.content.lower() == self.cancel:
@@ -1145,6 +1147,8 @@ class Membership(Database):
         memberships = await self.coro.all()
 
         def mem_check(m):
+            if not m.channel == self.ctx.channel and m.author == self.ctx.author:
+                return False
             if m.author == self.ctx.author:
                 if m.content == self.cancel:
                     raise ExitProcess
@@ -1177,11 +1181,8 @@ class Membership(Database):
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
         access = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=MessagePredicate.positive(ctx=self.ctx)
+            "message", timeout=25.0, check=self.positive_int_predicate
         )
-
-        if access.content.lower() == self.cancel:
-            raise ExitProcess()
 
         user_input = int(access.content)
         if is_input_unsupported(user_input):
@@ -1200,11 +1201,9 @@ class Membership(Database):
     async def set_reduction(self, membership):
         await self.ctx.send(_("What is the cooldown reduction of this membership in seconds?"))
         reduction = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=MessagePredicate.positive(ctx=self.ctx)
+            "message", timeout=25.0, check=self.positive_int_predicate
         )
 
-        if reduction.content.lower() == self.cancel:
-            raise ExitProcess()
         user_input = int(reduction.content)
         if is_input_unsupported(user_input):
             await self.ctx.send(_("Can't set the reduction to this value."))
@@ -1218,8 +1217,8 @@ class Membership(Database):
             membership_data[membership]["Reduction"] = user_input
 
     async def set_bonus(self, membership):
-        await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n*Defaults to one*"))
-        bonus = await self.ctx.bot.wait_for("message", timeout=25.0, check=MessagePredicate.valid_float(ctx=self.ctx))
+        await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n*Defaults to 1.0*"))
+        bonus = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_float_predicate)
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
@@ -1275,11 +1274,8 @@ class Membership(Database):
         await self.ctx.send(_("How many credits does this membership require?"))
 
         amount = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=MessagePredicate.positive(ctx=self.ctx)
+            "message", timeout=25.0, check=self.positive_int_predicate
         )
-
-        if amount.content.lower() == self.cancel:
-            raise ExitProcess()
 
         amount = int(amount.content)
         if is_input_unsupported(amount):
@@ -1323,7 +1319,7 @@ class Membership(Database):
             )
         )
         days = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=MessagePredicate.positive(ctx=self.ctx)
+            "message", timeout=25.0, check=self.positive_int_predicate
         )
 
         if self.mode == "create":
@@ -1348,6 +1344,36 @@ class Membership(Database):
             "**Days on Server/Discord Required:** {DOS}"
         ).format(name, **data)
         return discord.Embed(colour=0x2CD22C, description=description)
+
+    def positive_int_predicate(self, m: discord.Message):
+        if not m.channel == self.ctx.channel and m.author == self.ctx.author:
+            return False
+        if m.author == self.ctx.author:
+            if m.content == self.cancel:
+                raise ExitProcess
+        try:
+            int(m.content)
+        except ValueError:
+            return False
+        if int(m.content) < 1:
+            return False
+        else:
+            return True
+
+    def positive_float_predicate(self, m: discord.Message):
+        if not m.channel == self.ctx.channel and m.author == self.ctx.author:
+            return False
+        if m.author == self.ctx.author:
+            if m.content == self.cancel:
+                raise ExitProcess
+        try:
+            float(m.content)
+        except ValueError:
+            return False
+        if float(m.content) > 0:
+            return True
+        else:
+            return False
 
 
 class ExitProcess(Exception):
