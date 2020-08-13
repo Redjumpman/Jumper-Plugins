@@ -19,7 +19,7 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-__version__ = "3.1.1"
+__version__ = "3.1.2"
 __author__ = "Redjumpman"
 
 switcher = {
