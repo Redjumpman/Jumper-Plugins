@@ -19,7 +19,7 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-__version__ = "3.1.1"
+__version__ = "3.1.2"
 __author__ = "Redjumpman"
 
 switcher = {
@@ -57,7 +57,6 @@ exceptions = (
 
 tm_exceptions = (
     "Beldum",
-    "Burmy",
     "Cascoon",
     "Caterpie",
     "Combee",
@@ -219,8 +218,11 @@ class Pokedex(commands.Cog):
 
     @pokemon.command()
     async def tmset(self, ctx, *, pokemon: str):
-        """Get a Pokémon's learnset by generation(1-7).
-          Example: !pokedex tmset V pikachu """
+        """Get a Pokémon's learnset by generation (1-7).
+
+            Example: [p]pokedex tmset pikachu-5
+            If the generation is not specified, it will default to the latest generation.
+        """
         pokemon, generation = self.clean_output(pokemon)
 
         if pokemon.title() in tm_exceptions:
