@@ -31,6 +31,9 @@ class Raffle(BaseCog):
         self.config = Config.get_conf(self, 5074395005, force_registration=True)
         self.config.register_guild(**self.raffle_defaults)
         self.load_check = self.bot.loop.create_task(self.raffle_worker())
+    
+    async def red_delete_data_for_user(self,*,requester,user_id):
+        pass #No data needs to be deleted here, but the function needs to exist so the API knows a potential deletion would've been handled
 
     @commands.group(autohelp=True)
     @commands.guild_only()
