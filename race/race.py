@@ -47,6 +47,13 @@ class Race(commands.Cog):
         self.winners = []
         self.players = []
         self.bets = {}
+    
+    async def red_delete_data_for_user(self,*,requester,user_id):
+        data = await self.config.all_members()
+        for guild in data:
+            if user_id in data[guild]:
+                await self.config.member_from_ids(guild,user_id).set(member_defaults)
+                
 
     @commands.group()
     @commands.guild_only()
