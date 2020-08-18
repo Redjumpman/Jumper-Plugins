@@ -5,5 +5,6 @@
     "short" : "Race turtles and other animals against your friends and the bot.",
     "description" : "Race turtles and other animals against your friends. Allows for currency prizes, betting, and stat tracking.",
     "tags" : ["Games", "Race", "Turtles", "Economy"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement":"This cog stores your statistics for wins and losses in the racing game. You may request data deletion through the mydata command."
 }
