@@ -5,5 +5,6 @@
     "short" : "Outputs multiple dice rolls into a table.",
     "description" : "Outputs several dice rolls into a table. Can do several different types of rolls such as 1d6, 3d20, 4d4, etc.",
     "tags" : ["Dice", "DnD"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
 }

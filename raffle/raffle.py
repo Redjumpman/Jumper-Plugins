@@ -18,10 +18,8 @@ log = logging.getLogger("red.raffle")
 __author__ = "Redjumpman"
 __version__ = "4.2.4"
 
-BaseCog = getattr(commands, "Cog", object)
 
-
-class Raffle(BaseCog):
+class Raffle(commands.Cog):
     """Run simple Raffles for your server."""
 
     raffle_defaults = {"Channel": None, "Raffles": {}}
@@ -31,6 +29,10 @@ class Raffle(BaseCog):
         self.config = Config.get_conf(self, 5074395005, force_registration=True)
         self.config.register_guild(**self.raffle_defaults)
         self.load_check = self.bot.loop.create_task(self.raffle_worker())
+
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
 
     @commands.group(autohelp=True)
     @commands.guild_only()

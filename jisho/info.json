@@ -5,5 +5,6 @@
     "short" : "Translate English to Japanese",
     "description" : "Romaji, Hiragana, Kanji, and Katakana",
     "tags" : ["Translation", "Japanese", "Utility"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
 }

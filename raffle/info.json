@@ -6,5 +6,6 @@
     "description" : "Create reaction based raffles with timers that persist through restarts and shutdowns.",
     "permissions" : ["Manage Messages", "Embed Links", "Add Reactions"],
     "tags" : ["Raffle", "Giveaway", "Lottery"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
 }

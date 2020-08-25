@@ -29,6 +29,10 @@ class RussianRoulette(commands.Cog):
         self.config = Config.get_conf(self, 5074395004, force_registration=True)
         self.config.register_guild(**self.defaults)
 
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
+
     @commands.guild_only()
     @commands.command()
     async def russian(self, ctx):

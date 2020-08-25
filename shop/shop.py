@@ -10,6 +10,7 @@ import uuid
 from bisect import bisect
 from copy import deepcopy
 from itertools import zip_longest
+from typing import Literal
 
 # Shop
 from .menu import ShopMenu
@@ -21,6 +22,7 @@ import discord
 
 # Red
 from redbot.core import Config, bank, commands
+from redbot.core.utils import AsyncIter
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.errors import BalanceTooHigh
 
@@ -28,8 +30,6 @@ log = logging.getLogger("red.shop")
 
 __version__ = "3.1.11"
 __author__ = "Redjumpman"
-
-BaseCog = getattr(commands, "Cog", object)
 
 
 def global_permissions():
@@ -46,7 +46,7 @@ def global_permissions():
     return commands.check(pred)
 
 
-class Shop(BaseCog):
+class Shop(commands.Cog):
     shop_defaults = {
         "Shops": {},
         "Settings": {"Alerts": False, "Alert_Role": "Admin", "Closed": False, "Gifting": True, "Sorting": "price",},
@@ -66,6 +66,15 @@ class Shop(BaseCog):
         self.config.register_global(**self.global_defaults)
         self.config.register_member(**self.member_defaults)
         self.config.register_user(**self.user_defaults)
+
+    async def red_delete_data_for_user(
+        self, *, requester: Literal["discord", "owner", "user", "user_strict"], user_id: int
+    ):
+        await self.config.user_from_id(user_id).clear()
+        all_members = await self.config.all_members()
+        async for guild_id, guild_data in AsyncIter(all_members.items(), steps=100):
+            if user_id in guild_data:
+                await self.config.member_from_ids(guild_id, user_id).clear()
 
     # -----------------------COMMANDS-------------------------------------
 

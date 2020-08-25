@@ -89,6 +89,10 @@ class Pokedex(commands.Cog):
     def __init__(self):
         self.path = bundled_data_path(self)
 
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
+
     @commands.group(autohelp=True)
     async def pokemon(self, ctx):
         """This is the list of Pokémon queries you can perform."""
