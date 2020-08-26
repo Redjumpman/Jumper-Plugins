@@ -14,7 +14,7 @@ from redbot.core import commands
 from tabulate import tabulate
 
 
-__version__ = "2.0.04"
+__version__ = "2.0.05"
 __author__ = "Redjumpman"
 
 
