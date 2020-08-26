@@ -792,7 +792,7 @@ class Casino(Database, commands.Cog):
         await self.bot.wait_until_ready()
         try:
             while True:
-                await asyncio.sleep(10)  # Wait 5 minutes to cycle again
+                await asyncio.sleep(300)  # Wait 5 minutes to cycle again
                 is_global = await super().casino_is_global()
                 if is_global:
                     await self.global_updater()
@@ -810,22 +810,11 @@ class Casino(Database, commands.Cog):
             if not memberships:
                 break
             for user in users:
-                try:
-                    user_obj = await self.bot.fetch_user(user)
-                except AttributeError:
-                    try:
-                        user_obj = await self.bot.get_user_info(user)
-                    except discord.errors.NotFound:
-                        continue
-                except discord.errors.NotFound:
-                    continue
-                if await self.config.user(user_obj).Membership.Assigned():
-                    user_mem = await self.config.user(user_obj).Membership.Name()
-                    if user_mem not in memberships:
-                        basic = {"Name": "Basic", "Assigned": False}
-                        await self.config.user(user_obj).Membership.set(basic)
-                    else:
-                        continue
+                user_obj = discord.Object(id=user)
+                async with self.config.user(user_obj).Membership() as user_data:
+                    if user_data["Name"] not in memberships:
+                        user_data["Name"] = "Basic"
+                        user_data["Assigned"] = False
                 await self.process_user(memberships, user_obj, _global=True)
             break
 
@@ -845,16 +834,11 @@ class Casino(Database, commands.Cog):
                 if not memberships:
                     continue
                 for user in users:
-                    user_obj = guild_obj.get_member(user)
-                    if user_obj is None:
-                        continue
-                    if await self.config.member(user_obj).Membership.Assigned():
-                        user_mem = await self.config.member(user_obj).Membership.Name()
-                        if user_mem not in memberships:
-                            basic = {"Name": "Basic", "Assigned": False}
-                            await self.config.member(user_obj).Membership.set(basic)
-                        else:
-                            continue
+                    user_obj = discord.Object(id=user)
+                    async with self.config.member(user_obj).Membership() as user_data:
+                        if user_data["Name"] not in memberships:
+                            user_data["Name"] = "Basic"
+                            user_data["Assigned"] = False
                     await self.process_user(memberships, user_obj)
             break
 
