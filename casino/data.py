@@ -353,15 +353,12 @@ class Database:
         """
         if await self.casino_is_global():
             for player in await self.config.all_users():
-                try:
-                    user = await ctx.bot.fetch_user(player)
-                except AttributeError:
-                    user = await ctx.bot.get_user_info(player)
+                user = discord.Object(id=player)
                 await self.config.user(user).Cooldowns.clear()
             msg = ("{0.name} ({0.id}) reset all global cooldowns.").format(ctx.author)
         else:
             for player in await self.config.all_members(ctx.guild):
-                user = ctx.guild.get_member(player)
+                user = discord.Object(id=player)
                 await self.config.member(user).Cooldowns.clear()
             msg = ("{0.name} ({0.id}) reset all cooldowns on {1.name}.").format(ctx.author, ctx.guild)
 
