@@ -28,7 +28,7 @@ from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.11"
+__version__ = "3.1.12"
 __author__ = "Redjumpman"
 
 
