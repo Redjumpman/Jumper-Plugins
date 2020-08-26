@@ -8,5 +8,5 @@
     "permissions" : ["Manage Messages", "Embed Links", "Add Reactions", "Manage Roles"],
     "tags" : ["Economy", "Fun", "Shop"],
     "min_python_version": [3, 6, 0],
-    "end_user_data_statement": "This cog does store Discord IDs as needed for operation."
+    "end_user_data_statement": "This cog stores discord IDs as needed for operation."
 }
