@@ -19,7 +19,7 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-__version__ = "3.1.2"
+__version__ = "3.1.3"
 __author__ = "Redjumpman"
 
 switcher = {
@@ -88,6 +88,10 @@ class Pokedex(commands.Cog):
 
     def __init__(self):
         self.path = bundled_data_path(self)
+
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
 
     @commands.group(autohelp=True)
     async def pokemon(self, ctx):

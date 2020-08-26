@@ -4,9 +4,11 @@
 # Standard Library
 import asyncio
 import random
+from typing import Literal
 
 # Red
 from redbot.core import Config, bank, commands, checks
+from redbot.core.utils import AsyncIter
 from redbot.core.errors import BalanceTooHigh
 
 # Discord
@@ -16,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.0.14"
+__version__ = "2.0.15"
 
 guild_defaults = {
     "Wait": 60,
@@ -47,6 +49,14 @@ class Race(commands.Cog):
         self.winners = []
         self.players = []
         self.bets = {}
+
+    async def red_delete_data_for_user(
+        self, *, requester: Literal["discord", "owner", "user", "user_strict"], user_id: int
+    ):
+        all_members = await self.config.all_members()
+        async for guild_id, guild_data in AsyncIter(all_members.items(), steps=100):
+            if user_id in guild_data:
+                await self.config.member_from_ids(guild_id, user_id).clear()
 
     @commands.group()
     @commands.guild_only()

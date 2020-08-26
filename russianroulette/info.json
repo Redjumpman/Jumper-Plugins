@@ -5,5 +5,6 @@
     "short" : "Play a game of Russian Roulette!",
     "description" : "Play a game of russian roulette where the winner takes all. You can change the chamber size of the weapon, the wait time before starting the game, and the cost to play.",
     "tags" : ["Games", "Economy", "Fun", "Russian"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement": "This cog stores Discord IDs as needed for operation temporarily during the game which are automatically deleted when it ends."
 }

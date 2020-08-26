@@ -5,7 +5,7 @@ import asyncio
 import calendar
 import logging
 import re
-from typing import Union, Final
+from typing import Union, Final, Literal
 from operator import itemgetter
 
 
@@ -19,6 +19,7 @@ from .utils import is_input_unsupported
 from redbot.core.i18n import Translator
 from redbot.core import bank, commands, checks
 from redbot.core.errors import BalanceTooHigh
+from redbot.core.utils import AsyncIter
 from redbot.core.utils.chat_formatting import box, humanize_number
 from redbot.core.utils.predicates import MessagePredicate
 
@@ -28,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.3"
+__version__ = "2.4.4"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -51,6 +52,15 @@ class Casino(Database, commands.Cog):
                 from_version=await self.config.schema_version(), to_version=_SCHEMA_VERSION
             )
         )
+
+    async def red_delete_data_for_user(
+        self, *, requester: Literal["discord", "owner", "user", "user_strict"], user_id: int
+    ):
+        await super().config.user_from_id(user_id).clear()
+        all_members = await super().config.all_members()
+        async for guild_id, guild_data in AsyncIter(all_members.items(), steps=100):
+            if user_id in guild_data:
+                await super().config.member_from_ids(guild_id, user_id).clear()
 
     # --------------------------------------------------------------------------------------------------
 

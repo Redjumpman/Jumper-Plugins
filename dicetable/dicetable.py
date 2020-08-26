@@ -14,14 +14,16 @@ from redbot.core import commands
 from tabulate import tabulate
 
 
-__version__ = "2.0.04"
+__version__ = "2.0.05"
 __author__ = "Redjumpman"
 
-BaseCog = getattr(commands, "Cog", object)
 
-
-class DiceTable(BaseCog):
+class DiceTable(commands.Cog):
     """Rolls a table of dice"""
+
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
 
     @commands.group(autohelp=True)
     async def dtable(self, ctx: commands.Context):

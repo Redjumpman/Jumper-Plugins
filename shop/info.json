@@ -7,5 +7,6 @@
     "description" : "Shop system that allows for multiple shops with their own list of items for sale. Players can purchase these items with economy currency and redeem them for roles, or other server defined value.",
     "permissions" : ["Manage Messages", "Embed Links", "Add Reactions", "Manage Roles"],
     "tags" : ["Economy", "Fun", "Shop"],
-    "min_python_version": [3, 6, 0]
+    "min_python_version": [3, 6, 0],
+    "end_user_data_statement": "This cog stores discord IDs as needed for operation."
 }

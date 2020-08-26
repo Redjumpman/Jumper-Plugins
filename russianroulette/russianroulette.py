@@ -13,7 +13,7 @@ from redbot.core import Config, bank, checks, commands
 from redbot.core.errors import BalanceTooHigh
 
 
-__version__ = "3.1.06"
+__version__ = "3.1.07"
 __author__ = "Redjumpman"
 
 
@@ -28,6 +28,10 @@ class RussianRoulette(commands.Cog):
     def __init__(self):
         self.config = Config.get_conf(self, 5074395004, force_registration=True)
         self.config.register_guild(**self.defaults)
+
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
 
     @commands.guild_only()
     @commands.command()

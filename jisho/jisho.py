@@ -21,6 +21,10 @@ class Jisho(commands.Cog):
     def cog_unload(self):
         self.bot.loop.create_task(self.session.close())
 
+    async def red_delete_data_for_user(self, **kwargs):
+        """Nothing to delete."""
+        return
+
     @commands.command()
     async def jisho(self, ctx, word: str):
         """Translates Japanese to English, and English to Japanese
