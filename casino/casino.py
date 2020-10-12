@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.4"
+__version__ = "2.4.5"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -844,7 +844,9 @@ class Casino(Database, commands.Cog):
                 if not memberships:
                     continue
                 for user in users:
-                    user_obj = discord.Object(id=user)
+                    user_obj = guild_obj.get_member(user)
+                    if not user_obj:
+                        continue
                     async with self.config.member(user_obj).Membership() as user_data:
                         if user_data["Name"] not in memberships:
                             user_data["Name"] = "Basic"
