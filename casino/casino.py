@@ -821,7 +821,7 @@ class Casino(Database, commands.Cog):
                 break
             for user in users:
                 user_obj = self.bot.get_user(user)
-                if not user:
+                if not user_obj:
                     # user isn't in the cache so we can probably
                     # ignore them without issue
                     continue
