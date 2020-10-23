@@ -820,7 +820,11 @@ class Casino(Database, commands.Cog):
             if not memberships:
                 break
             for user in users:
-                user_obj = discord.Object(id=user)
+                user_obj = self.bot.get_user(user)
+                if not user:
+                    # user isn't in the cache so we can probably
+                    # ignore them without issue
+                    continue
                 async with self.config.user(user_obj).Membership() as user_data:
                     if user_data["Name"] not in memberships:
                         user_data["Name"] = "Basic"
