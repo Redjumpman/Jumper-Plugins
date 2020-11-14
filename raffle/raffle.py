@@ -308,6 +308,8 @@ class Raffle(commands.Cog):
 
         def predicate2(m):
             try:
+                if int(m.content) > 9:
+                    return False
                 if int(m.content) >= 1:
                     return True
                 return False
@@ -326,7 +328,7 @@ class Raffle(commands.Cog):
 
         q1 = "Please set a brief description (200 chars max)"
         q2 = (
-            "Please set how many winners are pulled.\n**Note**: If there are "
+            "Please set how many winners are pulled, __*Maximum of up to and including 9*__.\n**Note**: If there are "
             "more winners than entries, I will make everyone a winner."
         )
         q3 = "Would you like to set a 'days on server' requirement?"
