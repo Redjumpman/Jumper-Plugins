@@ -67,6 +67,14 @@ class DiceTable(commands.Cog):
             for idx, x in enumerate(range(1, times + 1))
         ]
         final = [x + (str(x[1] + modifier),) for x in rolls]
+
+        # Add row at bottom to show sums
+        sum_total = sum([int(x[1] + modifier) for x in rolls])
+        sum_base = sum([int(x[1]) for x in rolls])
+        sum_modifier = int(modifier) * len(rolls)
+        sum_row = ("Sum:", sum_base, sum_modifier, sum_total)
+        final.append(sum_row)
+
         headers = ["Roll", "Result", "Modifier", "Total"]
         t = "**Dice:** {}\n```{}```".format(dice, tabulate(final, headers=headers))
         embed = discord.Embed(title="Dice Table Output", color=0x3366FF)
