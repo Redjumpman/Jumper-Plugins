@@ -55,7 +55,7 @@ class RussianRoulette(commands.Cog):
     async def rusreset(self, ctx):
         """ONLY USE THIS FOR DEBUGGING PURPOSES"""
         await self.config.guild(ctx.guild).Session.clear()
-        await ctx.send("The Russian Roulette sesssion on this server has been cleared.")
+        await ctx.send("The Russian Roulette session on this server has been cleared.")
 
     @commands.command()
     async def russianversion(self, ctx):
