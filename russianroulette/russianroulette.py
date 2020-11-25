@@ -59,6 +59,7 @@ class RussianRoulette(commands.Cog):
 
     @commands.command()
     async def russianversion(self, ctx):
+        """Shows the cog version for RussianRoulette."""
         await ctx.send("You are using russian roulette version {}".format(__version__))
 
     @commands.group(autohelp=True)
