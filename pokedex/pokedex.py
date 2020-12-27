@@ -20,7 +20,7 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-log = logging.getLogger("red.redjumpman.pokedex")
+log = logging.getLogger("red.jumper-plugins.pokedex")
 
 __version__ = "3.1.4"
 __author__ = "Redjumpman"
