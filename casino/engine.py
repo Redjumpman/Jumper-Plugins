@@ -25,7 +25,11 @@ def game_engine(name=None, choice=None, choices=None):
     def wrapper(coro):
         @wraps(coro)
         async def wrapped(*args, **kwargs):
-            engine = GameEngine(name, choice, choices, args[1], args[2])
+            try:
+                user_choice = args[3]
+            except IndexError:
+                user_choice = None
+            engine = GameEngine(name, user_choice, choice, args[1], args[2])
             if await engine.check_conditions():
                 result = await coro(*args, **kwargs)
                 await engine.game_teardown(result)
