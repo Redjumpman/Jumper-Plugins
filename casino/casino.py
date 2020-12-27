@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.6"
+__version__ = "2.4.7"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
