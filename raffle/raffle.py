@@ -13,10 +13,10 @@ import discord
 from redbot.core import Config, commands
 from redbot.core.utils.predicates import MessagePredicate
 
-log = logging.getLogger("red.raffle")
+log = logging.getLogger("red.redjumpman.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.5"
+__version__ = "4.2.6"
 
 
 class Raffle(commands.Cog):
@@ -201,6 +201,7 @@ class Raffle(commands.Cog):
         for raffle, number_emoji in zip(truncate, emojis):
             description += f"{number_emoji} - {raffle[1]['Title']}\n"
             e.description = description
+            e.set_footer(text="Type the number of the raffle you wish to end.")
             embeds.append(e)
         return e
 
@@ -354,8 +355,15 @@ class Raffle(commands.Cog):
         is loaded, and is destroyed when it has finished.
         """
         try:
-            await self.bot.wait_until_ready()
-            guilds = [self.bot.get_guild(guild) for guild in await self.config.all_guilds()]
+            await self.bot.wait_until_red_ready()
+            guilds = []
+            guilds_in_config = await self.config.all_guilds()
+            for guild in guilds_in_config:
+                guild_obj = self.bot.get_guild(guild)
+                if guild_obj is not None:
+                    guilds.append(guild_obj)
+                else:
+                    continue
             coros = []
             for guild in guilds:
                 raffles = await self.config.guild(guild).Raffles.all()
@@ -368,8 +376,8 @@ class Raffle(commands.Cog):
                         else:
                             coros.append(self.raffle_timer(guild, raffles[key], remaining))
             await asyncio.gather(*coros)
-        except Exception as e:
-            print(e)
+        except Exception:
+            log.error("Error in raffle_worker task.", exc_info=True)
 
     async def raffle_timer(self, guild, raffle: dict, remaining: int):
         """Helper function for starting the raffle countdown.
