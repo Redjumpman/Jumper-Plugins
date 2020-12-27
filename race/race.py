@@ -470,7 +470,6 @@ class Race(commands.Cog):
             msg = ""
             first, second, third = self.winners
             for player, percentage in zip((first[0], second[0], third[0]), (0.6, 0.3, 0.1)):
-                print(player)
                 if player.bot:
                     continue
                 msg += f'{player.name} received {int(settings["Prize"] * percentage)} {currency}. '
