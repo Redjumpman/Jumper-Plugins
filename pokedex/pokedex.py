@@ -3,6 +3,7 @@
 # Standard Library
 import ast
 import csv
+import logging
 import re
 from collections import namedtuple
 
@@ -19,7 +20,9 @@ from redbot.core.utils.chat_formatting import box
 from tabulate import tabulate
 
 
-__version__ = "3.1.3"
+log = logging.getLogger("red.redjumpman.pokedex")
+
+__version__ = "3.1.4"
 __author__ = "Redjumpman"
 
 switcher = {
@@ -79,7 +82,7 @@ tm_exceptions = (
     "Smeargle",
 )
 
-url = "https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
+url = r"https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
 url2 = "https://bulbapedia.bulbagarden.net/wiki/"
 
 
@@ -131,7 +134,18 @@ class Pokedex(commands.Cog):
             poke = self.build_data(pokemon.title())
 
         if poke is None:
-            return await ctx.send("A Pokémon with that name could not be found.")
+            # for pokemon like Nidoran that need another name modifier like Nidoran-F or Nidoran-M
+            # and return None on a search for the base of the name
+            p_other_names = []
+            for p_name in exceptions:
+                if pokemon in p_name:
+                    p_other_names.append(p_name)
+
+            if len(p_other_names) == 0:
+                extra = ""
+            else:
+                extra = " Try one of these instead: {}".format(", ".join(p_other_names).title())
+            return await ctx.send(f"A Pokémon with that name could not be found.{extra}")
 
         color = self.color_lookup(poke.Types.split("/")[0])
         abilities = self.ability_builder(ast.literal_eval(poke.Abilities))
@@ -360,7 +374,7 @@ class Pokedex(commands.Cog):
                         Item = namedtuple("Item", reader.fieldnames)
                         return Item(**row)
         except FileNotFoundError:
-            print("The csv file could not be found in pokedex data folder.")
+            log.error("The csv file could not be found in pokedex data folder.")
             return None
 
     def build_data(self, identifier, key="Pokemon"):
@@ -373,7 +387,7 @@ class Pokedex(commands.Cog):
                         Pokemon = namedtuple("Pokemon", reader.fieldnames)
                         return Pokemon(**row)
         except FileNotFoundError:
-            print("The csv file could not be found in pokedex data folder.")
+            log.error("The csv file could not be found in pokedex data folder.")
             return None
 
     @staticmethod
@@ -381,7 +395,7 @@ class Pokedex(commands.Cog):
         link = name.lower().replace(" ", "_")
         if link in exceptions:
             if "nidoran" in link:
-                link = "nidoran_({}\)".format(name[-1].upper())
+                link = "nidoran_({}\\)".format(name[-1].upper())
             return link
         else:
             link = link.split("-")[0]
@@ -389,13 +403,13 @@ class Pokedex(commands.Cog):
 
     @staticmethod
     def ability_builder(abilities):
-        pattern = "( or )|(\(.*\))"
-        pattern2 = "(\(.*\))"
+        pattern = "( or )|(\\(.*\\))"
+        pattern2 = "(\\(.*\\))"
 
-        fmt1 = "[{}]({}{}_(Ability\)) or [{}]({}{}_(Ability\)) {}"
-        fmt2 = "[{}]({}{}_(Ability\)) or [{}]({}{}_(Ability\))"
-        fmt3 = "[{}]({}{}_(Ability\)) {}"
-        fmt4 = "[{}]({}{}_(Ability\))"
+        fmt1 = "[{}]({}{}_(Ability\\)) or [{}]({}{}_(Ability\\)) {}"
+        fmt2 = "[{}]({}{}_(Ability\\)) or [{}]({}{}_(Ability\\))"
+        fmt3 = "[{}]({}{}_(Ability\\)) {}"
+        fmt4 = "[{}]({}{}_(Ability\\))"
 
         linked = []
 
