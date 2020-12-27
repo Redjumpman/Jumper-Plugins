@@ -299,7 +299,7 @@ class GameEngine(Database):
     async def calculate_bonus(amount, player_instance, settings):
         membership = await player_instance.Membership.Name()
         try:
-            bonus_multiplier = settings[membership]["Bonus"]
+            bonus_multiplier = settings["Memberships"][membership]["Bonus"]
         except KeyError:
             bonus_multiplier = 1
         total = round(amount * bonus_multiplier)
