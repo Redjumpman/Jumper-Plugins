@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.5"
+__version__ = "2.4.6"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -511,6 +511,7 @@ class Casino(Database, commands.Cog):
         await ctx.send(embed=embed)
 
     @casino.command()
+    @commands.max_concurrency(1, commands.BucketType.guild)
     @checks.admin_or_permissions(administrator=True)
     async def memdesigner(self, ctx: commands.Context):
         """A process to create, edit, and delete memberships."""
