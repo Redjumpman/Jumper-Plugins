@@ -1,5 +1,5 @@
 {
-    "author" : ["Redjumpman", "aikaterna"]
+    "author" : ["Redjumpman", "aikaterna"],
     "short" : "Creates coupons redeemable for credits",
     "description" : "Admins can generate a unique coupon id that can be redeemed for a set number of points only once. DM the code to the user of your choice.",
     "name" : "Coupon",
