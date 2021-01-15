@@ -1,4 +1,5 @@
 import uuid
+import discord
 
 from redbot.core import bank, checks, commands, Config
 from redbot.core.utils.chat_formatting import box, pagify
