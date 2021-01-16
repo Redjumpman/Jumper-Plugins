@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 
 
 class FancyDict(dict):
@@ -427,7 +427,7 @@ class Race(commands.Cog):
             for jockey, bet in wagers.items():
                 if jockey == first[0].id:
                     user = ctx.bot.get_user(user_id)
-                    await bank.deposit_credits(user, (bet * multiplier))
+                    await bank.deposit_credits(user, (int(bet * multiplier)))
 
     async def bet_conditions(self, ctx, bet, user):
         if not self.active[ctx.guild.id]:
