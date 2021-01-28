@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.1"
+__version__ = "2.1.2"
 
 
 class FancyDict(dict):
@@ -182,7 +182,7 @@ class Race(commands.Cog):
 
         You shouldn't use this command unless the race is stuck
         or you are debugging."""
-        self.clear_local()
+        self.clear_local(ctx)
         await ctx.send("Race cleared.")
 
     @race.command()
