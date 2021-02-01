@@ -22,7 +22,7 @@ from tabulate import tabulate
 
 log = logging.getLogger("red.jumper-plugins.pokedex")
 
-__version__ = "3.1.4"
+__version__ = "3.1.5"
 __author__ = "Redjumpman"
 
 switcher = {
@@ -82,8 +82,8 @@ tm_exceptions = (
     "Smeargle",
 )
 
-url = r"https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
-url2 = "https://bulbapedia.bulbagarden.net/wiki/"
+URL = r"https://bulbapedia.bulbagarden.net/wiki/{}_(Pokémon\)"
+URL2 = "https://bulbapedia.bulbagarden.net/wiki/"
 
 
 class Pokedex(commands.Cog):
@@ -136,21 +136,17 @@ class Pokedex(commands.Cog):
         if poke is None:
             # for pokemon like Nidoran that need another name modifier like Nidoran-F or Nidoran-M
             # and return None on a search for the base of the name
-            p_other_names = []
-            for p_name in exceptions:
-                if pokemon in p_name:
-                    p_other_names.append(p_name)
-
+            p_other_names = [name for name in exceptions if pokemon in name]
             if len(p_other_names) == 0:
                 extra = ""
             else:
-                extra = " Try one of these instead: {}".format(", ".join(p_other_names).title())
+                extra = f" Try one of these instead: {', '.join(p_other_names).title()}"
             return await ctx.send(f"A Pokémon with that name could not be found.{extra}")
 
         color = self.color_lookup(poke.Types.split("/")[0])
         abilities = self.ability_builder(ast.literal_eval(poke.Abilities))
         link_name = self.link_builder(pokemon)
-        wiki = "[{} {}]({})".format(poke.Pokemon, poke.ID, url.format(link_name))
+        wiki = f"[{poke.Pokemon} {poke.ID}]({URL.format(link_name)})"
         header = [wiki, poke.Japanese, poke.Species]
 
         # Build embed
@@ -158,9 +154,10 @@ class Pokedex(commands.Cog):
         embed.set_thumbnail(url=poke.Image)
         embed.add_field(name="Stats", value="\n".join(ast.literal_eval(poke.Stats)))
         embed.add_field(name="Types", value=poke.Types)
+        embed.add_field(name="Abilities", value="\n".join(abilities))
         embed.add_field(name="Resistances", value="\n".join(ast.literal_eval(poke.Resistances)))
         embed.add_field(name="Weaknesses", value="\n".join(ast.literal_eval(poke.Weaknesses)))
-        embed.add_field(name="Abilities", value="\n".join(abilities))
+
         embed.set_footer(text=poke.Description)
 
         await ctx.send(embed=embed)
@@ -178,11 +175,10 @@ class Pokedex(commands.Cog):
         """
 
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data(pokemon.title())
-
-        if poke is None:
+        if not (poke := self.build_data(pokemon.title())):
             return await ctx.send("A Pokémon with that name could not be found.")
 
+        # Refactor this if they make all pokemon available in GEN 8
         try:
             move_set = ast.literal_eval(poke.Moves)[generation]
         except KeyError:
@@ -203,7 +199,7 @@ class Pokedex(commands.Cog):
             embed.set_author(name=poke.Pokemon, icon_url=poke.Image)
             embed.add_field(name="\u200b", value=table, inline=False)
             embed.add_field(name="Versions", value="\n".join(self.game_version(generation)))
-            embed.set_footer(text="This moveset is based on generation {}.".format(generation))
+            embed.set_footer(text=f"This move set is based on generation {generation}.")
 
             await ctx.send(embed=embed)
         else:
@@ -214,6 +210,7 @@ class Pokedex(commands.Cog):
     async def item(self, ctx, *, item_name: str):
         """Search for an item in the Pokémon universe
             Args:
+                ctx: context
                 item_name: variable length string
             Returns:
                 Discord embed
@@ -236,19 +233,17 @@ class Pokedex(commands.Cog):
 
     @pokemon.command()
     async def tmset(self, ctx, *, pokemon: str):
-        """Get a Pokémon's learnset by generation (1-7).
-
+        """Get a Pokémon's learnset by generation (1-8).
             Example: [p]pokedex tmset pikachu-5
             If the generation is not specified, it will default to the latest generation.
+            Not all pokemon have an updated tm set
         """
         pokemon, generation = self.clean_output(pokemon)
 
         if pokemon.title() in tm_exceptions:
             return await ctx.send("This Pokémon cannot learn TMs.")
 
-        poke = self.build_data(pokemon.title())
-
-        if poke is None:
+        if not (poke := self.build_data(pokemon.title())):
             return await ctx.send("A Pokémon with that name could not be found.")
 
         try:
@@ -265,14 +260,13 @@ class Pokedex(commands.Cog):
         await menu(ctx, embeds, DEFAULT_CONTROLS)
 
     def embed_builder(self, poke, data, gen, moves=False):
-        color = self.color_lookup(poke.Types.split("/")[0])
         table_type = "Moves" if moves else "TMs"
         col = "Lvl" if moves else "TMs"
         headers = (col, "Name", "Type", "Power", "Acc")
         embeds = []
         for i in range(0, len(data), 12):
-            table = box(tabulate(data[i : i + 12], headers=headers, numalign="right"), lang="ml")
-            e = discord.Embed(colour=color)
+            table = box(tabulate(data[i: i + 12], headers=headers, numalign="right"), lang="ml")
+            e = discord.Embed(colour=self.color_lookup(poke.Types.split("/")[0]))
             e.set_author(name=poke.Pokemon, icon_url=poke.Image)
             e.add_field(name="\u200b", value=table, inline=False)
             if moves:
@@ -293,14 +287,14 @@ class Pokedex(commands.Cog):
     async def location(self, ctx, *, pokemon: str):
         """Get a Pokémon's catch location.
         Example !pokedex location voltorb
+        Not all pokemon have had catch location added.
         """
         pokemon, generation = self.clean_output(pokemon)
-        poke = self.build_data(pokemon.title())
-        if poke is None:
+        if not (poke := self.build_data(pokemon.title())):
             return await ctx.send("A Pokémon with that name could not be found.")
-        link_name = self.link_builder(poke.Pokemon)
+
         color = self.color_lookup(poke.Types.split("/")[0])
-        wiki = "[{} {}]({})".format(poke.Pokemon, poke.ID, url.format(link_name))
+        wiki = f"[{poke.Pokemon} {poke.ID}]({URL.format(self.link_builder(poke.Pokemon))})"
         header = "\n".join((wiki, "Catch Locations"))
         locations = ast.literal_eval(poke.Locations)
 
@@ -315,7 +309,7 @@ class Pokedex(commands.Cog):
             e.add_field(name=key, value=location)
             embeds.append(e)
         embeds = [
-            x.set_footer(text="You are viewing page {} of {}".format(idx, len(embeds)))
+            x.set_footer(text=f"You are viewing page {idx} of {len(embeds)}")
             for idx, x in enumerate(embeds, 1)
         ]
 
@@ -326,8 +320,8 @@ class Pokedex(commands.Cog):
         versions = {
             "1": ["Pokémon Red", "Pokémon Blue", "Pokémon Yellow"],
             "2": ["Pokémon Gold", "Pokémon Silver", "Pokémon Crystal"],
-            "3": ["Pokémon Ruby", "Pokémon Sapphire", "Pokémon FireRed", "Pokémon LeafGreen", "Pokémon Emerald",],
-            "4": ["Pokémon Diamond", "Pokémon Pearl", "Pokémon Platinum", "Pokémon HeartGold", "Pokémon SoulSilver",],
+            "3": ["Pokémon Ruby", "Pokémon Sapphire", "Pokémon FireRed", "Pokémon LeafGreen", "Pokémon Emerald"],
+            "4": ["Pokémon Diamond", "Pokémon Pearl", "Pokémon Platinum", "Pokémon HeartGold", "Pokémon SoulSilver"],
             "5": ["Pokémon Black", "Pokémon White", "Pokémon Black 2", "Pokémon White 2"],
             "6": ["Pokémon X", "Pokémon Y", "Pokémon Omega Ruby", "Pokémon Alpha Sapphire"],
             "7": [
@@ -350,14 +344,16 @@ class Pokedex(commands.Cog):
         query = pokemon.split("-")
         if len(query) > 2:
             partition = pokemon.rpartition("-")
-            if partition[0].lower() not in exceptions and "alola" not in partition[0].lower():
+            if partition[0].lower() not in exceptions and "alola" not in partition[0].lower() and "galar" not in partition[0].lower():
                 return "", ""
             else:
                 return partition[0], partition[2]
         elif len(query) == 1:
             return query[0], "7"
         else:
-            if pokemon.lower() in exceptions or query[1].lower() == "alola":
+            if query[1].lower() == 'galar':
+                return pokemon, "8"
+            elif pokemon.lower() in exceptions or query[1].lower() == "alola":
                 return pokemon, "7"
             elif query[1].isdigit():
                 return query
@@ -418,10 +414,10 @@ class Pokedex(commands.Cog):
                 ab_set = [x for x in re.split(pattern, ability) if x and x != " or "]
                 params = [
                     ab_set[0],
-                    url2,
+                    URL2,
                     ab_set[0].replace(" ", "_"),
                     ab_set[1],
-                    url2,
+                    URL2,
                     ab_set[1].replace(" ", "_"),
                     ab_set[2],
                 ]
@@ -430,19 +426,19 @@ class Pokedex(commands.Cog):
                 ab_set = [x for x in re.split(pattern, ability) if x and x != " or "]
                 params = [
                     ab_set[0],
-                    url2,
+                    URL2,
                     ab_set[0].replace(" ", "_"),
                     ab_set[1],
-                    url2,
+                    URL2,
                     ab_set[1].replace(" ", "_"),
                 ]
                 linked.append(fmt2.format(*params))
             elif "(" in ability:
                 ab_set = [x for x in re.split(pattern2, ability) if x]
-                params = [ab_set[0], url2, ab_set[0].replace(" ", "_"), ab_set[1]]
+                params = [ab_set[0], URL2, ab_set[0].replace(" ", "_"), ab_set[1]]
                 linked.append(fmt3.format(*params))
             else:
-                linked.append(fmt4.format(ability, url2, ability.replace(" ", "_")))
+                linked.append(fmt4.format(ability, URL2, ability.replace(" ", "_")))
 
         return linked
 
