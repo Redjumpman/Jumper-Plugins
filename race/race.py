@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.2"
+__version__ = "2.1.3"
 
 
 class FancyDict(dict):
@@ -550,4 +550,7 @@ class Race(commands.Cog):
                 if animal.position == 0 and len(self.winners[ctx.guild.id]) < 3:
                     self.winners[ctx.guild.id].append((jockey, animal))
             t = "\u200b\n" + "\n".join(fields)
-            await track.edit(content=t)
+            try:
+                await track.edit(content=t)
+            except discord.errors.NotFound:
+            	pass
