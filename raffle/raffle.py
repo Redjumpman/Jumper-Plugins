@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.7"
+__version__ = "4.2.8"
 
 
 class Raffle(commands.Cog):
@@ -67,6 +67,12 @@ class Raffle(commands.Cog):
         Title should not be longer than 35 characters.
         Only one raffle can be active per server.
         """
+        if not ctx.channel.permissions_for(ctx.guild.me).embed_links:
+            await ctx.send("I need the Embed Links permission to be able to start raffles.")
+            return
+        if not ctx.channel.permissions_for(ctx.guild.me).add_reactions:
+            await ctx.send("I need the Add Reactions permission to be able to start raffles.")
+            return
         timer = await self.start_checks(ctx, timer, title)
         if timer is None:
             return
@@ -404,18 +410,20 @@ class Raffle(commands.Cog):
             await self.raffle_teardown(guild, raffle["ID"])
 
     async def raffle_teardown(self, guild, message_id):
+        errored = False
         raffles = await self.config.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
-
-        errored = False
-        try:
-            msg = await channel.get_message(raffles[str(message_id)]["ID"])
-        except AttributeError:
+        if channel:
             try:
-                msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
-            except discord.NotFound:
+                msg = await channel.get_message(raffles[str(message_id)]["ID"])
+            except AttributeError:
+                try:
+                    msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
+                except discord.NotFound:
+                    errored = True
+            except discord.errors.NotFound:
                 errored = True
-        except discord.errors.NotFound:
+        else:
             errored = True
         if not errored:
             await self.pick_winner(guild, channel, msg)
