@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.3"
+__version__ = "2.1.4"
 
 
 class FancyDict(dict):
@@ -409,7 +409,10 @@ class Race(commands.Cog):
             for player, percentage in zip((first[0], second[0], third[0]), (0.6, 0.3, 0.1)):
                 if player.bot:
                     continue
-                await bank.deposit_credits(player, int(settings["Prize"] * percentage))
+                try:
+                    await bank.deposit_credits(player, int(settings["Prize"] * percentage))
+                except BalanceTooHigh as e:
+                    await bank.set_balance(player, e.max_balance)
         else:
             if self.winners[ctx.guild.id][0][0].bot:
                 return
@@ -426,8 +429,11 @@ class Race(commands.Cog):
         for user_id, wagers in self.bets[ctx.guild.id].items():
             for jockey, bet in wagers.items():
                 if jockey == first[0].id:
-                    user = ctx.bot.get_user(user_id)
-                    await bank.deposit_credits(user, (int(bet * multiplier)))
+                    user = ctx.guild.get_member(user_id)
+                    try:
+                        await bank.deposit_credits(user, (int(bet * multiplier)))
+                    except BalanceTooHigh as e:
+                        await bank.set_balance(user, e.max_balance)
 
     async def bet_conditions(self, ctx, bet, user):
         if not self.active[ctx.guild.id]:
