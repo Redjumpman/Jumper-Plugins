@@ -14,6 +14,8 @@ import discord
 
 
 class Jisho(commands.Cog):
+    """Translate English to Japanese."""
+    
     def __init__(self, bot):
         self.bot = bot
         self.session = aiohttp.ClientSession()
