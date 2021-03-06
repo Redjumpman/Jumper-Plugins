@@ -242,7 +242,8 @@ class GameEngine(Database):
         multiplier = settings["Games"][self.game]["Multiplier"]
         if self.game == "Allin" or self.game == "Double":
             try:
-                return await bank.deposit_credits(self.player, amount), "(+0)"
+                await bank.deposit_credits(self.player, amount)
+                return amount, "(+0)"
             except BalanceTooHigh as e:
                 return await bank.set_balance(self.player, e.max_balance), "(+0)"
 
