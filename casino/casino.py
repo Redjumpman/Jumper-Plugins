@@ -925,7 +925,7 @@ class Casino(Database, commands.Cog):
         results = []
         for cooldown in cooldowns:
             seconds = int((cooldown + reduction - now))
-            results.append(utils.cooldown_formatter(seconds, custom_msg="<<Ready to Play!"))
+            results.append(utils.cooldown_formatter(seconds, custom_msg="<Ready to Play!>"))
         return results
 
     def cog_unload(self):
