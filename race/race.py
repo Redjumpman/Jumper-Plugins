@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.4"
+__version__ = "2.1.5"
 
 
 class FancyDict(dict):
@@ -217,6 +217,7 @@ class Race(commands.Cog):
         await ctx.send(f"You are running race version {__version__}.")
 
     @commands.group()
+    @commands.guild_only()
     @checks.admin_or_permissions(administrator=True)
     async def setrace(self, ctx):
         """Race settings commands."""
