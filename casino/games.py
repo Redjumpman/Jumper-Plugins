@@ -294,7 +294,7 @@ class Blackjack:
             count = deck.bj_count(dh)
 
         # defines maximum hit score X
-        while count < 17:
+        while count < 22:
             deck.deal(hand=dh)
             count = deck.bj_count(dh)
         return dh
