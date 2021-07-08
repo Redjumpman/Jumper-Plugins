@@ -457,7 +457,7 @@ class Raffle(commands.Cog):
             await channel.send(f"Congratulations {display}! You have won the {msg.embeds[0].title} raffle!")
 
     async def validate_entries(self, users, msg):
-        dos, roles = msg.embeds[0].fields
+        dos, roles, timestamp = msg.embeds[0].fields
         dos = int(dos.value)
         roles = roles.value.split(", ")
 
