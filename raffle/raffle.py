@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.8"
+__version__ = "4.2.9"
 
 
 class Raffle(commands.Cog):
