@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.9"
+__version__ = "4.2.10"
 
 
 class Raffle(commands.Cog):
@@ -86,14 +86,9 @@ class Raffle(commands.Cog):
 
         channel = await self._get_channel(ctx)
         fmt_end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
-        
-        try:
-            embed = discord.Embed(
-                description=description, title=title, color=self.bot.color
-            )  ### old compat, i think ?
-        except:
-            color = await self.bot.get_embed_color(ctx)
-            embed = discord.Embed(description=description, title=title, color=color)  ### new code
+
+        color = await self.bot.get_embed_color(ctx)
+        embed = discord.Embed(description=description, title=title, color=color)
         embed.add_field(name="Days on Server", value=f"{dos}")
         role_info = f'{", ".join(str_roles) if roles else "@everyone"}'
         embed.add_field(name="Allowed Roles", value=role_info)
@@ -169,12 +164,9 @@ class Raffle(commands.Cog):
             if not r:
                 raise ValueError
             raffles = list(r.items())
-        try:
-            # pre-3.2 compatibility layer
-            embed = self.embed_builder(raffles, ctx.bot.color, title)
-        except AttributeError:
-            color = await self.bot.get_embed_color(ctx)
-            embed = self.embed_builder(raffles, color, title)
+
+        color = await self.bot.get_embed_color(ctx)
+        embed = self.embed_builder(raffles, color, title)
         msg = await ctx.send(embed=embed)
 
         def predicate(m):
