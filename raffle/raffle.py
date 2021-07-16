@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.8"
+__version__ = "4.2.9"
 
 
 class Raffle(commands.Cog):
@@ -85,9 +85,8 @@ class Raffle(commands.Cog):
         description = f"{description}\n\nReact to this message with \U0001F39F to enter.\n\n"
 
         channel = await self._get_channel(ctx)
-        end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
-        fmt_end = time.strftime("%a %d %b %Y %H:%M:%S", time.gmtime(end))
-
+        fmt_end = calendar.timegm(ctx.message.created_at.utctimetuple()) + timer
+        
         try:
             embed = discord.Embed(
                 description=description, title=title, color=self.bot.color
@@ -98,10 +97,11 @@ class Raffle(commands.Cog):
         embed.add_field(name="Days on Server", value=f"{dos}")
         role_info = f'{", ".join(str_roles) if roles else "@everyone"}'
         embed.add_field(name="Allowed Roles", value=role_info)
+        embed.add_field(name="End Time", value=f"<t:{fmt_end}>")
         msg = await channel.send(embed=embed)
         embed.set_footer(
             text=(
-                f"Started by: {ctx.author.name} | Winners: {winners} | Ends at {fmt_end} UTC | Raffle ID: {msg.id}"
+                f"Started by: {ctx.author.name} | Winners: {winners} | Raffle ID: {msg.id}"
             )
         )
         await msg.edit(embed=embed)
@@ -110,7 +110,7 @@ class Raffle(commands.Cog):
         async with self.config.guild(ctx.guild).Raffles() as r:
             new_raffle = {
                 "Channel": channel.id,
-                "Timestamp": end,
+                "Timestamp": fmt_end,
                 "DOS": dos,
                 "Roles": roles,
                 "ID": msg.id,
@@ -457,7 +457,7 @@ class Raffle(commands.Cog):
             await channel.send(f"Congratulations {display}! You have won the {msg.embeds[0].title} raffle!")
 
     async def validate_entries(self, users, msg):
-        dos, roles = msg.embeds[0].fields
+        dos, roles, timestamp = msg.embeds[0].fields
         dos = int(dos.value)
         roles = roles.value.split(", ")
 
