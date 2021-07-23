@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.9"
+__version__ = "2.4.10"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -800,7 +800,7 @@ class Casino(Database, commands.Cog):
     # --------------------------------------------------------------------------------------------------
 
     async def membership_updater(self):
-        await self.bot.wait_until_ready()
+        await self.bot.wait_until_red_ready()
         try:
             while True:
                 await asyncio.sleep(300)  # Wait 5 minutes to cycle again
