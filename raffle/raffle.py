@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.10"
+__version__ = "4.2.11"
 
 
 class Raffle(commands.Cog):
@@ -269,7 +269,7 @@ class Raffle(commands.Cog):
         if ctx.channel.permissions_for(ctx.me).manage_messages:
             await resp.delete()
         await question.delete()
-        return resp.content
+        return resp.content.lower()
 
     async def _get_roles(self, ctx):
         q = await ctx.send(
