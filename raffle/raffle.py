@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.11"
+__version__ = "4.2.12"
 
 
 class Raffle(commands.Cog):
@@ -207,15 +207,16 @@ class Raffle(commands.Cog):
     @raffle.command()
     async def reroll(self, ctx, channel: discord.TextChannel, messageid: int):
         """Reroll the winner for a raffle. Requires the channel and message id."""
+        if not channel.permissions_for(channel.guild.me).read_messages:
+           return await ctx.send("I can't read messages in that channel.")
+        if not channel.permissions_for(channel.guild.me).send_messages:
+           return await ctx.send("I can't send messages in that channel.")
         try:
-            msg = await channel.get_message(messageid)
-        except AttributeError:
-            try:
-                msg = await channel.fetch_message(messageid)
-            except discord.HTTPException:
-                return await ctx.send("Invalid message id.")
+            msg = await channel.fetch_message(messageid)
+        except discord.Forbidden:
+           return await ctx.send("Invalid message id or I can't view that channel or message.")
         except discord.HTTPException:
-            return await ctx.send("Invalid message id.")
+           return await ctx.send("Invalid message id or the message doesn't exist.")
         try:
             await self.pick_winner(ctx.guild, channel, msg)
         except AttributeError:
@@ -406,17 +407,15 @@ class Raffle(commands.Cog):
         raffles = await self.config.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
         if channel:
-            try:
-                msg = await channel.get_message(raffles[str(message_id)]["ID"])
-            except AttributeError:
+            if not channel.permissions_for(guild.me).read_messages or not channel.permissions_for(guild.me).send_messages:
+                errored = True
+            if not errored:
                 try:
                     msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
                 except discord.NotFound:
+                    # they deleted the raffle message
                     errored = True
-            except discord.errors.NotFound:
-                errored = True
-        else:
-            errored = True
+
         if not errored:
             await self.pick_winner(guild, channel, msg)
 
