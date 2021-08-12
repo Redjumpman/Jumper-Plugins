@@ -208,14 +208,9 @@ class Raffle(commands.Cog):
     async def reroll(self, ctx, channel: discord.TextChannel, messageid: int):
         """Reroll the winner for a raffle. Requires the channel and message id."""
         try:
-            msg = await channel.get_message(messageid)
-        except AttributeError:
-            try:
-                msg = await channel.fetch_message(messageid)
-            except discord.HTTPException:
+            msg = await channel.fetch_message(messageid)
+        except (discord.HTTPException, discord.Forbidden):
                 return await ctx.send("Invalid message id.")
-        except discord.HTTPException:
-            return await ctx.send("Invalid message id.")
         try:
             await self.pick_winner(ctx.guild, channel, msg)
         except AttributeError:
@@ -407,13 +402,8 @@ class Raffle(commands.Cog):
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
         if channel:
             try:
-                msg = await channel.get_message(raffles[str(message_id)]["ID"])
-            except AttributeError:
-                try:
-                    msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
-                except discord.NotFound:
-                    errored = True
-            except discord.errors.NotFound:
+                msg = await channel.fetch_message(raffles[str(message_id)]["ID"])
+            except discord.NotFound:
                 errored = True
         else:
             errored = True
