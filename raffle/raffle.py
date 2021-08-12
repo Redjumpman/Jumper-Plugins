@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.12"
+__version__ = "4.2.11"
 
 
 class Raffle(commands.Cog):
@@ -94,11 +94,7 @@ class Raffle(commands.Cog):
         embed.add_field(name="Allowed Roles", value=role_info)
         embed.add_field(name="End Time", value=f"<t:{fmt_end}>")
         msg = await channel.send(embed=embed)
-        embed.set_footer(
-            text=(
-                f"Started by: {ctx.author.name} | Winners: {winners} | Raffle ID: {msg.id}"
-            )
-        )
+        embed.set_footer(text=(f"Started by: {ctx.author.name} | Winners: {winners} | Raffle ID: {msg.id}"))
         await msg.edit(embed=embed)
         await msg.add_reaction("\U0001F39F")
 
@@ -208,15 +204,15 @@ class Raffle(commands.Cog):
     async def reroll(self, ctx, channel: discord.TextChannel, messageid: int):
         """Reroll the winner for a raffle. Requires the channel and message id."""
         if not channel.permissions_for(channel.guild.me).read_messages:
-           return await ctx.send("I can't read messages in that channel.")
+            return await ctx.send("I can't read messages in that channel.")
         if not channel.permissions_for(channel.guild.me).send_messages:
-           return await ctx.send("I can't send messages in that channel.")
+            return await ctx.send("I can't send messages in that channel.")
         try:
             msg = await channel.fetch_message(messageid)
         except discord.Forbidden:
-           return await ctx.send("Invalid message id or I can't view that channel or message.")
+            return await ctx.send("Invalid message id or I can't view that channel or message.")
         except discord.HTTPException:
-           return await ctx.send("Invalid message id or the message doesn't exist.")
+            return await ctx.send("Invalid message id or the message doesn't exist.")
         try:
             await self.pick_winner(ctx.guild, channel, msg)
         except AttributeError:
@@ -407,7 +403,10 @@ class Raffle(commands.Cog):
         raffles = await self.config.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
         if channel:
-            if not channel.permissions_for(guild.me).read_messages or not channel.permissions_for(guild.me).send_messages:
+            if (
+                not channel.permissions_for(guild.me).read_messages
+                or not channel.permissions_for(guild.me).send_messages
+            ):
                 errored = True
             if not errored:
                 try:
