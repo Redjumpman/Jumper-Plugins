@@ -210,7 +210,7 @@ class Raffle(commands.Cog):
         try:
             msg = await channel.fetch_message(messageid)
         except (discord.HTTPException, discord.Forbidden):
-                return await ctx.send("Invalid message id.")
+            return await ctx.send("Invalid message id.")
         try:
             await self.pick_winner(ctx.guild, channel, msg)
         except AttributeError:
