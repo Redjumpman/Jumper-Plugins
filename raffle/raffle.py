@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.11"
+__version__ = "4.2.13"
 
 
 class Raffle(commands.Cog):
@@ -266,7 +266,7 @@ class Raffle(commands.Cog):
         if ctx.channel.permissions_for(ctx.me).manage_messages:
             await resp.delete()
         await question.delete()
-        return resp.content.lower()
+        return resp.content
 
     async def _get_roles(self, ctx):
         q = await ctx.send(
@@ -336,10 +336,12 @@ class Raffle(commands.Cog):
         dos = 0
         roles = []
 
-        if await self._get_response(ctx, q3, predicate3) == "yes":
+        resp = await self._get_response(ctx, q3, predicate3)
+        if resp.lower() == "yes":
             dos = await self._get_response(ctx, "How many days on the server are required?", predicate4)
 
-        if await self._get_response(ctx, q4, predicate3) == "yes":
+        resp = await self._get_response(ctx, q4, predicate3)
+        if resp.lower() == "yes":
             roles = await self._get_roles(ctx)
 
         return description, int(winners), int(dos), roles
