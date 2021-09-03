@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.13"
+__version__ = "4.2.14"
 
 
 class Raffle(commands.Cog):
@@ -449,7 +449,10 @@ class Raffle(commands.Cog):
             await channel.send(f"Congratulations {display}! You have won the {msg.embeds[0].title} raffle!")
 
     async def validate_entries(self, users, msg):
-        dos, roles, timestamp = msg.embeds[0].fields
+        try:
+            dos, roles, timestamp = msg.embeds[0].fields
+        except ValueError:
+            dos, roles = msg.embeds[0].fields
         dos = int(dos.value)
         roles = roles.value.split(", ")
 
