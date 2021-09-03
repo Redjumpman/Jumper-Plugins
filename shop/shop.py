@@ -23,12 +23,13 @@ import discord
 # Red
 from redbot.core import Config, bank, commands
 from redbot.core.utils import AsyncIter
+from redbot.core.utils.chat_formatting import humanize_list
 from redbot.core.data_manager import bundled_data_path
 from redbot.core.errors import BalanceTooHigh
 
 log = logging.getLogger("red.shop")
 
-__version__ = "3.1.12"
+__version__ = "3.1.13"
 __author__ = "Redjumpman"
 
 
@@ -39,11 +40,18 @@ def global_permissions():
             return True
         if not await Shop().shop_is_global() and ctx.guild:
             permissions = ctx.channel.permissions_for(ctx.author)
-            admin_role = await ctx.bot._config.guild(ctx.guild).admin_role()
+            admin_roles = await ctx.bot._config.guild(ctx.guild).admin_role()
             author_roles = [role.id for role in ctx.author.roles]
-            return (admin_role in author_roles) or (ctx.author == ctx.guild.owner) or permissions.administrator
+            admin_role_check = check_if_role_in_roles(admin_roles, author_roles)
+            return admin_role_check or (ctx.author == ctx.guild.owner) or permissions.administrator
 
     return commands.check(pred)
+
+def check_if_role_in_roles(admin_roles, user_roles):
+    intersection = list(set(admin_roles).intersection(user_roles))
+    if not intersection:
+        return False
+    return True
 
 
 class Shop(commands.Cog):
@@ -808,6 +816,9 @@ class Shop(commands.Cog):
         await ctx.send("What is the name of this shop?\nName must be 25 characters or less.")
         name = await ctx.bot.wait_for("message", timeout=25, check=Checks(ctx, length=25).length_under)
 
+        if name.content.startswith(ctx.prefix):
+            return await ctx.send("Closing shop creation. Please don't run commands while attempting to create a shop.")
+
         if name.content in await instance.Shops():
             return await ctx.send("A shop with this name already exists.")
 
@@ -1030,6 +1041,8 @@ class ItemManager:
 
     async def create(self):
         name = await self.set_name()
+        if not name:
+            return
         cost = await self.set_cost()
         info = await self.set_info()
         _type, role, msgs = await self.set_type()
@@ -1047,8 +1060,11 @@ class ItemManager:
             "Messages": msgs,
         }
 
-        await self.ctx.send("What shop would you like to add this item to?")
+        msg = "What shop would you like to add this item to?\n"
         shops = await self.instance.Shops()
+        msg += "Current shops are: "
+        msg += humanize_list([f"`{shopname}`" for shopname in sorted(shops.keys())])
+        await self.ctx.send(msg)
         shop = await self.ctx.bot.wait_for("message", timeout=25, check=Checks(self.ctx, custom=shops.keys()).content)
         await self.add(data, shop.content, name)
         await self.ctx.send("Item creation complete. Check your logs to ensure it went to the approriate shop.")
@@ -1147,6 +1163,11 @@ class ItemManager:
     async def set_name(self, item=None, shop=None):
         await self.ctx.send("Enter a name for this item. It can't be longer than 20 characters.")
         name = await self.ctx.bot.wait_for("message", timeout=25, check=Checks(self.ctx, length=30).length_under)
+
+        if name.content.startswith(self.ctx.prefix):
+            await self.ctx.send("Closing item creation. Please don't run commands while attempting to create an item.")
+            return None
+
         if item:
             async with self.instance.Shops() as shops:
                 shops[shop]["Items"][name.content] = shops[shop]["Items"].pop(item)
@@ -1209,10 +1230,12 @@ class ItemManager:
         valid_types = ("basic", "random", "auto", "role")
         await self.ctx.send(
             "What is the item type?\n"
+            "```\n"
             "basic  - Normal item and is added to the pending list when redeemed.\n"
             "random - Picks a random item in the shop, weighted on cost.\n"
             "role   - Grants a role when redeemed.\n"
-            "auto   - DM's a msg to the user instead of adding to their inventory."
+            "auto   - DM's a msg to the user instead of adding to their inventory.\n"
+            "```"
         )
         _type = await self.ctx.bot.wait_for("message", timeout=25, check=Checks(self.ctx, custom=valid_types).content)
 
