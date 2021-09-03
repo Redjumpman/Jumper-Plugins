@@ -16,7 +16,7 @@ from redbot.core.utils.predicates import MessagePredicate
 log = logging.getLogger("red.jumper-plugins.raffle")
 
 __author__ = "Redjumpman"
-__version__ = "4.2.14"
+__version__ = "4.2.15"
 
 
 class Raffle(commands.Cog):
@@ -404,7 +404,9 @@ class Raffle(commands.Cog):
         errored = False
         raffles = await self.config.guild(guild).Raffles.all()
         channel = self.bot.get_channel(raffles[str(message_id)]["Channel"])
-        if channel:
+        if not channel:
+            errored = True
+        else:
             if (
                 not channel.permissions_for(guild.me).read_messages
                 or not channel.permissions_for(guild.me).send_messages
