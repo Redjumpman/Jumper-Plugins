@@ -65,7 +65,6 @@ class Raffle(commands.Cog):
         `24:00:00` = 1 day or 24 hours
 
         Title should not be longer than 35 characters.
-        Only one raffle can be active per server.
         """
         if not ctx.channel.permissions_for(ctx.guild.me).embed_links:
             await ctx.send("I need the Embed Links permission to be able to start raffles.")
