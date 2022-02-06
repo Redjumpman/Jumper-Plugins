@@ -1,6 +1,6 @@
 {
     "author" : ["Redjumpman (Redjumpman#1337)"],
-    "install_msg" : "Thank you for installing casino. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3\nThis cog may put a heavy load on your bot if used with 10k users or more. It is highly recommended that you use MongoDB with large user bases.",
+    "install_msg" : "Thank you for installing casino. Be sure to check out the wiki here: https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3\nThis cog may put a heavy load on your bot if used with 10k users or more.",
     "name" : "Casino",
     "short" : "Casino style mini games.",
     "requirements" : ["tabulate"],
