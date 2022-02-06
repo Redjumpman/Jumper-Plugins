@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.10"
+__version__ = "2.4.11"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -882,11 +882,11 @@ class Casino(Database, commands.Cog):
                 else:
                     qualified.append((name, requirements["Access"]))
             else:
+                role_list = [x.name for x in user.roles]
+                role_list += [x.mention for x in user.roles]
                 if requirements["Credits"] and bal < requirements["Credits"]:
                     continue
-                elif requirements["Role"] and requirements["Role"] not in [
-                    x.name for x in user.roles
-                ]:
+                elif requirements["Role"] and requirements["Role"] not in role_list:
                     continue
                 elif (
                     requirements["DOS"]
