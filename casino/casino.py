@@ -425,7 +425,7 @@ class Casino(Database, commands.Cog):
         cmd_list2 = "\n".join(["**{}** - {}".format(x, y) for x, y in cmd_list2])
         wiki = "[Casino Wiki](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3)"
         embed = discord.Embed(colour=0xFF0000, description=wiki)
-        embed.set_author(name="Casino Admin Panel", icon_url=ctx.bot.user.avatar_url)
+        embed.set_author(name="Casino Admin Panel", icon_url=ctx.bot.user.avatar.url)
         embed.add_field(name="__Casino__", value=cmd_list)
         embed.add_field(name="__Casino Settings__", value=cmd_list2)
         embed.set_footer(text=_("With great power, comes great responsibility."))
