@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.11"
+__version__ = "2.4.12"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -870,6 +870,7 @@ class Casino(Database, commands.Cog):
                 "back to local with the casinoset mode command or make your economy "
                 "global with the bankset toggleglobal command."
             )
+            return
         for name, requirements in memberships.items():
             if _global:
                 if requirements["Credits"] and bal < requirements["Credits"]:
