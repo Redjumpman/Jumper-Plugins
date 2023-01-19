@@ -504,7 +504,7 @@ class Casino(Database, commands.Cog):
         # Embed
         embed = discord.Embed(colour=color, description=description)
         embed.title = _("{} Casino").format(casino_name)
-        embed.set_author(name=str(player), icon_url=player.avatar_url)
+        embed.set_author(name=str(player), icon_url=player.avatar.url)
         embed.add_field(name="\u200b", value="\u200b")
         embed.add_field(name="-" * 65, value=box(table, lang="md"))
         embed.set_footer(text=disclaimer)
