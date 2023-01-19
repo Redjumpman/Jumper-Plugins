@@ -14,7 +14,7 @@ from redbot.core import commands
 from tabulate import tabulate
 
 
-__version__ = "2.0.05"
+__version__ = "2.0.06"
 __author__ = "Redjumpman"
 
 
@@ -80,7 +80,8 @@ class DiceTable(commands.Cog):
         embed = discord.Embed(title="Dice Table Output", color=0x3366FF)
         embed.add_field(name="\u200b", value=t, inline=False)
         embed.add_field(name="\u200b", value="\u200b")
-        await ctx.message.delete()
+        if ctx.channel.permissions_for(ctx.me).manage_messages:
+            await ctx.message.delete()
         await ctx.send(embed=embed)
 
     @staticmethod
