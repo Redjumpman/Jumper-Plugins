@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.4.12"
+__version__ = "2.5.0"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -425,7 +425,7 @@ class Casino(Database, commands.Cog):
         cmd_list2 = "\n".join(["**{}** - {}".format(x, y) for x, y in cmd_list2])
         wiki = "[Casino Wiki](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3)"
         embed = discord.Embed(colour=0xFF0000, description=wiki)
-        embed.set_author(name="Casino Admin Panel", icon_url=ctx.bot.user.avatar_url)
+        embed.set_author(name="Casino Admin Panel", icon_url=ctx.bot.user.avatar.url)
         embed.add_field(name="__Casino__", value=cmd_list)
         embed.add_field(name="__Casino Settings__", value=cmd_list2)
         embed.set_footer(text=_("With great power, comes great responsibility."))
@@ -504,7 +504,7 @@ class Casino(Database, commands.Cog):
         # Embed
         embed = discord.Embed(colour=color, description=description)
         embed.title = _("{} Casino").format(casino_name)
-        embed.set_author(name=str(player), icon_url=player.avatar_url)
+        embed.set_author(name=str(player), icon_url=player.avatar.url)
         embed.add_field(name="\u200b", value="\u200b")
         embed.add_field(name="-" * 65, value=box(table, lang="md"))
         embed.set_footer(text=disclaimer)

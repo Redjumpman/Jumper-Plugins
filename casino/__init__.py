@@ -5,5 +5,5 @@ __red_end_user_data_statement__ = "This cog stores discord IDs as needed for ope
 
 async def setup(bot):
     cog = Casino(bot)
-    bot.add_cog(cog)
+    await bot.add_cog(cog)
     await cog.initialise()
