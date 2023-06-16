@@ -7,4 +7,4 @@ __red_end_user_data_statement__ = (
 
 def setup(bot):
     cog = Pokedex()
-    bot.add_cog(cog)
+    await bot.add_cog(cog)

@@ -127,7 +127,7 @@ class Race(commands.Cog):
         except ZeroDivisionError:
             percent = 0
         embed = discord.Embed(color=color, description="Race Stats")
-        embed.set_author(name=f"{user}", icon_url=user.avatar_url)
+        embed.set_author(name=f"{user}", icon_url=user.avatar.url)
         embed.add_field(
             name="Wins",
             value=(

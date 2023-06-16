@@ -4,4 +4,4 @@ __red_end_user_data_statement__ = "This cog stores discord IDs as needed for ope
 
 
 def setup(bot):
-    bot.add_cog(Race())
+    await bot.add_cog(Race())
