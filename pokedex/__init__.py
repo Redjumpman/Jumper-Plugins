@@ -5,6 +5,6 @@ __red_end_user_data_statement__ = (
 )
 
 
-def setup(bot):
+async def setup(bot):
     cog = Pokedex()
     await bot.add_cog(cog)
