@@ -433,7 +433,7 @@ class Raffle(commands.Cog):
             return await channel.send(
                 "It appears there were no valid entries, so a winner for the raffle could not be picked."
             )
-        users = [user for user in await reaction.users().flatten() if guild.get_member(user.id)]
+        users = [user async for user in reaction.users() if guild.get_member(user.id)]
         users.remove(self.bot.user)
         try:
             amt = int(msg.embeds[0].footer.text.split("Winners: ")[1][0])
