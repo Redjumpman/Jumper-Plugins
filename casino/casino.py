@@ -544,8 +544,8 @@ class Casino(Database, commands.Cog):
             choice = await ctx.bot.wait_for("Message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await timeout
-
-        await Membership(ctx, timeout, choice.content.lower()).process()
+        instance = await self.get_data(ctx)
+        await Membership(ctx, timeout, choice.content.lower(), instance.Memberships).process(True)
 
     @casino.command()
     async def version(self, ctx: commands.Context):
@@ -975,12 +975,12 @@ class Membership(Database):
 
     requirements = (_("days on server"), _("credits"), _("role"))
 
-    def __init__(self, ctx, timeout, mode):
+    def __init__(self, ctx, timeout, mode, coro):
         self.ctx = ctx
         self.timeout = timeout
         self.cancel = ctx.prefix + _("cancel")
         self.mode = mode
-        self.coro = None
+        self.coro = coro
         super().__init__()
 
     def switcher(self):
@@ -991,10 +991,11 @@ class Membership(Database):
         else:
             return self.delete
 
-    async def process(self):
+    async def process(self, coro=False):
         action = self.switcher()
-        instance = await super().get_data(self.ctx)
-        self.coro = instance.Memberships
+        if not coro:
+            instance = await super().get_data(self.ctx)
+            self.coro = instance.Memberships
         try:
             await action()
         except asyncio.TimeoutError:
