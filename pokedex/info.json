@@ -7,6 +7,7 @@
     "description" : "View standard pokemon information, Movesets, TM learn-sets, search items, and pokemon locations.",
     "permissions" : ["Manage Messages", "Embed Links", "Add Reactions"],
     "tags" : ["Pokemon", "Information"],
-    "min_python_version": [3, 6, 0],
+    "min_bot_version": "3.5.0",
+    "min_python_version": [3, 9, 0],
     "end_user_data_statement": "This cog does not persistently store data or metadata about users."
 }

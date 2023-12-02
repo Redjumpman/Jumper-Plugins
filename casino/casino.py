@@ -5,29 +5,28 @@ import asyncio
 import calendar
 import logging
 import re
-from typing import Union, Final, Literal
 from operator import itemgetter
+from typing import Final, Literal, Union
 
-
-# Casino
-from . import utils
-from .data import Database
-from .games import Core, Blackjack, Double, War
-from .utils import is_input_unsupported
+# Discord
+import discord
+from redbot.core import bank, checks, commands
+from redbot.core.errors import BalanceTooHigh
 
 # Red
 from redbot.core.i18n import Translator
-from redbot.core import bank, commands, checks
-from redbot.core.errors import BalanceTooHigh
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.chat_formatting import box, humanize_number
 from redbot.core.utils.predicates import MessagePredicate
 
-# Discord
-import discord
-
 # Third-Party Libraries
 from tabulate import tabulate
+
+# Casino
+from . import utils
+from .data import Database
+from .games import Blackjack, Core, Double, War
+from .utils import is_input_unsupported
 
 __version__ = "2.4.12"
 __author__ = "Redjumpman"
@@ -62,9 +61,7 @@ class Casino(Database, commands.Cog):
     ):
         await super().config.user_from_id(user_id).clear()
         all_members = await super().config.all_members()
-        async for guild_id, guild_data in AsyncIter(
-            all_members.items(), steps=100
-        ):
+        async for guild_id, guild_data in AsyncIter(all_members.items(), steps=100):
             if user_id in guild_data:
                 await super().config.member_from_ids(guild_id, user_id).clear()
 
@@ -174,14 +171,8 @@ class Casino(Database, commands.Cog):
         Example: [p]bjmock 50 :clubs: 10, :diamonds: 10 | :clubs: Ace, :clubs: Queen
         """
         ph, dh = hands.split(" | ")
-        ph = [
-            (x[0], int(x[2:])) if x[2:].isdigit() else (x[0], x[2:])
-            for x in ph.split(", ")
-        ]
-        dh = [
-            (x[0], int(x[2:])) if x[2:].isdigit() else (x[0], x[2:])
-            for x in dh.split(", ")
-        ]
+        ph = [(x[0], int(x[2:])) if x[2:].isdigit() else (x[0], x[2:]) for x in ph.split(", ")]
+        dh = [(x[0], int(x[2:])) if x[2:].isdigit() else (x[0], x[2:]) for x in dh.split(", ")]
         await Blackjack(self.old_message_cache).mock(ctx, bet, ph, dh)
 
     # --------------------------------------------------------------------------------------------------
@@ -206,29 +197,23 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("There are no memberships to display."))
 
         await ctx.send(
-            _(
-                "Which of the following memberships would you like to know more about?\n`{}`"
-            ).format(utils.fmt_join(memberships))
+            _("Which of the following memberships would you like to know more about?\n`{}`").format(
+                utils.fmt_join(memberships)
+            )
         )
 
         pred = MessagePredicate.contained_in(memberships, ctx=ctx)
 
         try:
-            membership = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            membership = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response."))
 
         games = settings["Games"]
         perks = settings["Memberships"][membership.content]
-        playable = [
-            x for x, y in games.items() if y["Access"] <= perks["Access"]
-        ]
+        playable = [x for x, y in games.items() if y["Access"] <= perks["Access"]]
 
-        reqs = _(
-            "Credits: {Credits}\nRole: {Role}\nDays on Server: {DOS}"
-        ).format(**perks)
+        reqs = _("Credits: {Credits}\nRole: {Role}\nDays on Server: {DOS}").format(**perks)
         color = utils.color_lookup(perks["Color"])
         desc = _(
             "Access: {Access}\n"
@@ -255,9 +240,7 @@ class Casino(Database, commands.Cog):
 
     @casino.command()
     @checks.admin_or_permissions(administrator=True)
-    async def releasecredits(
-        self, ctx, player: Union[discord.Member, discord.User]
-    ):
+    async def releasecredits(self, ctx, player: Union[discord.Member, discord.User]):
         """Approves pending currency for a user.
 
         If this casino has maximum winnings threshold set, and a user makes a bet that
@@ -270,21 +253,15 @@ class Casino(Database, commands.Cog):
         amount = await player_data.Pending_Credits()
 
         if amount <= 0:
-            return await ctx.send(
-                _("This user doesn't have any credits pending.")
-            )
+            return await ctx.send(_("This user doesn't have any credits pending."))
 
         await ctx.send(
-            _(
-                "{} has {} credits pending. Would you like to release this amount?"
-            ).format(player.name, amount)
+            _("{} has {} credits pending. Would you like to release this amount?").format(player.name, amount)
         )
 
         pred = MessagePredicate.yes_or_no(ctx=ctx)
         try:
-            choice = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -314,27 +291,15 @@ class Casino(Database, commands.Cog):
     async def resetuser(self, ctx: commands.Context, user: discord.Member):
         """Reset a user's cooldowns, stats, or everything."""
 
-        if await super().casino_is_global() and not await ctx.bot.is_owner(
-            ctx.author
-        ):
-            return await ctx.send(
-                _(
-                    "While the casino is in global mode, only the bot owner may use this command."
-                )
-            )
+        if await super().casino_is_global() and not await ctx.bot.is_owner(ctx.author):
+            return await ctx.send(_("While the casino is in global mode, only the bot owner may use this command."))
 
         options = (_("cooldowns"), _("stats"), _("all"))
-        await ctx.send(
-            _("What would you like to reset?\n`{}`.").format(
-                utils.fmt_join(options)
-            )
-        )
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
 
         pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
         try:
-            choice = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -349,14 +314,8 @@ class Casino(Database, commands.Cog):
     @checks.admin_or_permissions(administrator=True)
     async def resetinstance(self, ctx: commands.Context):
         """Reset global/server cooldowns, settings, memberships, or everything."""
-        if await super().casino_is_global() and not await ctx.bot.is_owner(
-            ctx.author
-        ):
-            return await ctx.send(
-                _(
-                    "While the casino is in global mode, only the bot owner may use this command."
-                )
-            )
+        if await super().casino_is_global() and not await ctx.bot.is_owner(ctx.author):
+            return await ctx.send(_("While the casino is in global mode, only the bot owner may use this command."))
 
         options = (
             _("settings"),
@@ -365,22 +324,12 @@ class Casino(Database, commands.Cog):
             _("memberships"),
             _("all"),
         )
-        await ctx.send(
-            _("What would you like to reset?\n`{}`.").format(
-                utils.fmt_join(options)
-            )
-        )
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
         pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
-        await ctx.send(
-            _("What would you like to reset?\n`{}`.").format(
-                utils.fmt_join(options)
-            )
-        )
+        await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
 
         try:
-            choice = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
 
@@ -408,9 +357,7 @@ class Casino(Database, commands.Cog):
 
         pred = MessagePredicate.yes_or_no(ctx=ctx)
         try:
-            choice = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No Response. Action canceled."))
 
@@ -438,18 +385,14 @@ class Casino(Database, commands.Cog):
         settings = await super().get_data(ctx)
         memberships = await settings.Memberships.all()
         if membership not in memberships:
-            return await ctx.send(
-                _("{} is not a registered membership.").format(membership)
-            )
+            return await ctx.send(_("{} is not a registered membership.").format(membership))
 
         player_instance = await super().get_data(ctx, player=player)
-        await player_instance.Membership.set(
-            {"Name": membership, "Assigned": True}
-        )
+        await player_instance.Membership.set({"Name": membership, "Assigned": True})
 
-        msg = _(
-            "{0.name} ({0.id}) manually assigned {1.name} ({1.id}) the {2} membership."
-        ).format(ctx.author, player, membership)
+        msg = _("{0.name} ({0.id}) manually assigned {1.name} ({1.id}) the {2} membership.").format(
+            ctx.author, player, membership
+        )
         await ctx.send(msg)
 
     @casino.command()
@@ -467,13 +410,9 @@ class Casino(Database, commands.Cog):
         player_data = await super().get_data(ctx, player=player)
 
         if not await player_data.Membership.Assigned():
-            return await ctx.send(
-                _("{} has no assigned membership.").format(player.name)
-            )
+            return await ctx.send(_("{} has no assigned membership.").format(player.name))
         else:
-            await player_data.Membership.set(
-                {"Name": "Basic", "Assigned": False}
-            )
+            await player_data.Membership.set({"Name": "Basic", "Assigned": False})
         return await ctx.send(
             _(
                 "{} has unassigned {}'s membership. They have been set "
@@ -496,19 +435,13 @@ class Casino(Database, commands.Cog):
             if await cmd.requires.verify(ctx):
                 cmd_list2.append((cmd.qualified_name, cmd.short_doc))
         cmd_list = "\n".join(["**{}** - {}".format(x, y) for x, y in cmd_list])
-        cmd_list2 = "\n".join(
-            ["**{}** - {}".format(x, y) for x, y in cmd_list2]
-        )
+        cmd_list2 = "\n".join(["**{}** - {}".format(x, y) for x, y in cmd_list2])
         wiki = "[Casino Wiki](https://github.com/Redjumpman/Jumper-Plugins/wiki/Casino-RedV3)"
         embed = discord.Embed(colour=0xFF0000, description=wiki)
-        embed.set_author(
-            name="Casino Admin Panel", icon_url=ctx.bot.user.avatar.url
-        )
+        embed.set_author(name="Casino Admin Panel", icon_url=ctx.bot.user.display_avatar)
         embed.add_field(name="__Casino__", value=cmd_list)
         embed.add_field(name="__Casino Settings__", value=cmd_list2)
-        embed.set_footer(
-            text=_("With great power, comes great responsibility.")
-        )
+        embed.set_footer(text=_("With great power, comes great responsibility."))
         await ctx.send(embed=embed)
 
     @casino.command()
@@ -526,19 +459,11 @@ class Casino(Database, commands.Cog):
 
         t = sorted(
             [
-                [x]
-                + [
-                    b
-                    for a, b in sorted(y.items(), key=itemgetter(0))
-                    if a != "Cooldown"
-                ]
+                [x] + [b for a, b in sorted(y.items(), key=itemgetter(0)) if a != "Cooldown"]
                 for x, y in game_data.items()
             ]
         )
-        cool = [
-            utils.cooldown_formatter(y["Cooldown"])
-            for x, y in sorted(game_data.items(), key=itemgetter(0))
-        ]
+        cool = [utils.cooldown_formatter(y["Cooldown"]) for x, y in sorted(game_data.items(), key=itemgetter(0))]
         table = [x + [y] for x, y in zip(t, cool)]
 
         headers = (
@@ -581,21 +506,9 @@ class Casino(Database, commands.Cog):
         color = utils.color_lookup(perks["Color"])
 
         games = sorted(await casino.Games.all())
-        played = [
-            y
-            for x, y in sorted(
-                player_data["Played"].items(), key=itemgetter(0)
-            )
-        ]
-        won = [
-            y for x, y in sorted(player_data["Won"].items(), key=itemgetter(0))
-        ]
-        cool_items = [
-            y
-            for x, y in sorted(
-                player_data["Cooldowns"].items(), key=itemgetter(0)
-            )
-        ]
+        played = [y for x, y in sorted(player_data["Played"].items(), key=itemgetter(0))]
+        won = [y for x, y in sorted(player_data["Won"].items(), key=itemgetter(0))]
+        cool_items = [y for x, y in sorted(player_data["Cooldowns"].items(), key=itemgetter(0))]
 
         reduction = perks["Reduction"]
         fmt_reduct = utils.cooldown_formatter(reduction)
@@ -606,18 +519,12 @@ class Casino(Database, commands.Cog):
 
         headers = ("Games", "Played", "Won", "Cooldowns")
         table = tabulate(zip(games, played, won, cooldowns), headers=headers)
-        disclaimer = _(
-            "Wins do not take into calculation pushed bets or surrenders."
-        )
+        disclaimer = _("Wins do not take into calculation pushed bets or surrenders.")
 
         # Embed
         embed = discord.Embed(colour=color, description=description)
         embed.title = _("{} Casino").format(casino_name)
-        pfp = player.avatar
-        if pfp:
-            embed.set_author(name=str(player), icon_url=player.avatar.url)
-        else:
-            embed.set_author(name=str(player))
+        embed.set_author(name=str(player), icon_url=player.display_avatar)
         embed.add_field(name="\u200b", value="\u200b")
         embed.add_field(name="-" * 65, value=box(table, lang="md"))
         embed.set_footer(text=disclaimer)
@@ -630,19 +537,11 @@ class Casino(Database, commands.Cog):
         """A process to create, edit, and delete memberships."""
         timeout = ctx.send(_("Process timed out. Exiting membership process."))
 
-        await ctx.send(
-            _(
-                "Do you wish to `create`, `edit`, or `delete` an existing membership?"
-            )
-        )
+        await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
 
-        pred = MessagePredicate.lower_contained_in(
-            ("edit", "create", "delete"), ctx=ctx
-        )
+        pred = MessagePredicate.lower_contained_in(("edit", "create", "delete"), ctx=ctx)
         try:
-            choice = await ctx.bot.wait_for(
-                "Message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("Message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await timeout
 
@@ -656,10 +555,7 @@ class Casino(Database, commands.Cog):
     # --------------------------------------------------------------------------------------------------
 
     async def global_casino_only(ctx):
-        if (
-            await ctx.cog.config.Settings.Global()
-            and not await ctx.bot.is_owner(ctx.author)
-        ):
+        if await ctx.cog.config.Settings.Global() and not await ctx.bot.is_owner(ctx.author):
             return False
         else:
             return True
@@ -677,15 +573,11 @@ class Casino(Database, commands.Cog):
         """Toggle between editing and sending new messages for casino games.."""
 
         current = await self.old_message_cache.get_guild(guild=ctx.guild)
-        await self.old_message_cache.set_guild(
-            guild=ctx.guild, set_to=not current
-        )
+        await self.old_message_cache.set_guild(guild=ctx.guild, set_to=not current)
 
         await ctx.send(
             _("Casino message type set to {type}.").format(
-                type=_("**edit existing message**")
-                if current
-                else _("**send new message**")
+                type=_("**edit existing message**") if current else _("**send new message**")
             )
         )
 
@@ -705,16 +597,12 @@ class Casino(Database, commands.Cog):
         mode = "global" if await super().casino_is_global() else "local"
         alt = "local" if mode == "global" else "global"
         await ctx.send(
-            _(
-                "Casino is currently set to {} mode. Would you like to change to {} mode instead?"
-            ).format(mode, alt)
+            _("Casino is currently set to {} mode. Would you like to change to {} mode instead?").format(mode, alt)
         )
         pred = MessagePredicate.yes_or_no(ctx=ctx)
 
         try:
-            choice = await ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            choice = await ctx.bot.wait_for("message", timeout=25.0, check=pred)
         except asyncio.TimeoutError:
             return await ctx.send(_("No response. Action canceled."))
         if choice.content.lower() != _("yes"):
@@ -739,11 +627,7 @@ class Casino(Database, commands.Cog):
                     "use `{}bankset toggleglobal`".format(ctx.prefix)
                 )
             await super().change_mode(alt)
-            await ctx.send(
-                _("Casino data deleted! Casino mode now set to {}.").format(
-                    alt
-                )
-            )
+            await ctx.send(_("Casino data deleted! Casino mode now set to {}.").format(alt))
         else:
             await ctx.send(_("Casino will remain {}.").format(mode))
 
@@ -761,9 +645,7 @@ class Casino(Database, commands.Cog):
 
         settings = await super().get_data(ctx)
         await settings.Settings.Payout_Limit.set(limit)
-        msg = _("{0.name} ({0.id}) set the payout limit to {1}.").format(
-            ctx.author, limit
-        )
+        msg = _("{0.name} ({0.id}) set the payout limit to {1}.").format(ctx.author, limit)
         await ctx.send(msg)
 
     @casinoset.command()
@@ -776,9 +658,7 @@ class Casino(Database, commands.Cog):
         settings = await super().get_data(ctx)
         status = await settings.Settings.Payout_Switch()
         await settings.Settings.Payout_Switch.set(not status)
-        msg = _("{0.name} ({0.id}) turned the payout limit {1}.").format(
-            ctx.author, "OFF" if status else "ON"
-        )
+        msg = _("{0.name} ({0.id}) turned the payout limit {1}.").format(ctx.author, "OFF" if status else "ON")
         await ctx.send(msg)
 
     @casinoset.command()
@@ -792,9 +672,7 @@ class Casino(Database, commands.Cog):
 
         status = await settings.Settings.Casino_Open()
         await settings.Settings.Casino_Open.set(not status)
-        msg = _("{0.name} ({0.id}) {2} the {1} Casino.").format(
-            ctx.author, name, "closed" if status else "opened"
-        )
+        msg = _("{0.name} ({0.id}) {2} the {1} Casino.").format(ctx.author, name, "closed" if status else "opened")
         await ctx.send(msg)
 
     @casinoset.command()
@@ -804,21 +682,15 @@ class Casino(Database, commands.Cog):
         The casino name may only be 30 characters in length.
         """
         if len(name) > 30:
-            return await ctx.send(
-                _("Your Casino name must be 30 characters or less.")
-            )
+            return await ctx.send(_("Your Casino name must be 30 characters or less."))
 
         settings = await super().get_data(ctx)
         await settings.Settings.Casino_Name.set(name)
-        msg = _("{0.name} ({0.id}) set the casino name to {1}.").format(
-            ctx.author, name
-        )
+        msg = _("{0.name} ({0.id}) set the casino name to {1}.").format(ctx.author, name)
         await ctx.send(msg)
 
     @casinoset.command()
-    async def multiplier(
-        self, ctx: commands.Context, game: str, multiplier: float
-    ):
+    async def multiplier(self, ctx: commands.Context, game: str, multiplier: float):
         """Sets the payout multiplier for a game."""
         settings = await super().get_data(ctx)
         games = await settings.Games.all()
@@ -826,19 +698,13 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("Go home. You're drunk."))
 
         if game.title() == "Allin" or game.title() == "Double":
-            return await ctx.send(
-                _("This games's multiplier is determined by the user.")
-            )
+            return await ctx.send(_("This games's multiplier is determined by the user."))
 
         if not await self.basic_check(ctx, game, games, multiplier):
             return
 
-        await settings.Games.set_raw(
-            game.title(), "Multiplier", value=multiplier
-        )
-        msg = _("{0.name} ({0.id}) set {1}'s multiplier to {2}.").format(
-            ctx.author, game.title(), multiplier
-        )
+        await settings.Games.set_raw(game.title(), "Multiplier", value=multiplier)
+        msg = _("{0.name} ({0.id}) set {1}'s multiplier to {2}.").format(ctx.author, game.title(), multiplier)
         if multiplier == 0:
             msg += _(
                 "\n\nWait a minute...Zero?! Really... I'm a bot and that's more "
@@ -859,29 +725,19 @@ class Casino(Database, commands.Cog):
         try:
             seconds = utils.time_converter(cooldown)
         except ValueError:
-            return await ctx.send(
-                _(
-                    "Invalid cooldown format. Must be an integer or in HH:MM:SS style."
-                )
-            )
+            return await ctx.send(_("Invalid cooldown format. Must be an integer or in HH:MM:SS style."))
 
         if seconds < 0:
-            return await ctx.send(
-                _("Nice try McFly, but this isn't Back to the Future.")
-            )
+            return await ctx.send(_("Nice try McFly, but this isn't Back to the Future."))
 
         if game.title() not in games:
             return await ctx.send(
-                _(
-                    "Invalid game name. Must be one of the following:\n`{}`."
-                ).format(utils.fmt_join(list(games)))
+                _("Invalid game name. Must be one of the following:\n`{}`.").format(utils.fmt_join(list(games)))
             )
 
         await settings.Games.set_raw(game.title(), "Cooldown", value=seconds)
         cool = utils.cooldown_formatter(seconds)
-        msg = _("{0.name} ({0.id}) set {1}'s cooldown to {2}.").format(
-            ctx.author, game.title(), cool
-        )
+        msg = _("{0.name} ({0.id}) set {1}'s cooldown to {2}.").format(ctx.author, game.title(), cool)
         await ctx.send(msg)
 
     @casinoset.command(name="min")
@@ -900,16 +756,10 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("You cannot set a minimum bid for Allin."))
 
         if minimum > games[game.title()]["Max"]:
-            return await ctx.send(
-                _(
-                    "You can't set a minimum higher than the game's maximum bid."
-                )
-            )
+            return await ctx.send(_("You can't set a minimum higher than the game's maximum bid."))
 
         await settings.Games.set_raw(game.title(), "Min", value=minimum)
-        msg = _("{0.name} ({0.id}) set {1}'s minimum bid to {2}.").format(
-            ctx.author, game.title(), minimum
-        )
+        msg = _("{0.name} ({0.id}) set {1}'s minimum bid to {2}.").format(ctx.author, game.title(), minimum)
         await ctx.send(msg)
 
     @casinoset.command(name="max")
@@ -928,14 +778,10 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("You cannot set a maximum bid for Allin."))
 
         if maximum < games[game.title()]["Min"]:
-            return await ctx.send(
-                _("You can't set a maximum lower than the game's minimum bid.")
-            )
+            return await ctx.send(_("You can't set a maximum lower than the game's minimum bid."))
 
         await settings.Games.set_raw(game.title(), "Max", value=maximum)
-        msg = _("{0.name} ({0.id}) set {1}'s maximum bid to {2}.").format(
-            ctx.author, game.title(), maximum
-        )
+        msg = _("{0.name} ({0.id}) set {1}'s maximum bid to {2}.").format(ctx.author, game.title(), maximum)
         await ctx.send(msg)
 
     @casinoset.command()
@@ -954,9 +800,7 @@ class Casino(Database, commands.Cog):
             return await ctx.send(_("Go home. You're drunk."))
 
         await data.Games.set_raw(game.title(), "Access", value=access)
-        msg = _(
-            "{0.name} ({0.id}) changed the access level for {1} to {2}."
-        ).format(ctx.author, game, access)
+        msg = _("{0.name} ({0.id}) changed the access level for {1} to {2}.").format(ctx.author, game, access)
         await ctx.send(msg)
 
     @casinoset.command()
@@ -969,9 +813,7 @@ class Casino(Database, commands.Cog):
 
         status = await instance.Games.get_raw(game.title(), "Open")
         await instance.Games.set_raw(game.title(), "Open", value=(not status))
-        msg = _("{0.name} ({0.id}) {2} the game {1}.").format(
-            ctx.author, game, "closed" if status else "opened"
-        )
+        msg = _("{0.name} ({0.id}) {2} the game {1}.").format(ctx.author, game, "closed" if status else "opened")
         await ctx.send(msg)
 
     # --------------------------------------------------------------------------------------------------
@@ -1003,9 +845,7 @@ class Casino(Database, commands.Cog):
                     # user isn't in the cache so we can probably
                     # ignore them without issue
                     continue
-                async with self.config.user(
-                    user_obj
-                ).Membership() as user_data:
+                async with self.config.user(user_obj).Membership() as user_data:
                     if user_data["Name"] not in memberships:
                         user_data["Name"] = "Basic"
                         user_data["Assigned"] = False
@@ -1024,18 +864,14 @@ class Casino(Database, commands.Cog):
                 users = await self.config.all_members(guild_obj)
                 if not users:
                     continue
-                memberships = await self.config.guild(
-                    guild_obj
-                ).Memberships.all()
+                memberships = await self.config.guild(guild_obj).Memberships.all()
                 if not memberships:
                     continue
                 for user in users:
                     user_obj = guild_obj.get_member(user)
                     if not user_obj:
                         continue
-                    async with self.config.member(
-                        user_obj
-                    ).Membership() as user_data:
+                    async with self.config.member(user_obj).Membership() as user_data:
                         if user_data["Name"] not in memberships:
                             user_data["Name"] = "Basic"
                             user_data["Assigned"] = False
@@ -1058,11 +894,7 @@ class Casino(Database, commands.Cog):
             if _global:
                 if requirements["Credits"] and bal < requirements["Credits"]:
                     continue
-                elif (
-                    requirements["DOS"]
-                    and requirements["DOS"]
-                    > (user.created_at.now() - user.created_at).days
-                ):
+                elif requirements["DOS"] and requirements["DOS"] > (user.created_at.now() - user.created_at).days:
                     continue
                 else:
                     qualified.append((name, requirements["Access"]))
@@ -1071,23 +903,14 @@ class Casino(Database, commands.Cog):
                 role_list += [x.mention for x in user.roles]
                 if requirements["Credits"] and bal < requirements["Credits"]:
                     continue
-                elif (
-                    requirements["Role"]
-                    and requirements["Role"] not in role_list
-                ):
+                elif requirements["Role"] and requirements["Role"] not in role_list:
                     continue
-                elif (
-                    requirements["DOS"]
-                    and requirements["DOS"]
-                    > (user.joined_at.now() - user.joined_at).days
-                ):
+                elif requirements["DOS"] and requirements["DOS"] > (user.joined_at.now() - user.joined_at).days:
                     continue
                 else:
                     qualified.append((name, requirements["Access"]))
 
-        membership = (
-            max(qualified, key=itemgetter(1))[0] if qualified else "Basic"
-        )
+        membership = max(qualified, key=itemgetter(1))[0] if qualified else "Basic"
         if _global:
             async with self.config.user(user).Membership() as data:
                 data["Name"] = membership
@@ -1100,11 +923,7 @@ class Casino(Database, commands.Cog):
     @staticmethod
     async def basic_check(ctx, game, games, base):
         if game.title() not in games:
-            await ctx.send(
-                "Invalid game name. Must be on of the following:\n`{}`".format(
-                    utils.fmt_join(list(games))
-                )
-            )
+            await ctx.send("Invalid game name. Must be on of the following:\n`{}`".format(utils.fmt_join(list(games))))
             return False
         elif base < 0:
             await ctx.send(_("Go home. You're drunk."))
@@ -1118,11 +937,7 @@ class Casino(Database, commands.Cog):
         results = []
         for cooldown in cooldowns:
             seconds = int((cooldown + reduction - now))
-            results.append(
-                utils.cooldown_formatter(
-                    seconds, custom_msg="<Ready to Play!>"
-                )
-            )
+            results.append(utils.cooldown_formatter(seconds, custom_msg="<Ready to Play!>"))
         return results
 
     def cog_unload(self):
@@ -1192,31 +1007,21 @@ class Membership(Database):
 
         def mem_check(m):
             valid_name = m.content
-            return (
-                m.author == self.ctx.author
-                and valid_name in memberships
-                or valid_name == self.cancel
-            )
+            return m.author == self.ctx.author and valid_name in memberships or valid_name == self.cancel
 
         if not memberships:
             await self.ctx.send(_("There are no memberships to delete."))
             raise ExitProcess()
 
         await self.ctx.send(
-            _("Which membership would you like to delete?\n`{}`").format(
-                utils.fmt_join(list(memberships.keys()))
-            )
+            _("Which membership would you like to delete?\n`{}`").format(utils.fmt_join(list(memberships.keys())))
         )
-        membership = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=mem_check
-        )
+        membership = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
 
         if membership.content == self.cancel:
             raise ExitProcess()
         await self.ctx.send(
-            _(
-                "Are you sure you wish to delete `{}`? This cannot be reverted."
-            ).format(membership.content)
+            _("Are you sure you wish to delete `{}`? This cannot be reverted.").format(membership.content)
         )
 
         choice = await self.ctx.bot.wait_for(
@@ -1230,9 +1035,7 @@ class Membership(Database):
             name = membership.content
             async with self.coro() as data:
                 del data[name]
-            await self.ctx.send(
-                _("{} has been deleted.").format(membership.content)
-            )
+            await self.ctx.send(_("{} has been deleted.").format(membership.content))
         else:
             await self.ctx.send(_("Deletion canceled."))
 
@@ -1244,9 +1047,7 @@ class Membership(Database):
             ).format(self.ctx.prefix)
         )
 
-        data = dict.fromkeys(
-            ("Access", "Bonus", "Color", "Credits", "Role", "DOS", "Reduction")
-        )
+        data = dict.fromkeys(("Access", "Bonus", "Color", "Credits", "Role", "DOS", "Reduction"))
 
         name, valid_name = await self.set_name()
         await self.set_access(data)
@@ -1265,25 +1066,19 @@ class Membership(Database):
         memberships = await self.coro.all()
 
         def mem_check(m):
-            return (
-                m.author == self.ctx.author
-                and m.content in memberships
-                or m.content == self.cancel
-            )
+            return m.author == self.ctx.author and m.content in memberships or m.content == self.cancel
 
         if not memberships:
             await self.ctx.send(_("There are no memberships to edit."))
             raise ExitProcess()
 
         await self.ctx.send(
-            _(
-                "Which of the following memberships would you like to edit?\n`{}`"
-            ).format(utils.fmt_join(list(memberships.keys())))
+            _("Which of the following memberships would you like to edit?\n`{}`").format(
+                utils.fmt_join(list(memberships.keys()))
+            )
         )
 
-        membership = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=mem_check
-        )
+        membership = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
         if membership.content == self.cancel:
             raise ExitProcess()
 
@@ -1296,9 +1091,7 @@ class Membership(Database):
             _("Bonus"),
         )
         await self.ctx.send(
-            _(
-                "Which of the following attributes would you like to edit?\n`{}`"
-            ).format(utils.fmt_join(attrs))
+            _("Which of the following attributes would you like to edit?\n`{}`").format(utils.fmt_join(attrs))
         )
 
         pred = MessagePredicate.lower_contained_in(
@@ -1313,9 +1106,7 @@ class Membership(Database):
             ),
             ctx=self.ctx,
         )
-        attribute = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=pred
-        )
+        attribute = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
         valid_name = membership.content
         if attribute.content.lower() == self.cancel:
@@ -1348,18 +1139,12 @@ class Membership(Database):
             raise ExitProcess()
 
     async def set_color(self, membership):
-        await self.ctx.send(
-            _("What color would you like to set?\n`{}`").format(
-                utils.fmt_join(list(self.colors))
-            )
-        )
+        await self.ctx.send(_("What color would you like to set?\n`{}`").format(utils.fmt_join(list(self.colors))))
 
         color_list = list(self.colors)
         color_list.append(str(self.cancel))
         pred = MessagePredicate.lower_contained_in(color_list, ctx=self.ctx)
-        color = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=pred
-        )
+        color = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
 
         if color.content.lower() == self.cancel:
             raise ExitProcess()
@@ -1371,29 +1156,20 @@ class Membership(Database):
         async with self.coro() as membership_data:
             membership_data[membership]["Color"] = color.content.lower()
 
-        await self.ctx.send(
-            _("Color set to {}.").format(color.content.lower())
-        )
+        await self.ctx.send(_("Color set to {}.").format(color.content.lower()))
 
     async def set_name(self, membership=None):
         memberships = await self.coro.all()
 
         def mem_check(m):
-            if (
-                not m.channel == self.ctx.channel
-                and m.author == self.ctx.author
-            ):
+            if not m.channel == self.ctx.channel and m.author == self.ctx.author:
                 return False
             if m.author == self.ctx.author:
                 if m.content == self.cancel:
                     raise ExitProcess
                 conditions = (
                     m.content not in memberships,
-                    (
-                        True
-                        if re.match("^[a-zA-Z0-9 -]*$", m.content)
-                        else False
-                    ),
+                    (True if re.match("^[a-zA-Z0-9 -]*$", m.content) else False),
                 )
                 if all(conditions):
                     return True
@@ -1403,9 +1179,7 @@ class Membership(Database):
                 return False
 
         await self.ctx.send(_("What name would you like to set?"))
-        name = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=mem_check
-        )
+        name = await self.ctx.bot.wait_for("message", timeout=25.0, check=mem_check)
 
         if name.content == self.cancel:
             raise ExitProcess()
@@ -1421,9 +1195,7 @@ class Membership(Database):
 
     async def set_access(self, membership):
         await self.ctx.send(_("What access level would you like to set?"))
-        access = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=self.positive_int_predicate
-        )
+        access = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_int_predicate)
 
         user_input = int(access.content)
         if is_input_unsupported(user_input):
@@ -1440,12 +1212,8 @@ class Membership(Database):
         await self.ctx.send(_("Access set to {}.").format(user_input))
 
     async def set_reduction(self, membership):
-        await self.ctx.send(
-            _("What is the cooldown reduction of this membership in seconds?")
-        )
-        reduction = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=self.positive_int_predicate
-        )
+        await self.ctx.send(_("What is the cooldown reduction of this membership in seconds?"))
+        reduction = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_int_predicate)
 
         user_input = int(reduction.content)
         if is_input_unsupported(user_input):
@@ -1460,22 +1228,14 @@ class Membership(Database):
             membership_data[membership]["Reduction"] = user_input
 
     async def set_bonus(self, membership):
-        await self.ctx.send(
-            _(
-                "What is the bonus payout multiplier for this membership?\n*Defaults to 1.0*"
-            )
-        )
-        bonus = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=self.positive_float_predicate
-        )
+        await self.ctx.send(_("What is the bonus payout multiplier for this membership?\n*Defaults to 1.0*"))
+        bonus = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_float_predicate)
 
         if bonus.content.lower() == self.cancel:
             raise ExitProcess
         user_input = bonus.content
         if is_input_unsupported(user_input):
-            await self.ctx.send(
-                _("Can't set the bonus multiplier to this value.")
-            )
+            await self.ctx.send(_("Can't set the bonus multiplier to this value."))
             return
 
         if self.mode == "create":
@@ -1485,16 +1245,12 @@ class Membership(Database):
         async with self.coro() as membership_data:
             membership_data[membership]["Bonus"] = float(bonus.content)
 
-        await self.ctx.send(
-            _("Bonus multiplier set to {}.").format(bonus.content)
-        )
+        await self.ctx.send(_("Bonus multiplier set to {}.").format(bonus.content))
 
     async def req_loop(self, membership):
         while True:
             await self.ctx.send(
-                _(
-                    "Which requirement would you like to add or modify?\n`{}`"
-                ).format(utils.fmt_join(self.requirements))
+                _("Which requirement would you like to add or modify?\n`{}`").format(utils.fmt_join(self.requirements))
             )
 
             pred = MessagePredicate.lower_contained_in(
@@ -1508,9 +1264,7 @@ class Membership(Database):
                 ctx=self.ctx,
             )
 
-            req = await self.ctx.bot.wait_for(
-                "message", timeout=25.0, check=pred
-            )
+            req = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)
             if req.content.lower() == self.cancel:
                 raise ExitProcess()
             elif req.content.lower() == _("credits"):
@@ -1520,11 +1274,7 @@ class Membership(Database):
             else:
                 await self.dos_requirement(membership)
 
-            await self.ctx.send(
-                _(
-                    "Would you like to continue adding or modifying requirements?"
-                )
-            )
+            await self.ctx.send(_("Would you like to continue adding or modifying requirements?"))
 
             choice = await self.ctx.bot.wait_for(
                 "message",
@@ -1539,19 +1289,13 @@ class Membership(Database):
                 continue
 
     async def credits_requirement(self, membership):
-        await self.ctx.send(
-            _("How many credits does this membership require?")
-        )
+        await self.ctx.send(_("How many credits does this membership require?"))
 
-        amount = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=self.positive_int_predicate
-        )
+        amount = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_int_predicate)
 
         amount = int(amount.content)
         if is_input_unsupported(amount):
-            await self.ctx.send(
-                _("Can't set the credit requirement to this value.")
-            )
+            await self.ctx.send(_("Can't set the credit requirement to this value."))
             return
         if self.mode == "create":
             membership["Credits"] = amount
@@ -1560,9 +1304,7 @@ class Membership(Database):
         async with self.coro() as membership_data:
             membership_data[membership]["Credits"] = amount
 
-        await self.ctx.send(
-            _("Credits requirement set to {}.").format(humanize_number(amount))
-        )
+        await self.ctx.send(_("Credits requirement set to {}.").format(humanize_number(amount)))
 
     async def role_requirement(self, membership):
         await self.ctx.send(
@@ -1582,9 +1324,7 @@ class Membership(Database):
         async with self.coro() as membership_data:
             membership_data[membership]["Role"] = role.content
 
-        await self.ctx.send(
-            _("Role requirement set to {}.").format(role.content)
-        )
+        await self.ctx.send(_("Role requirement set to {}.").format(role.content))
 
     async def dos_requirement(self, membership):
         await self.ctx.send(
@@ -1594,9 +1334,7 @@ class Membership(Database):
                 "account was created.*"
             )
         )
-        days = await self.ctx.bot.wait_for(
-            "message", timeout=25.0, check=self.positive_int_predicate
-        )
+        days = await self.ctx.bot.wait_for("message", timeout=25.0, check=self.positive_int_predicate)
 
         if self.mode == "create":
             membership["DOS"] = int(days.content)
@@ -1604,9 +1342,7 @@ class Membership(Database):
 
         async with self.coro() as membership_data:
             membership_data[membership]["DOS"] = int(days.content)
-        await self.ctx.send(
-            _("Time requirement set to {}.").format(days.content)
-        )
+        await self.ctx.send(_("Time requirement set to {}.").format(days.content))
 
     @staticmethod
     def build_embed(name, data):

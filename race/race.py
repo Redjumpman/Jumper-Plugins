@@ -60,7 +60,7 @@ class Race(commands.Cog):
 
         # First, Second, and Third place wins
         member_defaults = {"Wins": {"1": 0, "2": 0, "3": 0}, "Losses": 0}
-        
+
         self.config.register_guild(**guild_defaults)
         self.config.register_member(**member_defaults)
 
@@ -127,12 +127,10 @@ class Race(commands.Cog):
         except ZeroDivisionError:
             percent = 0
         embed = discord.Embed(color=color, description="Race Stats")
-        embed.set_author(name=f"{user}", icon_url=user.avatar_url)
+        embed.set_author(name=f"{user}", icon_url=user.display_avatar)
         embed.add_field(
             name="Wins",
-            value=(
-                f"1st: {user_data['Wins']['1']}\n2nd: {user_data['Wins']['2']}\n3rd: {user_data['Wins']['3']}"
-            ),
+            value=(f"1st: {user_data['Wins']['1']}\n2nd: {user_data['Wins']['2']}\n3rd: {user_data['Wins']['3']}"),
         )
         embed.add_field(name="Losses", value=f'{user_data["Losses"]}')
         embed.set_footer(
@@ -256,7 +254,7 @@ class Race(commands.Cog):
         """Sets the betting maximum."""
         if amount < 0:
             return await ctx.send("Come on now. Let's be reasonable.")
-        if amount > 2 ** 63 - 1:
+        if amount > 2**63 - 1:
             return await ctx.send("Come on now. Let's be reasonable.")
         minimum = await self.config.guild(ctx.guild).Bet_Min()
         if amount < minimum:
@@ -268,7 +266,7 @@ class Race(commands.Cog):
     @_bet.command()
     async def multiplier(self, ctx, multiplier: float):
         """Sets the betting multiplier.
-        
+
         If the bot's economy mode is set to global instead of server-based, this setting is not available.
         """
         global_bank = await bank.is_global()
@@ -278,7 +276,7 @@ class Race(commands.Cog):
             return await ctx.send("So... you want them to lose money... when they win. I'm not doing that.")
         if multiplier == 0:
             return await ctx.send("That means they win nothing. Just turn off betting.")
-        if multiplier > 2 ** 63 - 1:
+        if multiplier > 2**63 - 1:
             return await ctx.send("Try a smaller number.")
 
         await self.config.guild(ctx.guild).Bet_Multiplier.set(multiplier)
@@ -316,7 +314,7 @@ class Race(commands.Cog):
 
         Set the prize to 0 if you do not wish any credits to be distributed.
 
-        When prize pooling is enabled (see `[p]setrace togglepool`) the prize 
+        When prize pooling is enabled (see `[p]setrace togglepool`) the prize
         will be distributed as follows:
             1st place 60%
             2nd place 30%
@@ -333,7 +331,7 @@ class Race(commands.Cog):
             return await ctx.send("... that's not how prizes work buddy.")
         if prize == 0:
             return await ctx.send("No prizes will be awarded to the winners.")
-        if prize > 2 ** 63 - 1:
+        if prize > 2**63 - 1:
             return await ctx.send("Try a smaller number.")
         else:
             currency = await bank.get_currency_name(ctx.guild)
@@ -375,7 +373,9 @@ class Race(commands.Cog):
             await ctx.send("Races will now always payout.")
         else:
             plural = "s" if players != 1 else ""
-            await ctx.send(f"Races will only payout if there are {players} human player{plural} besides the person that starts the game.")
+            await ctx.send(
+                f"Races will only payout if there are {players} human player{plural} besides the person that starts the game."
+            )
 
     async def stats_update(self, ctx):
         names = [player for player, emoji in self.winners[ctx.guild.id]]
@@ -472,7 +472,10 @@ class Race(commands.Cog):
         if len(self.winners[ctx.guild.id]) == 3:
             first, second, third = self.winners[ctx.guild.id]
         else:
-            first, second, = self.winners[ctx.guild.id]
+            (
+                first,
+                second,
+            ) = self.winners[ctx.guild.id]
             third = None
         payout_msg = self._payout_msg(ctx, settings, currency)
         footer = await self._get_bet_winners(ctx, first[0])
@@ -545,7 +548,6 @@ class Race(commands.Cog):
         )
         track = await ctx.send(setup)
         while not all(animal.position == 0 for animal, jockey in players):
-
             await asyncio.sleep(2.0)
             fields = []
             for animal, jockey in players:
@@ -560,4 +562,4 @@ class Race(commands.Cog):
             try:
                 await track.edit(content=t)
             except discord.errors.NotFound:
-            	pass
+                pass
