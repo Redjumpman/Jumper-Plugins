@@ -29,7 +29,7 @@ import discord
 # Third-Party Libraries
 from tabulate import tabulate
 
-__version__ = "2.5.0"
+__version__ = "2.6.0"
 __author__ = "Redjumpman"
 
 _ = Translator("Casino", __file__)
@@ -359,56 +359,6 @@ class Casino(Database, commands.Cog):
 
     @casino.command()
     @checks.admin_or_permissions(administrator=True)
-    async def assignmem(
-        self,
-        ctx: commands.Context,
-        player: Union[discord.Member, discord.User],
-        *,
-        membership: str,
-    ):
-        """Manually assigns a membership to a user.
-
-        Users who are assigned a membership no longer need to meet the
-        requirements set. However, if the membership is revoked, then the
-        user will need to meet the requirements as usual.
-
-        """
-        settings = await super().get_data(ctx)
-        memberships = await settings.Memberships.all()
-        if membership not in memberships:
-            return await ctx.send(_("{} is not a registered membership.").format(membership))
-
-        player_instance = await super().get_data(ctx, player=player)
-        await player_instance.Membership.set({"Name": membership, "Assigned": True})
-
-        msg = _("{0.name} ({0.id}) manually assigned {1.name} ({1.id}) the {2} membership.").format(
-            ctx.author, player, membership
-        )
-        await ctx.send(msg)
-
-    @casino.command()
-    @checks.admin_or_permissions(administrator=True)
-    async def revokemem(self, ctx: commands.Context, player: Union[discord.Member, discord.User]):
-        """Revoke an assigned membership.
-
-        Members will still keep this membership until the next auto cycle (5mins).
-        At that time, they will be re-evaluated and downgraded/upgraded appropriately.
-        """
-        player_data = await super().get_data(ctx, player=player)
-
-        if not await player_data.Membership.Assigned():
-            return await ctx.send(_("{} has no assigned membership.").format(player.name))
-        else:
-            await player_data.Membership.set({"Name": "Basic", "Assigned": False})
-        return await ctx.send(
-            _(
-                "{} has unassigned {}'s membership. They have been set "
-                "to `Basic` until the next membership update cycle."
-            ).format(ctx.author.name, player.name)
-        )
-
-    @casino.command()
-    @checks.admin_or_permissions(administrator=True)
     async def admin(self, ctx: commands.Context):
         """A list of Admin level and above commands for Casino."""
         cmd_list = []
@@ -511,23 +461,6 @@ class Casino(Database, commands.Cog):
         await ctx.send(embed=embed)
 
     @casino.command()
-    @commands.max_concurrency(1, commands.BucketType.guild)
-    @checks.admin_or_permissions(administrator=True)
-    async def memdesigner(self, ctx: commands.Context):
-        """A process to create, edit, and delete memberships."""
-        timeout = ctx.send(_("Process timed out. Exiting membership process."))
-
-        await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
-
-        pred = MessagePredicate.lower_contained_in(("edit", "create", "delete"), ctx=ctx)
-        try:
-            choice = await ctx.bot.wait_for("Message", timeout=25.0, check=pred)
-        except asyncio.TimeoutError:
-            return await timeout
-
-        await Membership(ctx, timeout, choice.content.lower()).process()
-
-    @casino.command()
     async def version(self, ctx: commands.Context):
         """Shows the current Casino version."""
         await ctx.send("Casino is running version {}.".format(__version__))
@@ -547,6 +480,73 @@ class Casino(Database, commands.Cog):
     async def casinoset(self, ctx: commands.Context):
         """Changes Casino settings"""
         pass
+
+    @casinoset.command()
+    @checks.admin_or_permissions(administrator=True)
+    async def assignmem(
+        self,
+        ctx: commands.Context,
+        player: Union[discord.Member, discord.User],
+        *,
+        membership: str,
+    ):
+        """Manually assigns a membership to a user.
+
+        Users who are assigned a membership no longer need to meet the
+        requirements set. However, if the membership is revoked, then the
+        user will need to meet the requirements as usual.
+
+        """
+        settings = await super().get_data(ctx)
+        memberships = await settings.Memberships.all()
+        if membership not in memberships:
+            return await ctx.send(_("{} is not a registered membership.").format(membership))
+
+        player_instance = await super().get_data(ctx, player=player)
+        await player_instance.Membership.set({"Name": membership, "Assigned": True})
+
+        msg = _("{0.name} ({0.id}) manually assigned {1.name} ({1.id}) the {2} membership.").format(
+            ctx.author, player, membership
+        )
+        await ctx.send(msg)
+
+    @casinoset.command()
+    @checks.admin_or_permissions(administrator=True)
+    async def revokemem(self, ctx: commands.Context, player: Union[discord.Member, discord.User]):
+        """Revoke an assigned membership.
+
+        Members will still keep this membership until the next auto cycle (5mins).
+        At that time, they will be re-evaluated and downgraded/upgraded appropriately.
+        """
+        player_data = await super().get_data(ctx, player=player)
+
+        if not await player_data.Membership.Assigned():
+            return await ctx.send(_("{} has no assigned membership.").format(player.name))
+        else:
+            await player_data.Membership.set({"Name": "Basic", "Assigned": False})
+        return await ctx.send(
+            _(
+                "{} has unassigned {}'s membership. They have been set "
+                "to `Basic` until the next membership update cycle."
+            ).format(ctx.author.name, player.name)
+        )
+
+    @casinoset.command()
+    @commands.max_concurrency(1, commands.BucketType.guild)
+    @checks.admin_or_permissions(administrator=True)
+    async def memdesigner(self, ctx: commands.Context):
+        """A process to create, edit, and delete memberships."""
+        timeout = ctx.send(_("Process timed out. Exiting membership process."))
+
+        await ctx.send(_("Do you wish to `create`, `edit`, or `delete` an existing membership?"))
+
+        pred = MessagePredicate.lower_contained_in(("edit", "create", "delete"), ctx=ctx)
+        try:
+            choice = await ctx.bot.wait_for("Message", timeout=25.0, check=pred)
+        except asyncio.TimeoutError:
+            return await timeout
+
+        await Membership(ctx, timeout, choice.content.lower()).process()
 
     @casinoset.command(name="oldstyle")
     async def change_style(self, ctx: commands.Context):

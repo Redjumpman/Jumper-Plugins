@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # Standard Library
 import asyncio
 import random
@@ -88,7 +90,9 @@ class Core:
 
     @game_engine("Dice")
     async def play_dice(self, ctx, bet):
-        message = await ctx.send(_("The dice strike the back of the table and begin to tumble into place..."))
+        message = await ctx.send(
+            _("The dice strike the back of the table and begin to tumble into place...")
+        )
         await asyncio.sleep(2)
         die_one, die_two = self.roll_dice()
         outcome = die_one + die_two
@@ -158,6 +162,41 @@ class Core:
         return random.randint(1, 6), random.randint(1, 6)
 
 
+class BlackjackView(discord.ui.View):
+    def __init__(self, ctx, include_double: bool):
+        self.ctx = ctx
+        super().__init__()
+        self.result = None
+        if include_double is False:
+            self.double_button.disabled = True
+
+    @discord.ui.button(label="Hit", emoji="\N{RAISED FIST}")
+    async def hit_button(self, interaction: discord.Interaction, button):
+        self.result = "hit"
+        await interaction.response.defer()
+        self.stop()
+
+    @discord.ui.button(label="Stay", emoji="\N{RAISED HAND}")
+    async def stay_button(self, interaction: discord.Interaction, button):
+        self.result = "stay"
+        await interaction.response.defer()
+        self.stop()
+
+    @discord.ui.button(label="Double", emoji="\N{VICTORY HAND}\N{VARIATION SELECTOR-16}")
+    async def double_button(self, interaction: discord.Interaction, button):
+        self.result = "double"
+        await interaction.response.defer()
+        self.stop()
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(
+                "You are not authorized to interact with this.", ephemeral=True
+            )
+            return False
+        return True
+
+
 class Blackjack:
     """A simple class to hold the game logic for Blackjack.
 
@@ -188,47 +227,46 @@ class Blackjack:
         # End game if player has 21
         if ph_count == 21:
             return ph, dh, amount, None
-        options = (_("hit"), _("stay"), _("double"))
-        condition1 = MessagePredicate.lower_contained_in(options, ctx=ctx)
-        condition2 = MessagePredicate.lower_contained_in((_("hit"), _("stay")), ctx=ctx)
-
         embed = self.bj_embed(ctx, ph, dh, ph_count, initial=True)
-        msg = await ctx.send(ctx.author.mention, embed=embed)
+        view = BlackjackView(ctx, include_double=True)
+        msg = await ctx.send(ctx.author.mention, embed=embed, view=view)
+        await view.wait()
 
-        try:
-            choice = await ctx.bot.wait_for("message", check=condition1, timeout=35.0)
-        except asyncio.TimeoutError:
+        if view.result == "stay":
             dh = self.dealer(dh)
             return ph, dh, amount, msg
 
-        if choice.content.lower() == _("stay"):
-            dh = self.dealer(dh)
-            return ph, dh, amount, msg
-
-        if choice.content.lower() == _("double"):
-            return await self.double_down(ctx, ph, dh, amount, condition2, message=msg)
+        if view.result == "double":
+            return await self.double_down(ctx, ph, dh, amount, message=msg)
         else:
-            ph, dh, message = await self.bj_loop(ctx, ph, dh, ph_count, condition2, message=msg)
+            ph, dh, message = await self.bj_loop(ctx, ph, dh, ph_count, message=msg)
             dh = self.dealer(dh)
             return ph, dh, amount, msg
 
-    async def double_down(self, ctx, ph, dh, amount, condition2, message):
+    async def double_down(self, ctx, ph, dh, amount, message):
         try:
             await bank.withdraw_credits(ctx.author, amount)
         except ValueError:
-            await ctx.send(_("{} You can not cover the bet. Please choose hit or stay.").format(ctx.author.mention))
+            await ctx.send(
+                _("{} You can not cover the bet. Please choose hit or stay.").format(
+                    ctx.author.mention
+                )
+            )
+            view = BlackjackView(ctx, include_double=False)
+            ph_count = deck.bj_count(ph)
+            embed = self.bj_embed(ctx, ph, dh, ph_count, initial=False)
+            if not await self.old_message_cache.get_guild(ctx.guild):
+                await message.edit(content=ctx.author.mention, embed=embed, view=view)
+            else:
+                await ctx.send(content=ctx.author.mention, embed=embed, view=view)
+            await view.wait()
 
-            try:
-                choice2 = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
-            except asyncio.TimeoutError:
-                return ph, dh, amount, message
-
-            if choice2.content.lower() == _("stay"):
+            if view.result == "stay":
                 dh = self.dealer(dh)
                 return ph, dh, amount, message
-            elif choice2.content.lower() == _("hit"):
+            elif view.result == "hit":
                 ph, dh, message = await self.bj_loop(
-                    ctx, ph, dh, deck.bj_count(ph), condition2, message=message
+                    ctx, ph, dh, deck.bj_count(ph), message=message
                 )
                 dh = self.dealer(dh)
                 return ph, dh, amount, message
@@ -261,7 +299,7 @@ class Blackjack:
         embed = self.bj_embed(ctx, ph, dh, pc, outcome=outcome)
         return result, amount, embed, message
 
-    async def bj_loop(self, ctx, ph, dh, count, condition2, message: discord.Message):
+    async def bj_loop(self, ctx, ph, dh, count, message: discord.Message):
         while count < 21:
             ph = deck.deal(hand=ph)
             count = deck.bj_count(hand=ph)
@@ -269,16 +307,13 @@ class Blackjack:
             if count >= 21:
                 break
             embed = self.bj_embed(ctx, ph, dh, count)
+            view = BlackjackView(ctx, include_double=False)
             if not await self.old_message_cache.get_guild(ctx.guild):
-                await message.edit(content=ctx.author.mention, embed=embed)
+                await message.edit(content=ctx.author.mention, embed=embed, view=view)
             else:
-                await ctx.send(content=ctx.author.mention, embed=embed)
-            try:
-                resp = await ctx.bot.wait_for("message", check=condition2, timeout=35.0)
-            except asyncio.TimeoutError:
-                break
-
-            if resp.content.lower() == _("stay"):
+                await ctx.send(content=ctx.author.mention, embed=embed, view=view)
+            await view.wait()
+            if view.result == "stay":
                 break
             await asyncio.sleep(1)
 
@@ -323,6 +358,33 @@ class Blackjack:
         return embed
 
 
+class WarView(discord.ui.View):
+    def __init__(self, ctx):
+        self.ctx = ctx
+        super().__init__()
+        self.result = None
+
+    @discord.ui.button(label=_("War"))
+    async def war_button(self, interaction: discord.Interaction, button):
+        self.result = "war"
+        await interaction.response.defer()
+        self.stop()
+
+    @discord.ui.button(label=_("Surrender"), emoji="\N{WAVING WHITE FLAG}\N{VARIATION SELECTOR-16}")
+    async def surrender_button(self, interaction: discord.Interaction, button):
+        self.result = "surrender"
+        await interaction.response.defer()
+        self.stop()
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(
+                "You are not authorized to interact with this.", ephemeral=True
+            )
+            return False
+        return True
+
+
 class War:
     """A simple class for the war card game."""
 
@@ -364,17 +426,15 @@ class War:
             "but the multiplier is only applied to your original bet, the rest will "
             "be pushed."
         ).format(deck.fmt_card(player_card))
+        view = WarView(ctx)
         if not await self.old_message_cache.get_guild(ctx.guild):
-            await message.edit(content=content)
+            await message.edit(content=content, view=view)
         else:
-            await ctx.send(content=content)
-        pred = MessagePredicate.lower_contained_in((_("war"), _("surrender"), _("ffs")), ctx=ctx)
-        try:
-            choice = await ctx.bot.wait_for("message", check=pred, timeout=35.0)
-        except asyncio.TimeoutError:
-            return "Surrender", player_card, dealer_card, bet, message
+            await ctx.send(content=content, view=view)
+        await view.wait()
+        choice = view.result
 
-        if choice is None or choice.content.title() in (_("Surrender"), _("Ffs")):
+        if choice is None or choice.title() in (_("Surrender"), _("Ffs")):
             outcome = "Surrender"
             bet /= 2
             return outcome, player_card, dealer_card, bet, message
@@ -431,6 +491,34 @@ class War:
         return player_card, dealer_card, pc, dc
 
 
+class DoubleView(discord.ui.View):
+    def __init__(self, ctx):
+        self.ctx = ctx
+        super().__init__()
+        self.result = None
+
+    @discord.ui.button(label=_("Double"))
+    async def war_button(self, interaction: discord.Interaction, button):
+        self.result = "double"
+        await interaction.response.defer()
+        self.stop()
+
+    @discord.ui.button(label=_("Cash out"), emoji="\N{BANKNOTE WITH DOLLAR SIGN}")
+    async def surrender_button(self, interaction: discord.Interaction, button):
+        self.result = None
+        # set this to None so we exit even if the user doesn't interact
+        await interaction.response.defer()
+        self.stop()
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.response.send_message(
+                "You are not authorized to interact with this.", ephemeral=True
+            )
+            return False
+        return True
+
+
 class Double:
     """A simple class for the Double Or Nothing game."""
 
@@ -456,20 +544,16 @@ class Double:
 
             else:
                 bet *= 2
-
-            pred = MessagePredicate.lower_contained_in((_("double"), _("cash out")), ctx=ctx)
+            view = DoubleView(ctx)
 
             embed = self.double_embed(ctx, count, bet)
             if (not await self.old_message_cache.get_guild(ctx.guild)) and message:
-                await message.edit(content=ctx.author.mention, embed=embed)
+                await message.edit(content=ctx.author.mention, embed=embed, view=view)
             else:
-                message = await ctx.send(ctx.author.mention, embed=embed)
-            try:
-                resp = await ctx.bot.wait_for("message", check=pred, timeout=35.0)
-            except asyncio.TimeoutError:
-                break
+                message = await ctx.send(ctx.author.mention, embed=embed, view=view)
+            await view.wait()
 
-            if resp.content.lower() == _("cash out"):
+            if not view.result:
                 break
             await asyncio.sleep(1)
 

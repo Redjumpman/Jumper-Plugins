@@ -197,9 +197,9 @@ class GameEngine(Database):
         if not win:
             embed = await self.build_embed(msg, settings, win, total=amount, bonus="(+0)")
             if (not await self.old_message_cache.get_guild(self.ctx.guild)) and message_obj:
-                return await message_obj.edit(content=self.player.mention, embed=embed)
+                return await message_obj.edit(content=self.player.mention, embed=embed, view=None)
             else:
-                return await self.ctx.send(self.player.mention, embed=embed)
+                return await self.ctx.send(self.player.mention, embed=embed, view=None)
 
         player_data = await super().get_data(self.ctx, player=self.player)
         await self.update_stats(stat="Won")
@@ -216,9 +216,9 @@ class GameEngine(Database):
         total, bonus = await self.deposit_winnings(amount, player_data, settings)
         embed = await self.build_embed(msg, settings, win, total=total, bonus=bonus)
         if (not await self.old_message_cache.get_guild(self.ctx.guild)) and message_obj:
-            return await message_obj.edit(content=self.player.mention, embed=embed)
+            return await message_obj.edit(content=self.player.mention, embed=embed, view=None)
         else:
-            return await self.ctx.send(self.player.mention, embed=embed)
+            return await self.ctx.send(self.player.mention, embed=embed, view=None)
 
     async def limit_handler(self, embed, amount, player_instance, limit, message):
         await player_instance.Pending_Credits.set(int(amount))
