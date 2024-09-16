@@ -18,7 +18,7 @@ import discord
 from .animals import Animal, racers
 
 __author__ = "Redjumpman"
-__version__ = "2.1.5"
+__version__ = "2.1.6"
 
 
 class FancyDict(dict):
@@ -332,6 +332,7 @@ class Race(commands.Cog):
         if prize < 0:
             return await ctx.send("... that's not how prizes work buddy.")
         if prize == 0:
+            await self.config.guild(ctx.guild).Prize.set(prize)
             return await ctx.send("No prizes will be awarded to the winners.")
         if prize > 2 ** 63 - 1:
             return await ctx.send("Try a smaller number.")
